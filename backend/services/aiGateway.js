@@ -560,9 +560,7 @@ class AiGateway {
         timeoutMs: Number(options.timeoutMs || TASK_QUEUE_TIMEOUT_FLOORS[clean(task)] || 180000),
         maxTokens: options.maxTokens,
         temperature: options.temperature,
-        json: options.json === true,
-        numRetries: options.numRetries,
-        maxFallbacks: options.maxFallbacks
+        json: options.json === true
       }
     };
     eventBus.publish('ai:job-started', { jobId, task, modelBrain: true, logicalModel: projection.logicalModel, candidateCount: projection.candidates.length });
@@ -638,9 +636,7 @@ class AiGateway {
         timeoutMs,
         maxTokens: optionSnapshot.maxTokens,
         temperature: optionSnapshot.temperature,
-        json: optionSnapshot.json === true,
-        numRetries: optionSnapshot.numRetries,
-        maxFallbacks: optionSnapshot.maxFallbacks
+        json: optionSnapshot.json === true
       })
     });
     const queued = this.queue.add(async ({ signal }) => {

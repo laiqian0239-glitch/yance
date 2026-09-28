@@ -21,16 +21,16 @@ test('active Element Product keeps mature Model Brain authority while normal Pro
 
   assert.match(shell, /ProductSystemSettingsSurface/u);
   assert.match(shell, /ProductModelRuntimeSupportSurface/u);
-  assert.match(shell, /const \[settingsWindow, setSettingsWindow\] = useState<"accounts" \| "appearance" \| "models" \| null>\(null\)/u);
-  assert.match(shell, /settingsWindow === "models"[\s\S]{0,420}<ProductModelRuntimeSupportSurface \/>/u);
-  assert.match(shell, /setSettingsWindow\("models"\)[\s\S]{0,80}>模型中心<\/button>/u);
+  assert.match(shell, /const \[settingsSection, setSettingsSection\] = useState<SettingsSectionV4>\("general"\)/u);
+  assert.match(shell, /settingsSection === "models"[\s\S]{0,220}<ProductModelRuntimeSupportSurface \/>/u);
+  assert.match(shell, /setSettingsSection\("models"\)[\s\S]{0,80}>查看模型与路由<\/button>/u);
   assert.match(shell, /Mature authority: backend Model Brain \/ LiteLLM remains the sole physical provider\/model\/retry\/fallback owner\./u);
-  for (const label of ['AI 服务', '云端 AI', '本地 AI', '使用记录', '高级连接设置']) {
+  for (const label of ['AI 服务', '云端 AI', '本地 AI', '使用记录', '运行详情']) {
     assert.match(shell, new RegExp(label, 'u'), `missing Product model label: ${label}`);
   }
   assert.match(shell, /className="yance-model-advanced"/u);
   assert.doesNotMatch(shell, />Model Brain<|>LiteLLM<|>Authority<|>运行证据</u);
-  assert.doesNotMatch(shell, /任务路由|主模型|备用模型|primaryModelId|fallbackModelId|replyBrainScore/iu);
+  assert.doesNotMatch(shell, /primaryModelId|fallbackModelId|primaryDraft|fallbackDraft|set-task-model-policy|replyBrainScore/iu);
   assert.doesNotMatch(surface, /LiteLLM|Ollama|GPU|Model Brain|API Key|SHA-?256/iu);
 
   assert.match(bridge, /\/api\/r32\/models\/model-brain\/status/u);
@@ -109,7 +109,7 @@ test('active Product uses fixed authenticated model capabilities, not Yance scor
   ]) assert.match(preload, new RegExp(method, 'u'));
 
   assert.doesNotMatch(bridge, /input\.(?:url|method)|apiRequest\(\s*clean\(input/iu);
-  assert.doesNotMatch(shell, /score slider|质量评分|成本评分|速度评分|首选主模型|备用模型|replyBrainScore/iu);
+  assert.doesNotMatch(shell, /score slider|质量评分|成本评分|速度评分|首选主模型|primaryModelId|fallbackModelId|set-task-model-policy|replyBrainScore/iu);
   assert.match(shell, /本地模型不会在你不知情时替代正式回复/u);
   assert.doesNotMatch(surface, /getProductModelRuntimeState|mutateProductModelRuntime|requestId|endpoint/iu);
 });

@@ -19,6 +19,12 @@ const COMPOSER_ACCESSORY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0
 const PRODUCT_CONVERSATION_CONTROL_PATCH = path.join(ROOT, 'upstream-patches/element-web/0017-yance-product-conversation-control.patch');
 const POST_LOGIN_SECURITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0018-yance-post-login-security-shell.patch');
 const MODULE_OPENID_TOKEN_PATCH = path.join(ROOT, 'upstream-patches/element-web/0019-yance-module-openid-token.patch');
+const PRODUCT_LIVE_ROOM_PUBLIC_SEAMS_PATCH = path.join(ROOT, 'upstream-patches/element-web/0020-yance-product-live-room-public-seams.patch');
+const SPACE_HIERARCHY_SUMMARY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0021-yance-space-hierarchy-summary.patch');
+const BRIDGE_DM_AVATAR_AUTHORITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0022-yance-bridge-dm-avatar-authority.patch');
+const ROOM_MESSAGE_SUMMARY_PROJECTION_PATCH = path.join(ROOT, 'upstream-patches/element-web/0023-yance-room-message-summary-projection.patch');
+const ROOM_INVITE_SENDER_PUBLIC_SEAM_PATCH = path.join(ROOT, 'upstream-patches/element-web/0024-yance-room-invite-sender-public-seam.patch');
+const PRODUCT_CONVERSATION_PRESENTATION_SUCCESSOR_PATCH = path.join(ROOT, 'upstream-patches/element-web/0025-yance-product-conversation-presentation-successor.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
 function run(cwd, command, args) {
@@ -136,6 +142,12 @@ function main() {
   applyPatch(element, PRODUCT_CONVERSATION_CONTROL_PATCH, 'Element Product conversation control patch');
   applyPatch(element, POST_LOGIN_SECURITY_PATCH, 'Element post-login security shell patch');
   applyPatch(element, MODULE_OPENID_TOKEN_PATCH, 'Element module OpenID token patch');
+  applyPatch(element, PRODUCT_LIVE_ROOM_PUBLIC_SEAMS_PATCH, 'Element Product live-room public seams patch');
+  applyPatch(element, SPACE_HIERARCHY_SUMMARY_PATCH, 'Element space hierarchy summary patch');
+  applyPatch(element, BRIDGE_DM_AVATAR_AUTHORITY_PATCH, 'Element bridge-DM avatar authority patch');
+  applyPatch(element, ROOM_MESSAGE_SUMMARY_PROJECTION_PATCH, 'Element room message-summary projection patch');
+  applyPatch(element, ROOM_INVITE_SENDER_PUBLIC_SEAM_PATCH, 'Element room invite-sender public seam patch');
+  applyPatch(element, PRODUCT_CONVERSATION_PRESENTATION_SUCCESSOR_PATCH, 'Element Product conversation presentation successor patch');
 
   assertExactCommit(synapse, LOCK.upstreams.synapse.commit);
   assertExactCommit(mautrix, LOCK.upstreams.mautrixWhatsapp.commit);

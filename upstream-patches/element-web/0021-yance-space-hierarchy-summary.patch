@@ -1,0 +1,59 @@
+diff --git a/apps/web/src/modules/ClientApi.ts b/apps/web/src/modules/ClientApi.ts
+index fb8879707953c16ea8cfe44a6b501b923db64ad2..3abdef3b3a07a751214dff95466c6bab7280aa1f 100644
+--- a/apps/web/src/modules/ClientApi.ts
++++ b/apps/web/src/modules/ClientApi.ts
+@@ -4,7 +4,7 @@ Copyright 2025 Element Creations Ltd.
+ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Commercial
+ Please see LICENSE files in the repository root for full details.
+ */
+-import type { ClientApi as IClientApi, Room } from "@element-hq/element-web-module-api";
++import type { ClientApi as IClientApi, Room, SpaceHierarchyRoomSummary } from "@element-hq/element-web-module-api";
+ import { Room as ModuleRoom } from "./models/Room";
+ import { AccountDataApi } from "./AccountDataApi";
+ import { MatrixClientPeg } from "../MatrixClientPeg";
+@@ -23,13 +23,20 @@ export class ClientApi implements IClientApi {
+             .map((sdkRoom) => new ModuleRoom(sdkRoom));
+     }
+ 
+-    public async getSpaceHierarchyRoomIds(spaceRoomId: string): Promise<string[]> {
++    public async getSpaceHierarchyRooms(spaceRoomId: string): Promise<SpaceHierarchyRoomSummary[]> {
+         const canonicalSpaceRoomId = String(spaceRoomId || "").trim();
+         if (!canonicalSpaceRoomId) return [];
+         const hierarchy = await MatrixClientPeg.safeGet().getRoomHierarchy(canonicalSpaceRoomId, 1000, 1, false);
+         return hierarchy.rooms
+-            .map((room) => String(room.room_id || "").trim())
+-            .filter((roomId) => Boolean(roomId) && roomId !== canonicalSpaceRoomId);
++            .map((room) => ({
++                roomId: String(room.room_id || "").trim(),
++                name: String(room.name || room.canonical_alias || room.room_id || "").trim(),
++            }))
++            .filter((room) => Boolean(room.roomId) && room.roomId !== canonicalSpaceRoomId);
++    }
++
++    public async getSpaceHierarchyRoomIds(spaceRoomId: string): Promise<string[]> {
++        return (await this.getSpaceHierarchyRooms(spaceRoomId)).map((room) => room.roomId);
+     }
+ 
+     public async ensureRoomJoined(roomId: string): Promise<void> {
+diff --git a/packages/module-api/src/api/client.ts b/packages/module-api/src/api/client.ts
+index 7336cb8eb458907f27f9074f69e27ef25b5b6b37..8a3f9f03ab94367e075ba23923f75c6069092d29 100644
+--- a/packages/module-api/src/api/client.ts
++++ b/packages/module-api/src/api/client.ts
+@@ -49,11 +49,17 @@ export interface ClientApi {
+      * @returns Room objects projected through the existing module Room wrapper.
+      */
+     getRooms: () => Room[];
++    getSpaceHierarchyRooms: (spaceRoomId: string) => Promise<SpaceHierarchyRoomSummary[]>;
+     getSpaceHierarchyRoomIds: (spaceRoomId: string) => Promise<string[]>;
+     ensureRoomJoined: (roomId: string) => Promise<void>;
+     getOpenIdToken: () => Promise<MatrixOpenIdToken>;
+ }
+ 
++export type SpaceHierarchyRoomSummary = {
++    roomId: string;
++    name: string;
++};
++
+ // @public
+ export type MatrixOpenIdToken = {
+     access_token: string;

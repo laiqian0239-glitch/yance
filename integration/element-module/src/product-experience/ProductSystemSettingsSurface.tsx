@@ -53,6 +53,28 @@ function jsonSummary(value: unknown): string {
   }
   return Object.keys(row).length ? "已读取" : "无";
 }
+function runtimeOperatingModeLabel(value: string): string {
+  if (value === "safeMode") return "安全模式";
+  if (value === "normal") return "正常模式";
+  return "状态待确认";
+}
+function runtimeLifecycleStateLabel(value: string): string {
+  if (value === "created") return "正在启动";
+  if (value === "manifest_verified") return "启动文件已验证";
+  if (value === "ownership_acquired") return "运行权限已确认";
+  if (value === "database_ready") return "本地数据已就绪";
+  if (value === "runtime_state_ready") return "运行状态已就绪";
+  if (value === "credential_channel_ready") return "安全凭据通道已就绪";
+  if (value === "credential_hydrated") return "安全凭据已载入";
+  if (value === "local_account_state_restored") return "本地账号状态已恢复";
+  if (value === "api_contract_verified") return "本地接口已验证";
+  if (value === "critical_workers_ready") return "核心服务已就绪";
+  if (value === "local_ready") return "本地服务已就绪";
+  if (value === "stopping") return "正在停止";
+  if (value === "stopped") return "已停止";
+  if (value === "failed") return "启动失败";
+  return "状态待确认";
+}
 
 const DESKTOP_TOGGLES = [
   ["autoLaunch", "开机启动"], ["closeToTray", "关闭按钮收起到托盘"], ["startMinimized", "启动后保持最小化"],
@@ -325,7 +347,7 @@ export function ProductSystemSettingsSurface({
 
     <details className="yance-settings-disclosure"><summary>高级恢复工具</summary>
       <p>仅在言策运行异常时使用。当前状态：{runtimeLocalReady ? "本地服务正常" : "本地服务需要检查"}。</p>
-      <p className="yance-settings-technical-detail">运行模式：{runtimeOperatingMode} · 生命周期：{runtimeLifecycleState}</p>
+      <p className="yance-settings-technical-detail">运行模式：{runtimeOperatingModeLabel(runtimeOperatingMode)} · 生命周期：{runtimeLifecycleStateLabel(runtimeLifecycleState)}</p>
       <button type="button" disabled={busy || !api?.restartBackend}
         onClick={() => void runAndRefresh(api?.restartBackend ? () => api.restartBackend!() : undefined, "后台服务重启失败")}>重启后台服务</button>
       <button type="button" disabled={busy || !api?.restartApp}

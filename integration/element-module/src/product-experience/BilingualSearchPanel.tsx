@@ -78,6 +78,44 @@ function relationshipForResult(
   )) || null;
 }
 
+function localRelationshipContacts(
+  query: string,
+  relationships: readonly RelationshipProjection[],
+): WorkspaceSearchProjection["contacts"] {
+  const needle = query.trim().toLocaleLowerCase();
+  if (!needle) return [];
+  return relationships
+    .filter((relationship) => {
+      const values = [
+        relationship.name,
+        relationship.subtitle,
+        relationship.platform,
+        relationship.chatJid,
+        ...relationship.conversations.flatMap((conversation) => [
+          conversation.title,
+          conversation.platform,
+          conversation.chatJid,
+        ]),
+      ];
+      return values.some((value) => String(value || "").toLocaleLowerCase().includes(needle));
+    })
+    .slice(0, 40)
+    .map((relationship) => {
+      const conversation = relationship.conversations.find((row) => !row.archived)
+        || relationship.conversations[0];
+      return {
+        id: `relationship:${relationship.id}`,
+        contactId: relationship.id,
+        conversationId: conversation?.id || relationship.sessionKey || relationship.matrixRoomId || "",
+        name: relationship.name,
+        phone: "",
+        platform: relationship.platform || conversation?.platform || "",
+        avatarUrl: "",
+        tags: [],
+      };
+    });
+}
+
 export function BilingualSearchPanel({
   relationships,
   reducedMotion,
@@ -97,6 +135,7 @@ export function BilingualSearchPanel({
   const latestQuery = useRef("");
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchRootRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     latestQuery.current = query;
@@ -113,6 +152,17 @@ export function BilingualSearchPanel({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (!expanded) return undefined;
+    const onPointerDown = (event: PointerEvent): void => {
+      const target = event.target;
+      if (!(target instanceof Node) || !searchRootRef.current) return;
+      if (!searchRootRef.current.contains(target)) setExpanded(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [expanded]);
 
   const activeJobStatus = normalizedStatus(activeJob);
   const exactNavigationAvailableByMessage = useMemo(() => {
@@ -142,9 +192,13 @@ export function BilingualSearchPanel({
     try {
       const next = await searchWorkspace(trimmed);
       if (sequence !== searchSequence.current) return;
-      setResults(next);
+      const knownContactIds = new Set(next.contacts.map((contact) => contact.contactId));
+      const localContacts = localRelationshipContacts(trimmed, relationships)
+        .filter((contact) => !knownContactIds.has(contact.contactId));
+      const merged = { ...next, contacts: [...next.contacts, ...localContacts] };
+      setResults(merged);
       setSearchState("ready");
-      const count = next.messages.length + next.contacts.length;
+      const count = merged.messages.length + merged.contacts.length;
       setStatus(count ? `找到 ${count} 条结果。` : `没有找到“${trimmed}”的结果。`);
     } catch (error) {
       if (sequence !== searchSequence.current) return;
@@ -277,18 +331,18 @@ export function BilingualSearchPanel({
       try {
         const navigated = await onNavigateRelationship(relationship);
         if (navigated) {
-          setStatus("已打开可信的 Element 会话。");
+          setStatus("已打开真实会话。");
           return;
         }
       } catch (error) {
-        navigationError = errorText(error, "Element 导航暂不可用。");
+        navigationError = errorText(error, "会话导航暂不可用。");
       }
     }
 
     onSelectRelationship(relationship.id);
     setStatus(navigationError
-      ? `已打开关系上下文。Element 导航失败：${navigationError}`
-      : "已打开关系上下文；这条结果暂时无法精确跳转到 Element 消息。 ");
+      ? `已打开关系上下文。会话导航失败：${navigationError}`
+      : "已打开关系上下文；这条结果暂时无法精确跳转到原消息。");
   };
 
   const clearSearch = (): void => {
@@ -301,6 +355,7 @@ export function BilingualSearchPanel({
 
   return (
     <section
+      ref={searchRootRef}
       className="yance-bilingual-search"
       data-expanded={expanded || undefined}
       data-reduced-motion={reducedMotion || undefined}
@@ -415,7 +470,7 @@ export function BilingualSearchPanel({
                         <span>{[result.platform, formatTime(result.sentAt)].filter(Boolean).join(" · ")}</span>
                       </div>
                       <span className="yance-bilingual-search__nav-state">
-                        {exactNavigationAvailable ? "Element 可定位" : "关系上下文"}
+                        {exactNavigationAvailable ? "可精确定位" : "关系上下文"}
                       </span>
                     </div>
                     <button

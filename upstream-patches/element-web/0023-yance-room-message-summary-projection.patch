@@ -1,0 +1,127 @@
+diff --git a/apps/web/src/modules/models/Room.ts b/apps/web/src/modules/models/Room.ts
+index d5f173a..bf81e4e 100644
+--- a/apps/web/src/modules/models/Room.ts
++++ b/apps/web/src/modules/models/Room.ts
+@@ -5,7 +5,7 @@ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Com
+ Please see LICENSE files in the repository root for full details.
+ */
+ 
+-import { type Room as IRoom, Watchable } from "@element-hq/element-web-module-api";
++import { type Room as IRoom, type RoomMessageSummary, Watchable } from "@element-hq/element-web-module-api";
+ import { RoomEvent, type Room as SdkRoom } from "matrix-js-sdk/src/matrix";
+ 
+ export class Room implements IRoom {
+@@ -19,6 +19,26 @@ export class Room implements IRoom {
+         return this.sdkRoom.getLastActiveTimestamp();
+     }
+ 
++    public getRecentMessageSummaries(limit = 12): RoomMessageSummary[] {
++        const boundedLimit = Math.max(1, Math.min(50, Math.floor(limit)));
++        const events = this.sdkRoom.getLiveTimeline().getEvents();
++        const summaries: RoomMessageSummary[] = [];
++        for (let index = events.length - 1; index >= 0 && summaries.length < boundedLimit; index -= 1) {
++            const event = events[index];
++            if (event.getType() !== "m.room.message") continue;
++            const content = event.getContent<Record<string, unknown>>();
++            const body = typeof content.body === "string" ? content.body.trim() : "";
++            if (!body) continue;
++            summaries.push({
++                id: event.getId() ?? "",
++                sender: event.getSender() ?? "",
++                body,
++                timestamp: event.getTs(),
++            });
++        }
++        return summaries;
++    }
++
+     public getStateEvents(eventType: string): Array<{ stateKey: string; content: Record<string, unknown> }> {
+         return this.sdkRoom.currentState.getStateEvents(eventType).map((event) => ({
+             stateKey: event.getStateKey() ?? "",
+diff --git a/apps/web/test/unit-tests/modules/models/Room-test.ts b/apps/web/test/unit-tests/modules/models/Room-test.ts
+index 407a1ae..1a9d182 100644
+--- a/apps/web/test/unit-tests/modules/models/Room-test.ts
++++ b/apps/web/test/unit-tests/modules/models/Room-test.ts
+@@ -45,6 +45,21 @@ describe("Room", () => {
+         ]);
+     });
+ 
++    it("should return bounded newest-first summaries from already-loaded message events", () => {
++        const cli = stubClient();
++        const sdkRoom = mkRoom(cli, "!foo:m.org");
++        sdkRoom.addLiveEvents([
++            new MatrixEvent({ event_id: "$one", type: "m.room.message", sender: "@alice:m.org", origin_server_ts: 10, content: { msgtype: "m.text", body: "first" } }),
++            new MatrixEvent({ event_id: "$state", type: "m.reaction", sender: "@alice:m.org", origin_server_ts: 15, content: {} }),
++            new MatrixEvent({ event_id: "$two", type: "m.room.message", sender: "@bob:m.org", origin_server_ts: 20, content: { msgtype: "m.text", body: "second" } }),
++        ], { addToState: false });
++        const room = new Room(sdkRoom);
++
++        expect(room.getRecentMessageSummaries(1)).toStrictEqual([
++            { id: "$two", sender: "@bob:m.org", body: "second", timestamp: 20 },
++        ]);
++    });
++
+     describe("watchableName", () => {
+         it("should return name from sdkRoom", () => {
+             const cli = stubClient();
+diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
+index 850da85..f39baed 100644
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -449,6 +449,7 @@ export interface RichVariables {
+ // @public
+ export interface Room {
+     getLastActiveTimestamp: () => number;
++    getRecentMessageSummaries: (limit?: number) => RoomMessageSummary[];
+     getStateEvents: (eventType: string) => Array<{
+         stateKey: string;
+         content: Record<string, unknown>;
+@@ -457,6 +458,14 @@ export interface Room {
+     name: Watchable<string>;
+ }
+ 
++// @public
++export type RoomMessageSummary = {
++    body: string;
++    id: string;
++    sender: string;
++    timestamp: number;
++};
++
+ // @alpha
+ export type RoomHeaderButtonsCallback = (roomId: string) => JSX.Element | undefined;
+ 
+diff --git a/packages/module-api/src/models/Room.ts b/packages/module-api/src/models/Room.ts
+index e0fda49..db9b9ac 100644
+--- a/packages/module-api/src/models/Room.ts
++++ b/packages/module-api/src/models/Room.ts
+@@ -7,6 +7,17 @@ Please see LICENSE files in the repository root for full details.
+ 
+ import { type Watchable } from "../api/watchable";
+ 
++/**
++ * Bounded, already-loaded message context from Element's mature Room timeline.
++ * @public
++ */
++export type RoomMessageSummary = {
++    id: string;
++    sender: string;
++    body: string;
++    timestamp: number;
++};
++
+ /**
+  * Represents a room from element-web.
+  * @public
+@@ -25,6 +36,11 @@ export interface Room {
+      * @returns last active timestamp
+      */
+     getLastActiveTimestamp: () => number;
++    /**
++     * Read a bounded newest-first summary of message events already loaded by Element.
++     * This does not paginate, backfill, or create another timeline owner.
++     */
++    getRecentMessageSummaries: (limit?: number) => RoomMessageSummary[];
+     /**
+      * Read state event content from the current room state.
+      * @param eventType - Matrix state event type

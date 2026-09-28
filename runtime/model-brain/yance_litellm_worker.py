@@ -182,8 +182,6 @@ def _build_router(payload: dict[str, Any]) -> tuple[Router, str, ComplexityRoute
         model_list=model_list,
         enable_tag_filtering=True,
         tag_filtering_match_any=False,
-        num_retries=max(0, int(options.get("numRetries", 2) or 0)),
-        max_fallbacks=max(0, int(options.get("maxFallbacks", 5) or 0)),
         timeout=max(1.0, float(options.get("timeoutMs", 180000) or 180000) / 1000.0),
     )
     complexity = payload.get("complexity") if isinstance(payload.get("complexity"), dict) else {}

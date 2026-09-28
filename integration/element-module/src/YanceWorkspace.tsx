@@ -4,6 +4,7 @@ import { ProductExperienceShell, type ProductAppearanceHost } from "./product-ex
 import type {
   ConversationRef,
   GroupConversationProjection,
+  MatrixDirectRoomProjection,
   RelationshipProjection,
 } from "./product-experience/experienceTypes";
 
@@ -36,6 +37,10 @@ type YanceWorkspaceProps = {
   ) => Promise<boolean>;
   navigateProductHome?: () => Promise<void> | void;
   navigateRelationshipHome?: () => Promise<void> | void;
+  renderRoomAvatar?: (roomId: string, size?: string) => React.ReactNode;
+  renderUserAvatar?: (userId: string, size?: string) => React.ReactNode;
+  loadMatrixDirectRooms?: () => Promise<readonly MatrixDirectRoomProjection[]>;
+  subscribeMatrixRoomList?: (listener: () => void) => () => void;
   renderRoomView?: (roomId: string, props?: {
     hideHeader?: boolean;
     hideComposer?: boolean;
@@ -46,6 +51,7 @@ type YanceWorkspaceProps = {
   }) => React.ReactNode;
   readRoomStateEvents?: ReadRoomStateEvents;
   getMatrixOpenIdToken?: () => Promise<MatrixOpenIdToken>;
+  getMatrixUserId?: () => string;
   openUserSettings?: (destination:"account"|"security"|"sessions")=>void;
   requestLogout?: ()=>void;
 };
@@ -57,14 +63,19 @@ export function YanceWorkspace({
   navigateGroupConversation,
   navigateProductHome,
   navigateRelationshipHome,
+  renderRoomAvatar,
+  renderUserAvatar,
+  loadMatrixDirectRooms,
+  subscribeMatrixRoomList,
   renderRoomView,
   readRoomStateEvents,
   getMatrixOpenIdToken,
+  getMatrixUserId,
   openUserSettings,
   requestLogout,
 }: YanceWorkspaceProps): React.JSX.Element {
   return (
-    <PersonalAccessSurface getMatrixOpenIdToken={getMatrixOpenIdToken} requestLogout={requestLogout}>
+    <PersonalAccessSurface getMatrixOpenIdToken={getMatrixOpenIdToken}>
       <ProductExperienceShell
         appearanceHost={appearanceHost}
         navigateSearchResult={navigateSearchResult}
@@ -72,8 +83,14 @@ export function YanceWorkspace({
         navigateGroupConversation={navigateGroupConversation}
         navigateProductHome={navigateProductHome}
         navigateRelationshipHome={navigateRelationshipHome}
+        renderRoomAvatar={renderRoomAvatar}
+        renderUserAvatar={renderUserAvatar}
+        loadMatrixDirectRooms={loadMatrixDirectRooms}
+        subscribeMatrixRoomList={subscribeMatrixRoomList}
         renderRoomView={renderRoomView}
         readRoomStateEvents={readRoomStateEvents}
+        getMatrixOpenIdToken={getMatrixOpenIdToken}
+        getMatrixUserId={getMatrixUserId}
         openUserSettings={openUserSettings}
         requestLogout={requestLogout}
       />

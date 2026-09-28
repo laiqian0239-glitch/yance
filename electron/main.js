@@ -20,7 +20,8 @@ const {
   nativeImage,
   session,
   powerMonitor,
-  net
+  net,
+  screen
 } = require('electron');
 
 const {
@@ -123,6 +124,7 @@ const { createInstalledRuntimeProbeOperations } = require('./wp7InstalledRuntime
 const { createMainWindowActivationController } = require('./mainWindowActivationController');
 const { createMainWindowRuntimeReadiness } = require('./mainWindowRuntimeReadiness');
 const { preserveTaskbarOnMinimize, hideWindowToTray, restoreWindowTaskbar } = require('./windowLifecyclePolicy');
+const { resolveInitialWindowBounds, captureNormalWindowBounds } = require('./windowBoundsPolicy');
 const { getElectronReleaseIdentity } = require('./releaseIdentity');
 const { classifyChildProcessGone } = require('./runtimeProcessHealthAuthority');
 const { readInstallerIdentityReceipt } = require('../installer/installedIdentityReceipt');
@@ -3656,15 +3658,24 @@ function createWindow() {
   if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
 
   const settings = settingsStore.read();
+  const hasStoredPosition = settings.windowX !== null && settings.windowY !== null
+    && Number.isFinite(Number(settings.windowX)) && Number.isFinite(Number(settings.windowY));
+  const targetDisplay = hasStoredPosition
+    ? screen.getDisplayMatching({ x: Number(settings.windowX), y: Number(settings.windowY), width: Math.max(1, Number(settings.windowWidth) || 920), height: Math.max(1, Number(settings.windowHeight) || 620) })
+    : screen.getPrimaryDisplay();
+  const initialBounds = resolveInitialWindowBounds(settings, targetDisplay.workArea);
   const createdWindow = new BrowserWindow({
-    width: 860,
-    height: 580,
-    minWidth: 760,
-    minHeight: 520,
+    x: initialBounds.x,
+    y: initialBounds.y,
+    width: initialBounds.width,
+    height: initialBounds.height,
+    minWidth: 860,
+    minHeight: 580,
     show: false,
-    backgroundColor: '#2A0F4A',
+    backgroundColor: '#06111D',
     title: STATIC_RELEASE_SOURCE.publicProductName,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : process.platform === 'win32' ? 'hidden' : 'default',
+    titleBarOverlay: process.platform === 'win32' ? { color: '#06111D', symbolColor: '#F4F0E6', height: 48 } : false,
     icon: iconPath(),
     autoHideMenuBar: true,
     webPreferences: {
@@ -3680,9 +3691,25 @@ function createWindow() {
     }
   });
   mainWindow = createdWindow;
-  createdWindow.center();
+  if (initialBounds.maximized) createdWindow.maximize();
+
+  let windowBoundsSaveTimer = null;
+  const persistNormalWindowBounds = () => {
+    const normalBounds = captureNormalWindowBounds(createdWindow);
+    if (!normalBounds) return;
+    settingsStore.update(normalBounds);
+  };
+  const scheduleNormalWindowBoundsSave = () => {
+    if (windowBoundsSaveTimer) clearTimeout(windowBoundsSaveTimer);
+    windowBoundsSaveTimer = setTimeout(() => { windowBoundsSaveTimer = null; persistNormalWindowBounds(); }, 160);
+  };
+  createdWindow.on('resize', scheduleNormalWindowBoundsSave);
+  createdWindow.on('move', scheduleNormalWindowBoundsSave);
+  createdWindow.on('maximize', () => settingsStore.update({ windowMaximized: true }));
+  createdWindow.on('unmaximize', () => { settingsStore.update({ windowMaximized: false }); scheduleNormalWindowBoundsSave(); });
 
   createdWindow.on('close', event => {
+    persistNormalWindowBounds();
     if (quitting) return;
     const current = settingsStore.read();
     if (current.closeToTray) {

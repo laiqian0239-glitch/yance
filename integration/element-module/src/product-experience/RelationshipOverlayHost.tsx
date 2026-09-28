@@ -55,6 +55,50 @@ function clean(value: unknown): string {
   return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
 }
 
+export function canonicalPlatformChatId(platformValue: unknown, chatJidValue: unknown): string {
+  const platform = clean(platformValue).toLowerCase();
+  let normalized = clean(chatJidValue);
+  if (!platform || !normalized) return normalized;
+  const platformPrefix = `${platform}:`;
+  if (normalized.toLowerCase().startsWith(platformPrefix)) {
+    normalized = normalized.slice(platformPrefix.length);
+  }
+  if (platform === "telegram" && normalized.toLowerCase().startsWith("user:")) {
+    normalized = normalized.slice("user:".length);
+  }
+  return normalized;
+}
+
+export function bridgeReceiverAliasesForAccount(
+  platformValue: unknown,
+  accountIdValue: unknown,
+  accountRows: readonly unknown[],
+): readonly string[] {
+  const platform = clean(platformValue).toLowerCase();
+  const accountId = clean(accountIdValue);
+  const aliases = new Set<string>();
+  if (accountId) aliases.add(accountId);
+  if (!platform || !accountId) return [...aliases];
+
+  for (const value of accountRows) {
+    const row = record(value);
+    if (clean(row.platform).toLowerCase() !== platform) continue;
+    const canonicalAccountId = clean(row.canonicalAccountId || row.mergedIntoId || row.id || row.accountId);
+    if (canonicalAccountId !== accountId) continue;
+    const metadata = record(row.metadata);
+    for (const candidate of [metadata.mautrixLoginId, metadata.mautrixMetaLoginId, metadata.pageId, metadata.facebookPageId]) {
+      const receiver = clean(candidate);
+      if (receiver) aliases.add(receiver);
+    }
+    const bridgeLogins = Array.isArray(row.bridgeLogins) ? row.bridgeLogins : [];
+    for (const rawLogin of bridgeLogins) {
+      const receiver = clean(record(rawLogin).id);
+      if (receiver) aliases.add(receiver);
+    }
+  }
+  return [...aliases];
+}
+
 function bridgeIdentity(value: unknown): BridgeIdentity | null {
   const content = record(value);
   const protocol = record(content.protocol);
@@ -64,88 +108,6 @@ function bridgeIdentity(value: unknown): BridgeIdentity | null {
   const receiver = clean(channel["fi.mau.receiver"]);
   if (!platform || !chatJid) return null;
   return { platform, chatJid, receiver };
-}
-
-export type CanonicalRoomResolution =
-  | { status: "resolved"; roomId: string }
-  | { status: "unresolved"; reason: string }
-  | { status: "ambiguous"; reason: string };
-
-function conversationMatchesBridgeIdentity(
-  conversation: ConversationRef,
-  identity: BridgeIdentity,
-): boolean {
-  const platform = clean(conversation.platform).toLowerCase();
-  const chatJid = clean(conversation.chatJid);
-  const accountId = clean(conversation.accountId);
-  if (!platform || !chatJid || !accountId) return false;
-  return platform === identity.platform
-    && chatJid === identity.chatJid
-    && (!identity.receiver || accountId === identity.receiver);
-}
-
-export function resolveCanonicalConversationRoom(
-  conversation: ConversationRef,
-  roomIds: readonly string[],
-  readRoomStateEvents?: ReadRoomStateEvents,
-): CanonicalRoomResolution {
-  if (!readRoomStateEvents) {
-    return { status: "unresolved", reason: "当前会话路由读取接口不可用" };
-  }
-  if (!conversation.platform || !conversation.accountId || !conversation.chatJid) {
-    return { status: "unresolved", reason: "canonical conversation 缺少平台路由身份" };
-  }
-
-  const matches = new Set<string>();
-  for (const rawRoomId of roomIds) {
-    const roomId = clean(rawRoomId);
-    if (!roomId) continue;
-
-    let events: readonly { stateKey: string; content: Record<string, unknown> }[];
-    try {
-      events = [
-        ...readRoomStateEvents(roomId, "m.bridge"),
-        ...readRoomStateEvents(roomId, "uk.half-shot.bridge"),
-      ];
-    } catch {
-      continue;
-    }
-
-    const identities = new Map<string, BridgeIdentity>();
-    for (const event of events) {
-      const identity = bridgeIdentity(event.content);
-      if (!identity) continue;
-      identities.set(
-        `${identity.platform}\u0000${identity.chatJid}\u0000${identity.receiver}`,
-        identity,
-      );
-    }
-
-    const matchingIdentities = [...identities.values()]
-      .filter((identity) => conversationMatchesBridgeIdentity(conversation, identity));
-
-    if (matchingIdentities.length > 1) {
-      return {
-        status: "ambiguous",
-        reason: "同一房间存在多个匹配的 bridge identity",
-      };
-    }
-    if (matchingIdentities.length === 1) matches.add(roomId);
-  }
-
-  if (matches.size === 1) {
-    return { status: "resolved", roomId: [...matches][0] };
-  }
-  if (matches.size > 1) {
-    return {
-      status: "ambiguous",
-      reason: "canonical conversation 匹配到多个 Matrix room",
-    };
-  }
-  return {
-    status: "unresolved",
-    reason: "没有找到唯一匹配的真实会话房间",
-  };
 }
 
 function normalizedStoreRoute(key: string, value: unknown): StoreRoute | null {
@@ -167,9 +129,13 @@ function normalizedStoreRoute(key: string, value: unknown): StoreRoute | null {
 
 function productDesktop(): {
   storeSnapshot?: (input: { domains: string[] }) => Promise<unknown>;
+  listPlatformAccounts?: (input?: { matrixUserId?: string }) => Promise<Record<string, unknown>>;
 } | null {
   return (window as unknown as {
-    yanceDesktop?: { storeSnapshot?: (input: { domains: string[] }) => Promise<unknown> };
+    yanceDesktop?: {
+      storeSnapshot?: (input: { domains: string[] }) => Promise<unknown>;
+      listPlatformAccounts?: (input?: { matrixUserId?: string }) => Promise<Record<string, unknown>>;
+    };
   }).yanceDesktop || null;
 }
 
@@ -178,7 +144,7 @@ export async function resolveRelationshipToolRoute(
   readRoomStateEvents?: ReadRoomStateEvents,
 ): Promise<RelationshipToolRouteBinding> {
   const roomId = activeMatrixRoomId.trim();
-  if (!roomId) return { status: "unresolved", reason: "当前 Element 会话尚未就绪" };
+  if (!roomId) return { status: "unresolved", reason: "当前真实会话尚未就绪" };
   if (!readRoomStateEvents) return { status: "unresolved", reason: "当前会话路由读取接口不可用" };
 
   let rawBridgeEvents: readonly { stateKey: string; content: Record<string, unknown> }[];
@@ -188,55 +154,75 @@ export async function resolveRelationshipToolRoute(
       ...readRoomStateEvents(roomId, "uk.half-shot.bridge"),
     ];
   } catch {
-    return { status: "unresolved", reason: "无法读取当前会话的 bridge identity" };
+    return { status: "unresolved", reason: "无法读取当前会话的连接身份" };
   }
 
   if (!rawBridgeEvents.length) {
-    return { status: "unresolved", reason: "当前会话没有可用的 bridge identity" };
+    return { status: "unresolved", reason: "当前会话没有可用的连接身份" };
   }
 
   const identities = new Map<string, BridgeIdentity>();
   for (const event of rawBridgeEvents) {
     const identity = bridgeIdentity(event.content);
-    if (!identity) return { status: "unresolved", reason: "当前会话 bridge identity 格式无效" };
+    if (!identity) return { status: "unresolved", reason: "当前会话的连接身份无效" };
     const key = `${identity.platform}\u0000${identity.chatJid}\u0000${identity.receiver}`;
     identities.set(key, identity);
   }
 
   if (identities.size !== 1) {
-    return { status: "ambiguous", reason: "当前会话存在多个不同的 bridge identity" };
+    return { status: "ambiguous", reason: "当前会话存在多个不同的连接身份" };
   }
   const identity = [...identities.values()][0];
 
   const api = productDesktop();
   if (!api || typeof api.storeSnapshot !== "function") {
-    return { status: "unresolved", reason: "Store conversation authority 不可用" };
+    return { status: "unresolved", reason: "当前会话路由服务不可用" };
   }
 
   let payload: unknown;
   try {
     payload = await api.storeSnapshot({ domains: ["conversations"] });
   } catch {
-    return { status: "unresolved", reason: "无法读取 Store conversations" };
+    return { status: "unresolved", reason: "无法读取当前会话路由" };
   }
 
   const root = record(payload);
   const snapshot = record(root.snapshot || root);
   const conversations = record(snapshot.conversations);
   const byId = record(conversations.byId);
+  if (!identity.receiver) {
+    return { status: "unresolved", reason: "当前会话缺少可确认的账号身份" };
+  }
+
+  let accountRows: readonly unknown[] = [];
+  if (typeof api.listPlatformAccounts === "function") {
+    try {
+      const accountPayload = record(await api.listPlatformAccounts());
+      accountRows = Array.isArray(accountPayload.accounts) ? accountPayload.accounts : [];
+    } catch {
+      accountRows = [];
+    }
+  }
+
+  const identityChatJid = canonicalPlatformChatId(identity.platform, identity.chatJid);
   const matches = Object.entries(byId)
     .map(([key, value]) => normalizedStoreRoute(key, value))
     .filter((route): route is StoreRoute => Boolean(route))
-    .filter((route) => (
-      route.platformKey === identity.platform
-      && route.chatJid === identity.chatJid
-      && (!identity.receiver || route.accountId === identity.receiver)
-    ));
+    .filter((route) => {
+      if (route.platformKey !== identity.platform) return false;
+      if (canonicalPlatformChatId(route.platformKey, route.chatJid) !== identityChatJid) return false;
+      const aliases = bridgeReceiverAliasesForAccount(
+        route.platformKey,
+        route.accountId,
+        accountRows,
+      );
+      return aliases.includes(identity.receiver);
+    });
 
   if (matches.length !== 1) {
     return matches.length > 1
-      ? { status: "ambiguous", reason: "Store 中存在多个匹配的 canonical conversation" }
-      : { status: "unresolved", reason: "Store 中没有唯一匹配的 canonical conversation" };
+      ? { status: "ambiguous", reason: "当前账号存在多个匹配的真实会话" }
+      : { status: "unresolved", reason: "当前账号没有唯一匹配的真实会话" };
   }
 
   const [{ platform, accountId, chatJid, sessionKey }] = matches;

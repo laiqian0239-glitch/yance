@@ -1,0 +1,70 @@
+diff --git a/apps/web/src/Avatar.test.ts b/apps/web/src/Avatar.test.ts
+index 4ee7d89..50b0215 100644
+--- a/apps/web/src/Avatar.test.ts
++++ b/apps/web/src/Avatar.test.ts
+@@ -40,6 +40,9 @@ describe("avatarUrlForRoom", () => {
+             isSpaceRoom: vi.fn(),
+             getType: vi.fn(),
+             getAvatarFallbackMember: vi.fn(),
++            currentState: {
++                getStateEvents: vi.fn(() => []),
++            },
+         } as unknown as Room;
+         dmRoomMap = {
+             getUserIdForRoomId: vi.fn(),
+@@ -73,6 +76,17 @@ describe("avatarUrlForRoom", () => {
+         expect(dmRoomMap.getUserIdForRoomId).toHaveBeenCalledWith(roomId);
+     });
+ 
++    it("should use the other member avatar for a bridge-declared DM outside m.direct", () => {
++        vi.mocked(dmRoomMap).getUserIdForRoomId.mockReturnValue(undefined);
++        vi.mocked(room.currentState.getStateEvents).mockImplementation((type: string) => type === "m.bridge" ? [{
++            getContent: () => ({ "com.beeper.room_type.v2": "dm" }),
++        }] as never : []);
++        vi.mocked(room.getAvatarFallbackMember).mockReturnValue(roomMember);
++        vi.mocked(roomMember.getMxcAvatarUrl).mockReturnValue(avatarUrl2);
++        getThumbnailOfSourceHttp.mockReturnValue(avatarUrl2);
++        expect(avatarUrlForRoom(room, 128, 256, "crop")).toEqual(avatarUrl2);
++    });
++
+     it("should return null if there is no other member in the room", () => {
+         vi.mocked(dmRoomMap).getUserIdForRoomId.mockReturnValue("@user:example.com");
+         vi.mocked(room.getAvatarFallbackMember).mockReturnValue(undefined);
+diff --git a/apps/web/src/Avatar.ts b/apps/web/src/Avatar.ts
+index f2995b3..eea4b0b 100644
+--- a/apps/web/src/Avatar.ts
++++ b/apps/web/src/Avatar.ts
+@@ -157,6 +157,21 @@ export function getInitialLetter(name: string): string | undefined {
+     return getFirstGrapheme(name).toUpperCase();
+ }
+ 
++function isBridgeDeclaredDirectRoom(room: Room): boolean {
++    for (const eventType of ["m.bridge", "uk.half-shot.bridge"]) {
++        const events = room.currentState?.getStateEvents(eventType);
++        const rows = Array.isArray(events) ? events : events ? [events] : [];
++        for (const event of rows) {
++            const content = event.getContent<Record<string, unknown>>();
++            const roomType = String(content["com.beeper.room_type.v2"] ?? content["com.beeper.room_type"] ?? "")
++                .trim()
++                .toLowerCase();
++            if (roomType === "dm") return true;
++        }
++    }
++    return false;
++}
++
+ export function avatarUrlForRoom(
+     room: Room | null,
+     width?: number,
+@@ -177,8 +192,9 @@ export function avatarUrlForRoom(
+     // space rooms cannot be DMs so skip the rest
+     if (room.isSpaceRoom()) return null;
+ 
+-    // If the room is not a DM don't fallback to a member avatar
+-    if (!DMRoomMap.shared().getUserIdForRoomId(room.roomId) && !isLocalRoom(room)) {
++    // Bridge-managed DMs may not be present in Matrix m.direct, but their mature
++    // bridge state still declares the room as a direct conversation.
++    if (!DMRoomMap.shared().getUserIdForRoomId(room.roomId) && !isLocalRoom(room) && !isBridgeDeclaredDirectRoom(room)) {
+         return null;
+     }
+ 

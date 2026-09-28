@@ -1,0 +1,22 @@
+diff --git a/apps/web/src/modules/ClientApi.ts b/apps/web/src/modules/ClientApi.ts
+index 3abdef3b3a07a751214dff95466c6bab7280aa1f..c6d8c40926fc8214aca01969e106ca7f9952b074 100644
+--- a/apps/web/src/modules/ClientApi.ts
++++ b/apps/web/src/modules/ClientApi.ts
+@@ -47,6 +47,17 @@ export class ClientApi implements IClientApi {
+         await client.joinRoom(canonicalRoomId);
+     }
+ 
++    public getRoomInviteSender(roomId: string): string | null {
++        const canonicalRoomId = String(roomId || "").trim();
++        if (!canonicalRoomId) return null;
++        const client = MatrixClientPeg.safeGet();
++        const userId = String(client.getUserId() || "").trim();
++        const room = client.getRoom(canonicalRoomId);
++        if (!userId || !room || room.getMyMembership() !== "invite") return null;
++        const event = room.currentState.getStateEvents("m.room.member", userId);
++        return event?.getSender() || null;
++    }
++
+     public async getOpenIdToken(): Promise<{
+         access_token: string;
+         token_type: string;
