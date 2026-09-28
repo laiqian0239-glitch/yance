@@ -148,6 +148,37 @@ test('egress treats structured success=false as a rejection instead of platform 
   });
 });
 
+test('auth delegation stays stateless and preserves the mature provider error', async () => {
+  await withEventLogAsync(async ({ eventLog }) => {
+    const providerError = Object.assign(new Error('provider rejected login'), {
+      code: 'PROVIDER_LOGIN_REJECTED',
+      errcode: 'M_FORBIDDEN',
+      details: { upstream: 'mature-owner' }
+    });
+    const forbiddenLifecycle = new Proxy({}, {
+      get() { throw new Error('AUTH_SHADOW_LIFECYCLE_TOUCHED'); }
+    });
+    const facade = new PlatformAdapterFacade('whatsapp', {
+      eventLog,
+      operationLifecycle: forbiddenLifecycle,
+      authHandler: {
+        connect: async () => { throw providerError; }
+      }
+    });
+    let observed = null;
+    await assert.rejects(
+      () => facade.auth.execute({ accountId: 'wa-stateless-auth', operation: 'connect' }),
+      error => {
+        observed = error;
+        return error === providerError && error.code === 'PROVIDER_LOGIN_REJECTED';
+      }
+    );
+    assert.equal(observed, providerError);
+    assert.equal(observed.operationId, undefined);
+    assert.equal(observed.operationGeneration, undefined);
+  });
+});
+
 test('reconcile failures degrade only that account and never block realtime traffic', async () => {
   await withEventLogAsync(async ({ eventLog, authority }) => {
   const facade = new PlatformAdapterFacade('whatsapp', {

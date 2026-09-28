@@ -354,10 +354,6 @@ async function poll(accountId, flowId, options = {}) {
   return { flowId, mode: 'identity', status: 'completed', identity: flow.personalIdentity, pages: [], expiresAt: clean(data.expiresAt) };
 }
 
-async function selectPage(_accountId, _flowId, _pageId, _options = {}) {
-  throw pageOAuthOwnedByChatwootError();
-}
-
 async function cancel(accountId, flowId, options = {}) {
   assertOperationActive(options.signal, 'FACEBOOK_OAUTH_CANCEL_ABORTED');
   const flow = await getFlow(accountId, flowId);
@@ -392,7 +388,6 @@ module.exports = {
   assertPageOAuthOwnedByChatwoot,
   begin,
   poll,
-  selectPage,
   cancel,
   _flows: flows
 };

@@ -463,6 +463,41 @@ test('Daily Conversation Review lanes are evidence-bound to real selected-day me
   assert.deepEqual(result.nextActions.map(row => row.id).sort(), ['in-day-rec']);
 });
 
+test('Daily Conversation Review contact route resolves Person context without treating contactId as a conversationId', () => {
+  const originalGetContactContext = workspaceRepository.getContactContext;
+  const originalGetContextByConversation = workspaceRepository.getContextByConversation;
+  const scannedConversationIds = [];
+  workspaceRepository.getContactContext = contactId => {
+    assert.equal(contactId, 'contact-a');
+    return {
+      person: { personId: 'person-1', contactIds: ['contact-a'], conversationIds: ['conv-a'] },
+      personContext: { personId: 'person-1', contactIds: ['contact-a'], conversationIds: ['conv-a'] },
+      profile: {}, insights: { sourceScope: {} }
+    };
+  };
+  workspaceRepository.getContextByConversation = () => {
+    throw new Error('contact route must not resolve contactId through conversation lookup');
+  };
+  try {
+    const result = workspaceService.dailyReview('contact-a', {
+      timeZone: 'UTC', localDate: '2026-07-27', ceiling: 10,
+      listMessagesForExport: conversationId => {
+        scannedConversationIds.push(conversationId);
+        assert.equal(conversationId, 'conv-a');
+        return [{ id: 'm-live', conversationId: 'conv-a', text: 'real', sentAt: '2026-07-27T06:00:00Z' }];
+      }
+    });
+    assert.deepEqual(scannedConversationIds, ['conv-a']);
+    assert.equal(result.contactId, 'contact-a');
+    assert.equal(result.personId, 'person-1');
+    assert.deepEqual(result.conversationIds, ['conv-a']);
+    assert.equal(result.dayMessageCount, 1);
+  } finally {
+    workspaceRepository.getContactContext = originalGetContactContext;
+    workspaceRepository.getContextByConversation = originalGetContextByConversation;
+  }
+});
+
 test('Daily Conversation Review rejects missing or invalid explicit day/timezone identity', () => {
   const context = { person: { personId: 'person-1', conversationIds: ['conv-a'] }, insights: { sourceScope: {} } };
   const options = { context, ceiling: 10, listMessagesForExport: () => [] };

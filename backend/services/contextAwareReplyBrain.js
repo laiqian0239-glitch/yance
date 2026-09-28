@@ -157,38 +157,108 @@ function personaContactScope(contactId, socialContext = {}) {
   return clean(socialContext?.customer?.canonicalContactId || socialContext?.customer?.customerProfileId || contactId);
 }
 
-function buildTemporalContext(input = {}) {
-  const candidateZone = clean(input.timeZone || input.timezone || input.temporalContext?.timeZone);
-  let timeZone = candidateZone;
-  if (!timeZone) {
-    try { timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (_) { timeZone = 'UTC'; }
-  }
-  const nowValue = input.now instanceof Date ? input.now : new Date(input.now || Date.now());
-  const now = Number.isNaN(nowValue.getTime()) ? new Date() : nowValue;
-  let parts;
+const OWNER_TIME_ZONE = 'Europe/Berlin';
+
+function daypartForHour(hour) {
+  return hour < 5 ? 'late_night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 22 ? 'evening' : 'late_night';
+}
+
+function validTimeZone(value) {
+  const timeZone = clean(value);
+  if (!timeZone) return '';
   try {
-    parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', weekday: 'long'
-    }).formatToParts(now);
+    new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date(0));
+    return timeZone;
   } catch (_) {
-    timeZone = 'UTC';
-    parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', weekday: 'long'
-    }).formatToParts(now);
+    return '';
   }
+}
+
+function zonedClockParts(instant, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', weekday: 'long'
+  }).formatToParts(instant);
   const byType = Object.fromEntries(parts.map(part => [part.type, part.value]));
   const hour = Number(byType.hour || 0);
-  const daypart = hour < 5 ? 'late_night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 22 ? 'evening' : 'late_night';
-  return Object.freeze({
+  return {
     localDate: `${byType.year}-${byType.month}-${byType.day}`,
     localTime: `${byType.hour}:${byType.minute}:${byType.second}`,
     weekday: byType.weekday || '',
-    daypart,
-    timeZone,
+    daypart: daypartForHour(hour)
+  };
+}
+
+function extractTemporalExpressions(value) {
+  const text = clean(value);
+  if (!text) return [];
+  const patterns = [
+    ['morning_greeting', /(?:早上好|早安|good\s*morning)/iu],
+    ['afternoon_greeting', /(?:下午好|good\s*afternoon)/iu],
+    ['evening_greeting', /(?:晚上好|good\s*evening)/iu],
+    ['good_night', /(?:晚安|good\s*night)/iu],
+    ['tonight', /(?:今晚|tonight)/iu],
+    ['tomorrow', /(?:明天|tomorrow)/iu],
+    ['today', /(?:今天|today)/iu],
+    ['later', /(?:一会儿|一会|待会儿|待会|later|in\s+a\s+bit)/iu],
+    ['weekend', /(?:周末|weekend)/iu],
+    ['just_off_work', /(?:刚下班|just\s+got\s+off\s+work)/iu]
+  ];
+  return patterns.filter(([, regex]) => regex.test(text)).map(([id]) => id);
+}
+
+function buildTemporalContext(input = {}) {
+  const nowValue = input.now instanceof Date ? input.now : new Date(input.now || Date.now());
+  const now = Number.isNaN(nowValue.getTime()) ? new Date() : nowValue;
+  const owner = zonedClockParts(now, OWNER_TIME_ZONE);
+  const contactTimeZone = validTimeZone(input.contactTimeZone || input.temporalContext?.contactTimeZone) || null;
+  const contactTimeZoneConfidence = contactTimeZone
+    ? (['high', 'medium'].includes(clean(input.contactTimeZoneConfidence)) ? clean(input.contactTimeZoneConfidence) : 'high')
+    : 'unknown';
+  const incomingMessage = input.incomingMessage && typeof input.incomingMessage === 'object' ? input.incomingMessage : {};
+  const temporalExpressions = extractTemporalExpressions(incomingMessage.text || input.incomingText);
+  const rawIncomingInstant = clean(incomingMessage.sentAt || incomingMessage.timestamp || input.incomingMessageInstant);
+  const incomingValue = rawIncomingInstant ? new Date(rawIncomingInstant) : null;
+  const incomingInstant = incomingValue && !Number.isNaN(incomingValue.getTime()) ? incomingValue : null;
+  const elapsedSeconds = incomingInstant ? Math.max(0, Math.floor((now.getTime() - incomingInstant.getTime()) / 1000)) : null;
+  const contactNow = contactTimeZone ? zonedClockParts(now, contactTimeZone) : null;
+  const contactIncoming = contactTimeZone && incomingInstant ? zonedClockParts(incomingInstant, contactTimeZone) : null;
+  const greetingExpressions = new Set(['morning_greeting', 'afternoon_greeting', 'evening_greeting', 'good_night']);
+  const hasGreeting = temporalExpressions.some(value => greetingExpressions.has(value));
+  const crossDay = Boolean(contactNow && contactIncoming && contactNow.localDate !== contactIncoming.localDate);
+  const staleGreeting = Boolean(
+    hasGreeting && elapsedSeconds != null && elapsedSeconds >= 4 * 60 * 60
+    && (!contactNow || !contactIncoming || contactNow.daypart !== contactIncoming.daypart)
+  );
+  const temporalMismatch = crossDay || staleGreeting;
+  let replyTemporalMode = 'current';
+  if (!contactTimeZone && hasGreeting && elapsedSeconds != null) replyTemporalMode = 'neutral_due_to_unknown_zone';
+  else if (crossDay) replyTemporalMode = 'cross_day';
+  else if (staleGreeting) replyTemporalMode = 'acknowledge_previous_time';
+  return Object.freeze({
+    nowInstant: now.toISOString(),
+    ownerTimeZone: OWNER_TIME_ZONE,
+    ownerLocalDate: owner.localDate,
+    ownerLocalTime: owner.localTime,
+    ownerDaypart: owner.daypart,
+    contactTimeZone,
+    contactTimeZoneConfidence,
+    contactLocalDate: contactNow?.localDate || null,
+    contactLocalTime: contactNow?.localTime || null,
+    contactDaypart: contactNow?.daypart || null,
+    incomingMessageInstant: incomingInstant ? incomingInstant.toISOString() : null,
+    incomingDaypart: contactIncoming?.daypart || null,
+    elapsedSeconds,
+    temporalExpressions,
+    temporalMismatch,
+    replyTemporalMode,
+    localDate: owner.localDate,
+    localTime: owner.localTime,
+    weekday: owner.weekday,
+    daypart: owner.daypart,
+    timeZone: OWNER_TIME_ZONE,
     observedAt: now.toISOString(),
-    authority: 'runtime-clock-only'
+    authority: 'runtime-clock-message-time-v2'
   });
 }
 
@@ -488,6 +558,55 @@ function applyReplyLanguageQuality(validation = {}, text = '', authority = {}) {
   };
 }
 
+function elapsedBucketForSeconds(value) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds < 0) return 'unknown';
+  if (seconds < 5 * 60) return 'lt_5m';
+  if (seconds < 60 * 60) return 'lt_1h';
+  if (seconds < 4 * 60 * 60) return 'lt_4h';
+  if (seconds < 12 * 60 * 60) return 'lt_12h';
+  if (seconds < 24 * 60 * 60) return 'lt_24h';
+  return 'gte_1d';
+}
+
+function validateTemporalCandidate(value, temporalContext = {}) {
+  const text = clean(value);
+  const mode = clean(temporalContext.replyTemporalMode) || 'current';
+  if (!text || mode === 'current') return { pass: true, reasonCode: '', mode };
+  const directGreeting = /^\s*(?:早上好|早安|下午好|晚上好|good\s*morning\b|good\s*afternoon\b|good\s*evening\b)/iu.test(text);
+  const acknowledgesPast = /(?:刚看到|才看到|现在才看到|早上的消息|你早上|你上午|之前的消息|earlier|your\s+morning\s+message|saw\s+your.*message)/iu.test(text);
+  let invalid = false;
+  if (mode === 'acknowledge_previous_time') invalid = directGreeting && !acknowledgesPast;
+  if (mode === 'neutral_due_to_unknown_zone') invalid = directGreeting && !acknowledgesPast;
+  if (mode === 'cross_day' || mode === 'expired_plan_reference') {
+    const original = new Set(Array.isArray(temporalContext.temporalExpressions) ? temporalContext.temporalExpressions : []);
+    const repeatsTonight = original.has('tonight') && /(?:今晚|tonight)/iu.test(text);
+    const repeatsTomorrow = original.has('tomorrow') && /(?:明天|tomorrow)/iu.test(text);
+    const repeatsGoodNight = original.has('good_night') && /^\s*(?:晚安|good\s*night\b)/iu.test(text);
+    invalid = (repeatsTonight || repeatsTomorrow || repeatsGoodNight) && !acknowledgesPast;
+  }
+  if (!invalid) return { pass: true, reasonCode: '', mode };
+  return {
+    pass: false,
+    reasonCode: 'AI_REPLY_TEMPORAL_MISMATCH',
+    mode,
+    message: '候选回复与当前真实时间语境不一致，需要自然承接旧时段或使用中性表达。'
+  };
+}
+
+function applyTemporalQuality(validation = {}, text = '', temporalContext = {}) {
+  const temporalValidation = validateTemporalCandidate(text, temporalContext);
+  if (temporalValidation.pass) return { ...validation, temporalValidation };
+  const issue = { code: temporalValidation.reasonCode, message: temporalValidation.message, replyTemporalMode: temporalValidation.mode };
+  return {
+    ...validation,
+    pass: false,
+    issues: [...(validation.issues || []), issue],
+    blockers: [...(validation.blockers || []), issue],
+    temporalValidation
+  };
+}
+
 function clampNumber(value, min, max, fallback) {
   const number = Number(value);
   return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
@@ -682,7 +801,7 @@ function buildModelMessages(packet, options = {}) {
     '当前联系人上下文是唯一来源；不得串用其他联系人的姓名、经历、称呼或私人信息。',
     'confirmedFacts 可以作为事实使用；userNotes 和 AI 推测不能被当作确定事实。',
     '候选文本不得反向修改出生、家庭、创伤、医疗、职业、财富、旅行或机构履历；上下文未明确确认的内容必须保持未知。',
-    'temporalContext 只提供真实本地日期、时间、星期与时段用于自然措辞；不得根据时间编造用户当前活动、地点、作息、行程或状态。',
+    '时间语境规则：temporalContext 只提供真实日期、时间与时段；当 replyTemporalMode 不是 current 时，不得机械镜像原消息中的旧问候或已过期时间表达，应承认时间已经过去、自然过渡，或在联系人时区未知时使用中性表达。',
     'persona.lifeStatus 仅来自 authoritative.personaProfile.lifeStatus；不得根据 temporalContext 推断或改写 lifeStatus。',
     '不得声称去过未确认地点，也不得把推测、玩笑、导演指令或其他联系人的经历写成当前人物的真实经历。',
     '导演参数用于调整语气、直接程度、暧昧程度和长度，最终判断由用户完成。',
@@ -944,7 +1063,7 @@ function createContextAwareReplyBrain({
     const performanceMode = replyPerformancePolicy.inferMode(input, basePacket);
     const performancePolicy = replyPerformancePolicy.policyFor({ ...input, performanceMode }, basePacket);
     const contactLanguage = contactLanguageAuthority.read({ contactId, conversationId });
-    const temporalContext = buildTemporalContext(input);
+    const temporalContext = buildTemporalContext({ ...input, incomingMessage, contactTimeZone: socialContext.customer?.timezone, contactTimeZoneConfidence: socialContext.customer?.timezone ? 'high' : 'unknown' });
     const packet = Object.assign({}, basePacket, {
       persona: personaCtx.context.persona,
       contactLanguage,
@@ -1267,7 +1386,7 @@ function createContextAwareReplyBrain({
         context: taskContext,
         priority: 100
       });
-      let quality = applyReplyLanguageQuality(validateReplyCandidate(modelResult.text, directedPromptPacket), modelResult.text, languageAuthority);
+      let quality = applyTemporalQuality(applyReplyLanguageQuality(validateReplyCandidate(modelResult.text, directedPromptPacket), modelResult.text, languageAuthority), modelResult.text, directedPromptPacket.temporalContext);
       let repaired = false;
       if (!quality.pass) {
         activeStage = 'candidate_repair';
@@ -1288,10 +1407,13 @@ function createContextAwareReplyBrain({
           context: taskContext,
           priority: 100
         });
-        quality = applyReplyLanguageQuality(validateReplyCandidate(modelResult.text, directedPromptPacket), modelResult.text, languageAuthority);
+        quality = applyTemporalQuality(applyReplyLanguageQuality(validateReplyCandidate(modelResult.text, directedPromptPacket), modelResult.text, languageAuthority), modelResult.text, directedPromptPacket.temporalContext);
         if (!quality.pass) {
           const languageMismatch = (quality.issues || []).some(issue => issue.code === 'AI_REPLY_LANGUAGE_MISMATCH');
-          throw createBrainError(languageMismatch ? 'AI_REPLY_LANGUAGE_MISMATCH' : 'AI_REPLY_QUALITY_REJECTED', languageMismatch ? 'Generated reply used the wrong customer language after one controlled repair' : 'Generated reply failed quality validation after one controlled repair', {
+          const temporalMismatch = (quality.issues || []).some(issue => issue.code === 'AI_REPLY_TEMPORAL_MISMATCH');
+          const rejectionCode = languageMismatch ? 'AI_REPLY_LANGUAGE_MISMATCH' : temporalMismatch ? 'AI_REPLY_TEMPORAL_MISMATCH' : 'AI_REPLY_QUALITY_REJECTED';
+          const rejectionMessage = languageMismatch ? 'Generated reply used the wrong customer language after one controlled repair' : temporalMismatch ? 'Generated reply remained inconsistent with the current temporal context after one controlled repair' : 'Generated reply failed quality validation after one controlled repair';
+          throw createBrainError(rejectionCode, rejectionMessage, {
             task: replyTask,
             issues: quality.blockers,
             metrics: quality.metrics,
@@ -1429,6 +1551,10 @@ function createContextAwareReplyBrain({
         targetLanguageCode: languageAuthority.code,
         languageAuthority,
         languageValidation: quality.languageValidation,
+        replyTemporalMode: clean(temporalContext.replyTemporalMode) || 'current',
+        elapsedBucket: elapsedBucketForSeconds(temporalContext.elapsedSeconds),
+        contactTimeZoneConfidence: clean(temporalContext.contactTimeZoneConfidence) || 'unknown',
+        temporalValidation: { ...(quality.temporalValidation || { pass: true, reasonCode: '', mode: clean(temporalContext.replyTemporalMode) || 'current' }) },
         performanceMode,
         personaProfileId: personaCtx.profileId || 'owner',
         personaVersionId: personaCtx.personaVersionId,
@@ -1635,6 +1761,8 @@ module.exports = {
   applyReplyLanguageQuality,
   personaContactScope,
   buildTemporalContext,
+  extractTemporalExpressions,
+  validateTemporalCandidate,
   selectReplyTask,
   resolveReplyGenerationOptions,
   parseDirectorJson,

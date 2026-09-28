@@ -98,6 +98,17 @@ test('Howler sound policy has exact modes and no thinking sound event', () => {
   assert.doesNotMatch(sound, /\bhover\b[^\\n]*(?:sound|play)|play[^\\n]*hover/iu);
 });
 
+test('Final Product interaction cues reuse the existing Howler policy instead of creating a second sound owner', () => {
+  const people = readOrEmpty('integration/element-module/src/product-experience/PeopleSurface.tsx');
+  const shell = readOrEmpty('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
+  assert.match(people, /import \{ playExperienceSound \} from "\.\/experienceSound"/u);
+  assert.match(shell, /import \{ playExperienceSound \} from "\.\/experienceSound"/u);
+  assert.match(people, /playExperienceSound\(soundMode, "open"\)/u);
+  assert.match(people, /playExperienceSound\(soundMode, "confirm"\)/u);
+  assert.match(shell, /playExperienceSound\(preferences\.soundMode, "open"\)/u);
+  assert.doesNotMatch(people + '\n' + shell, /new Howl\s*\(/u);
+});
+
 test('Product relationship tools bind the active Element room bridge state uniquely to Store conversation authority', () => {
   const index = readOrEmpty('integration/element-module/src/index.tsx');
   const workspace = readOrEmpty('integration/element-module/src/YanceWorkspace.tsx');
@@ -124,13 +135,14 @@ test('Product relationship tools bind the active Element room bridge state uniqu
 
 test('Product appearance settings bind Store authority at 85-150 percent and expose the existing preference write seam', () => {
   const shell = readOrEmpty('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
+  const settings = readOrEmpty('integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx');
   const projection = readOrEmpty('integration/element-module/src/product-experience/experienceProjection.ts');
   const preload = readOrEmpty('electron/preload.js');
   const entry = readOrEmpty('integration/element-module/src/index.tsx');
-  assert.match(shell, /min=\{?85\}?/u, 'Product font control must start at 85%');
-  assert.match(shell, /max=\{?150\}?/u, 'Product font control must end at 150%');
-  assert.match(shell, /step=\{?1\}?/u, 'Product font control must use 1% steps');
-  assert.match(shell, /体验设置|字号/u);
+  assert.match(shell, /settingsWindow === "appearance"[\s\S]{0,420}<ProductSystemSettingsSurface category="appearance"/u,
+    'appearance must remain a separate Product child panel backed by the mature settings surface');
+  assert.match(settings, /type="range" min="85" max="150" step="1"/u, 'Product font control must retain the 85-150% one-percent contract');
+  assert.match(settings, /外观主题|字号/u);
   assert.match(projection, /storeSnapshot[\s\S]*domains:\s*\[["']ui["']\]/u, 'Product must read canonical ui appearance state from Store');
   assert.match(preload, /updateThemePreferences/u, 'preload must expose the existing Store theme-preferences write authority');
   assert.doesNotMatch(entry, /Yance Workspace/u, 'normal Element entry chrome must be Chinese-first');

@@ -172,30 +172,25 @@ test('M3-SC-DIAG-013 Facebook Chatwoot physical egress consumes the persisted WP
   }
 });
 
-test('M3-SC-DIAG-014 Facebook Chatwoot session and sync physical I/O consume one RUNNING persisted operation identity', async () => {
+test('M3-SC-DIAG-014 Facebook Chatwoot owns session connect while history sync remains persisted and fail-closed', async () => {
   const portsPath = path.join(repoRoot, 'backend', 'services', 'platformAdapterPorts.js');
-  const workflowPath = path.join(repoRoot, 'backend', 'services', 'platformAuthWorkflowAuthority.js');
   const corePath = path.join(repoRoot, 'backend', 'services', 'accountManagerCore.js');
   const bridgePath = path.join(repoRoot, 'backend', 'services', 'facebookChatwootMatrixBridge.js');
   const portsSource = fs.readFileSync(portsPath, 'utf8');
-  const workflowSource = fs.readFileSync(workflowPath, 'utf8');
   const coreSource = fs.readFileSync(corePath, 'utf8');
+  const bridgeSource = fs.readFileSync(bridgePath, 'utf8');
 
-  assert.match(
-    workflowSource,
-    /operation\s*:\s*lifecycle\.read\(created\.operation\.operationId\)/u,
-    'M3-SC-DIAG-014:AUTH_WORKFLOW_MUST_RETURN_RUNNING_PERSISTED_SNAPSHOT'
-  );
-  assert.match(
-    portsSource,
-    /physicalOperationContext\s*:/u,
-    'M3-SC-DIAG-014:PORT_MUST_PROJECT_PERSISTED_OPERATION_IDENTITY'
-  );
-  assert.match(
-    coreSource,
-    /physicalOperationContext\s*:\s*options\.physicalOperationContext/u,
-    'M3-SC-DIAG-014:ACCOUNT_CORE_MUST_FORWARD_PERSISTED_OPERATION_IDENTITY'
-  );
+  const authBody = portsSource.slice(portsSource.indexOf('async executeAuth(input = {})'), portsSource.indexOf('async authStart(input = {})'));
+  assert.doesNotMatch(authBody, /platformAuthWorkflowAuthority|currentRuntimeInternalOperationAuthority|executePortWithDeadline/u, 'M3-SC-DIAG-014:AUTH_SHADOW_AUTHORITY_FORBIDDEN');
+  assert.match(authBody, /'physicalOperationContext'/u, 'M3-SC-DIAG-014:CALLER_PHYSICAL_CONTEXT_MUST_BE_STRIPPED');
+
+  const connectBody = bridgeSource.slice(bridgeSource.indexOf('async function connect('), bridgeSource.indexOf('async function disconnect(', bridgeSource.indexOf('async function connect(')));
+  assert.doesNotMatch(connectBody, /requirePersistedOperation/u, 'M3-SC-DIAG-014:CHATWOOT_CONNECT_MUST_REMAIN_UPSTREAM_OWNED');
+  const syncBody = bridgeSource.slice(bridgeSource.indexOf('async function sync('), bridgeSource.indexOf('async function connect(', bridgeSource.indexOf('async function sync(')));
+  assert.match(syncBody, /requirePersistedOperation\(options,\s*'HISTORY_SYNCHRONIZATION'/u, 'M3-SC-DIAG-014:HISTORY_SYNC_PERSISTED_AUTHORITY_REQUIRED');
+
+  const managerConnect = coreSource.slice(coreSource.indexOf('async connect(id, options = {})'), coreSource.indexOf('async sync(id, options = {})'));
+  assert.doesNotMatch(managerConnect, /physicalOperationContext|operationGeneration|accountLifecycleSaga/u, 'M3-SC-DIAG-014:ACCOUNT_CONNECT_SHADOW_CONTEXT_FORBIDDEN');
 
   const envNames = [
     'CHATWOOT_BASE_URL', 'CHATWOOT_ACCOUNT_ID', 'CHATWOOT_API_ACCESS_TOKEN',
@@ -212,22 +207,25 @@ test('M3-SC-DIAG-014 Facebook Chatwoot session and sync physical I/O consume one
     process.env.MATRIX_ACCESS_TOKEN = 'token';
     global.fetch = async () => {
       fetchCalls += 1;
-      throw new Error('M3-SC-DIAG-014 unexpected physical I/O');
+      throw new Error('M3-SC-DIAG-014 mature owner physical I/O reached');
     };
 
     delete require.cache[require.resolve(bridgePath)];
     const bridge = require(bridgePath);
     await assert.rejects(
       () => bridge.connect({ id: 'facebook_ads:page-1', platform: 'facebook', metadata: { pageId: 'page-1' } }, {}),
-      error => error?.code === 'FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED',
-      'M3-SC-DIAG-014:CONNECT_MUST_FAIL_CLOSED_BEFORE_FETCH'
+      error => error?.code !== 'FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED',
+      'M3-SC-DIAG-014:CONNECT_MUST_NOT_BE_BLOCKED_BY_YANCE_PERSISTED_AUTHORITY'
     );
+    assert.equal(fetchCalls, 1, 'M3-SC-DIAG-014:CONNECT_REACHES_MATURE_OWNER_IO');
+
+    fetchCalls = 0;
     await assert.rejects(
       () => bridge.sync({ id: 'facebook_ads:page-1', platform: 'facebook', metadata: { pageId: 'page-1' } }, {}),
       error => error?.code === 'FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED',
       'M3-SC-DIAG-014:SYNC_MUST_FAIL_CLOSED_BEFORE_FETCH'
     );
-    assert.equal(fetchCalls, 0, 'M3-SC-DIAG-014:NO_SESSION_OR_SYNC_IO_WITHOUT_PERSISTED_OPERATION');
+    assert.equal(fetchCalls, 0, 'M3-SC-DIAG-014:NO_HISTORY_SYNC_IO_WITHOUT_PERSISTED_OPERATION');
   } finally {
     global.fetch = previousFetch;
     for (const name of envNames) {

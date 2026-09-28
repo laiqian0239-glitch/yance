@@ -19,6 +19,12 @@ const COMPOSER_ACCESSORY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0
 const PRODUCT_CONVERSATION_CONTROL_PATCH = path.join(ROOT, 'upstream-patches/element-web/0017-yance-product-conversation-control.patch');
 const POST_LOGIN_SECURITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0018-yance-post-login-security-shell.patch');
 const MODULE_OPENID_TOKEN_PATCH = path.join(ROOT, 'upstream-patches/element-web/0019-yance-module-openid-token.patch');
+const PRODUCT_LIVE_ROOM_PUBLIC_SEAMS_PATCH = path.join(ROOT, 'upstream-patches/element-web/0020-yance-product-live-room-public-seams.patch');
+const SPACE_HIERARCHY_SUMMARY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0021-yance-space-hierarchy-summary.patch');
+const BRIDGE_DM_AVATAR_AUTHORITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0022-yance-bridge-dm-avatar-authority.patch');
+const ROOM_MESSAGE_SUMMARY_PROJECTION_PATCH = path.join(ROOT, 'upstream-patches/element-web/0023-yance-room-message-summary-projection.patch');
+const ROOM_INVITE_SENDER_PUBLIC_SEAM_PATCH = path.join(ROOT, 'upstream-patches/element-web/0024-yance-room-invite-sender-public-seam.patch');
+const PRODUCT_CONVERSATION_PRESENTATION_SUCCESSOR_PATCH = path.join(ROOT, 'upstream-patches/element-web/0025-yance-product-conversation-presentation-successor.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
 function run(cwd, command, args) {
@@ -58,10 +64,22 @@ function applyPatch(repoDir, patchPath, label) {
   run(repoDir, 'git', ['apply', patchPath]);
 }
 
+function syncYanceModuleSource(element) {
+  const source = path.join(ROOT, 'integration/element-module/src/index.tsx');
+  const target = path.join(element, 'modules/yance/src/index.tsx');
+  if (!fs.existsSync(source) || !fs.existsSync(target)) {
+    throw new Error('Yance module source sync requires existing source and materialized target bytes');
+  }
+  fs.copyFileSync(source, target);
+}
+
 function materialize(name, upstream) {
   if (!/^[a-f0-9]{40}$/u.test(upstream.commit)) throw new Error(`${name}: mutable or short commit rejected`);
   const dir = path.join(RUNTIME, name);
-  fs.rmSync(dir, { recursive: true, force: true });
+  console.log(`Materializing ${name} at ${upstream.commit}.`);
+  // Windows can retain a just-exited Git handle briefly. Retrying only that
+  // filesystem removal preserves the clean exact-source materialization rule.
+  fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   fs.mkdirSync(RUNTIME, { recursive: true });
   fs.mkdirSync(dir, { recursive: true });
   run(dir, 'git', ['init']);
@@ -106,6 +124,7 @@ function main() {
   const element = materialize('element-web', LOCK.upstreams.elementWeb);
   materializeExactReleaseTag(element, LOCK.upstreams.elementWeb, 'Element');
   const mautrix = materialize('mautrix-whatsapp', LOCK.upstreams.mautrixWhatsapp);
+  const mautrixTelegram = materialize('mautrix-telegram', LOCK.upstreams.mautrixTelegram);
   const mautrixMeta = materialize('mautrix-meta', LOCK.externalRuntimes.mautrixMeta);
 
   applyPatch(element, ELEMENT_WORKSPACE_PATCH, 'Element workspace patch');
@@ -136,12 +155,19 @@ function main() {
   applyPatch(element, PRODUCT_CONVERSATION_CONTROL_PATCH, 'Element Product conversation control patch');
   applyPatch(element, POST_LOGIN_SECURITY_PATCH, 'Element post-login security shell patch');
   applyPatch(element, MODULE_OPENID_TOKEN_PATCH, 'Element module OpenID token patch');
+  applyPatch(element, PRODUCT_LIVE_ROOM_PUBLIC_SEAMS_PATCH, 'Element Product live-room public seams patch');
+  applyPatch(element, SPACE_HIERARCHY_SUMMARY_PATCH, 'Element space hierarchy summary patch');
+  applyPatch(element, BRIDGE_DM_AVATAR_AUTHORITY_PATCH, 'Element bridge-DM avatar authority patch');
+  applyPatch(element, ROOM_MESSAGE_SUMMARY_PROJECTION_PATCH, 'Element room message-summary projection patch');
+  applyPatch(element, ROOM_INVITE_SENDER_PUBLIC_SEAM_PATCH, 'Element room invite-sender public seam patch');
+  applyPatch(element, PRODUCT_CONVERSATION_PRESENTATION_SUCCESSOR_PATCH, 'Element Product conversation presentation successor patch');
 
   assertExactCommit(synapse, LOCK.upstreams.synapse.commit);
   assertExactCommit(mautrix, LOCK.upstreams.mautrixWhatsapp.commit);
+  assertExactCommit(mautrixTelegram, LOCK.upstreams.mautrixTelegram.commit);
   assertExactCommit(mautrixMeta, LOCK.externalRuntimes.mautrixMeta.commit);
   console.log('V2.1 Matrix/Element/mautrix exact-source runtimes materialized.');
 }
 
 if (require.main === module) main();
-module.exports = { applyPatch, assertExactCommit, main, run, materializeExactReleaseTag };
+module.exports = { applyPatch, assertExactCommit, main, run, materializeExactReleaseTag, syncYanceModuleSource };

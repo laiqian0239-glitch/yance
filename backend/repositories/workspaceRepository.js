@@ -654,6 +654,34 @@ function resolveContactReference(reference, store = getStore()) {
   }
 }
 
+function ensureMatrixDirectConversationProjection(input = {}, store = getStore()) {
+  const matrixRoomId = clean(input.matrixRoomId);
+  const platform = clean(input.platform).toLowerCase();
+  const accountId = clean(input.accountId);
+  const chatJid = clean(input.chatJid);
+  const displayName = clean(input.displayName || input.name || input.title);
+  if (!matrixRoomId || !platform || !accountId || !chatJid) {
+    throw Object.assign(new Error('Matrix direct conversation projection is incomplete'), {
+      code: 'INVALID_INPUT', status: 400,
+      details: { matrixRoomId: Boolean(matrixRoomId), platform: Boolean(platform), accountId: Boolean(accountId), chatJid: Boolean(chatJid) }
+    });
+  }
+  const conversationId = clean(input.conversationId) || `matrix-room:${matrixRoomId}`;
+  const contactId = stableId('contact', [platform, accountId, chatJid]);
+  const updatedAt = clean(input.updatedAt || input.lastActiveAt) || nowIso();
+  store.transaction(() => {
+    store.upsertContact({
+      id: contactId, contactId, platform, accountId, externalId: chatJid,
+      displayName: displayName || chatJid, source: 'matrix-direct-projection', lastSeenAt: updatedAt
+    });
+    store.upsertConversation({
+      sessionKey: conversationId, accountId, contactId, platform,
+      title: displayName || chatJid, routeState: 'ready', chatJid, matrixRoomId,
+      conversationKind: 'direct', source: 'matrix-direct-projection', updatedAt
+    });
+  });
+  return { ok: true, conversationId, sessionKey: conversationId, contactId, matrixRoomId, platform, accountId, chatJid };
+}
 function resolveContactForConversation(sessionKey, store = getStore()) {
   const conversation = getConversationRow(sessionKey, store);
   if (!conversation) throw Object.assign(new Error('会话不存在'), { code: 'CONVERSATION_NOT_FOUND', status: 404 });
@@ -2429,6 +2457,7 @@ module.exports = {
   getContextByConversation,
   saveProfileForConversation,
   saveInsightsForConversation,
+  ensureMatrixDirectConversationProjection,
   resolveContactForConversation,
   resolveContactReference,
   resolveCanonicalContactId,

@@ -72,7 +72,8 @@ function bytesToObjectUrl(result: BinaryResult | null): string {
 
 export function MediaWorkspace({
   routeBinding,
-}: { routeBinding?: RelationshipToolRouteBinding }): React.JSX.Element {
+  managementOnly = false,
+}: { routeBinding?: RelationshipToolRouteBinding; managementOnly?: boolean }): React.JSX.Element {
   const api = useMemo(() => desktopApi(), []);
   const [health, setHealth] = useState<HealthState>({ degraded: true, reasonCode: "unavailable" });
   const [status, setStatus] = useState("正在检查媒体能力");
@@ -86,6 +87,7 @@ export function MediaWorkspace({
   const [previewUrl, setPreviewUrl] = useState("");
   const [prompt, setPrompt] = useState("");
   const [workflowKind, setWorkflowKind] = useState<"generate" | "edit">("generate");
+  const [miniSurface, setMiniSurface] = useState<"library" | "generate" | "edit">("library");
   const [workflowPromptId, setWorkflowPromptId] = useState("");
   const [workflowOutput, setWorkflowOutput] = useState<WorkflowResult | null>(null);
   const [immichEndpoint, setImmichEndpoint] = useState("");
@@ -100,7 +102,7 @@ export function MediaWorkspace({
   const [caption, setCaption] = useState("");
   const importRef = useRef<HTMLInputElement | null>(null);
   const productRouteResolved = routeBinding?.status === "resolved";
-  const standaloneMode = routeBinding === undefined;
+  const standaloneMode = !managementOnly && routeBinding === undefined;
   const resolvedRoute = productRouteResolved ? routeBinding.route : null;
 
   const refreshHealth = async (): Promise<void> => {
@@ -121,6 +123,19 @@ export function MediaWorkspace({
     setPreviewUrl(nextUrl);
     return () => { if (nextUrl) URL.revokeObjectURL(nextUrl); };
   }, [preview, workflowOutput]);
+  useEffect(() => {
+    if (!api || !productRouteResolved) return;
+    let cancelled = false;
+    void api.searchMediaAssets({ query: "", size: 12 }).then((result) => {
+      if (cancelled) return;
+      const rows = assetRows(result);
+      setAssets(rows);
+      setStatus(rows.length ? `最近素材 · ${rows.length} 项` : "当前媒体库还没有可用的最近素材");
+    }).catch(() => {
+      if (!cancelled) setStatus("最近素材暂不可用");
+    });
+    return () => { cancelled = true; };
+  }, [api, productRouteResolved, resolvedRoute?.sessionKey]);
 
   const saveSettings = async (): Promise<void> => {
     if (!api || busy) return;
@@ -234,11 +249,13 @@ export function MediaWorkspace({
       if (asset?.id) { setSelectedAsset(asset); setAssets((rows) => [asset, ...rows.filter((row) => row.id !== asset.id)]); }
       setStatus("保存完成，生成结果已进入现有媒体库并可选择");
       setWorkflowOutput(null);
+      setMiniSurface("library");
     } catch { setStatus("保存生成结果失败"); }
     finally { setBusy(false); }
   };
 
   const send = async (): Promise<void> => {
+    if (managementOnly) { setStatus("设置页只管理媒体；请从真实对话进入后发送。"); return; }
     if (!api || !selectedAsset?.id || busy) return;
     if (routeBinding && routeBinding.status !== "resolved") {
       setStatus(routeBinding.reason || "当前关系会话路由不可用，暂时无法发送");
@@ -259,7 +276,188 @@ export function MediaWorkspace({
   const checkpoint = health.comfyui?.checkpoints?.[0] || "";
   const selectedIsVideo = assetMediaKind(selectedAsset) === "video";
   const degraded = health.degraded !== false;
-  const routeReady = standaloneMode ? Boolean(accountId.trim() && chatJid.trim()) : productRouteResolved;
+  const routeReady = managementOnly ? false : standaloneMode ? Boolean(accountId.trim() && chatJid.trim()) : productRouteResolved;
+  const routeBoundMiniFlow = !managementOnly && routeBinding !== undefined;
+  const mediaPhase = status === "媒体已交给现有发送通道"
+    ? "sent"
+    : miniSurface === "edit"
+      ? "edit"
+      : miniSurface === "generate"
+        ? "generate"
+        : preview
+          ? "preview"
+          : "select";
+  const mediaPhaseLabel = mediaPhase === "sent"
+    ? "真实会话发送"
+    : mediaPhase === "edit"
+      ? "生成后编辑"
+      : mediaPhase === "generate"
+        ? "根据对话生成"
+        : mediaPhase === "preview"
+          ? "预览已有素材"
+          : "素材选择";
+
+  if (routeBoundMiniFlow) {
+    return (
+      <aside
+        className="yance-media-workspace yance-media-workspace--m03"
+        aria-label="照片与媒体"
+        data-media-phase={mediaPhase}
+        data-yance-route-bound={productRouteResolved || undefined}
+      >
+        <header className="yance-media-mini-header">
+          <div><strong>照片与媒体</strong><span>最近素材 · 人物 · 相册 · 生成与编辑</span></div>
+          <span className="yance-media-mini-phase">{mediaPhaseLabel}</span>
+        </header>
+
+        <div className="yance-media-mini-flow">
+          <nav className="yance-media-mini-tabs" aria-label="媒体来源">
+            <button type="button" aria-pressed={mediaPhase === "select" || mediaPhase === "preview"} onClick={() => {
+              setWorkflowPromptId("");
+              setWorkflowOutput(null);
+              setPrompt("");
+              setWorkflowKind("generate");
+              setMiniSurface("library");
+            }}>最近素材</button>
+            <button type="button" onClick={() => void loadPeople()}>人物</button>
+            <button type="button" onClick={() => void loadAlbums()}>相册</button>
+            <button type="button" aria-pressed={mediaPhase === "generate"} onClick={() => {
+              setWorkflowKind("generate");
+              setMiniSurface("generate");
+              setWorkflowPromptId("");
+              setWorkflowOutput(null);
+              setPreview(null);
+            }}>根据对话生成</button>
+          </nav>
+
+          {people.length ? (
+            <div className="yance-media-mini-filters" aria-label="人物">
+              {people.slice(0, 12).map((person) => {
+                const id = String(person.id || "");
+                const name = String(person.name || person.id || "人物");
+                return <button key={id} type="button" onClick={() => {
+                  if (!api || !id) return;
+                  setBusy(true);
+                  void api.searchMediaAssets({ query: "", personIds: [id], size: 20 })
+                    .then((result) => {
+                      const rows = assetRows(result);
+                      setAssets(rows);
+                      setSelectedAsset(null);
+                      setPreview(null);
+                      setStatus(`人物 · ${name} · ${rows.length} 个素材`);
+                    })
+                    .catch(() => setStatus("人物素材加载失败"))
+                    .finally(() => setBusy(false));
+                }}>{name}</button>;
+              })}
+            </div>
+          ) : null}
+
+          {albums.length ? (
+            <div className="yance-media-mini-filters" aria-label="相册">
+              {albums.slice(0, 12).map((album) => {
+                const id = String(album.id || "");
+                const name = String(album.albumName || album.name || album.id || "相册");
+                return <button key={id} type="button" onClick={() => {
+                  if (!api || !id) return;
+                  setBusy(true);
+                  void api.searchMediaAssets({ query: "", albumIds: [id], size: 20 })
+                    .then((result) => {
+                      const rows = assetRows(result);
+                      setAssets(rows);
+                      setSelectedAsset(null);
+                      setPreview(null);
+                      setStatus(`相册 · ${name} · ${rows.length} 个素材`);
+                    })
+                    .catch(() => setStatus("相册素材加载失败"))
+                    .finally(() => setBusy(false));
+                }}>{name}</button>;
+              })}
+            </div>
+          ) : null}
+
+          <div className="yance-media-mini-assets" aria-label="最近素材">
+            {assets.length ? assets.slice(0, 12).map((asset) => (
+              <button
+                key={asset.id}
+                type="button"
+                className={selectedAsset?.id === asset.id ? "selected" : ""}
+                onClick={() => {
+                  setSelectedAsset(asset);
+                  setPreview(null);
+                  setWorkflowOutput(null);
+                  setWorkflowPromptId("");
+                  setStatus(`素材选择 · ${displayName(asset)}`);
+                }}
+              >
+                <span aria-hidden="true">{assetMediaKind(asset) === "video" ? "▶" : "▧"}</span>
+                <strong>{displayName(asset)}</strong>
+              </button>
+            )) : (
+              <div className="yance-media-mini-empty" role="status">当前媒体库没有可展示的最近素材。</div>
+            )}
+          </div>
+
+          {selectedAsset ? (
+            <section className="yance-media-mini-selection" aria-label="已选素材">
+              <div><strong>{displayName(selectedAsset)}</strong><span>{selectedIsVideo ? "视频" : "图片"} · 来自真实媒体库</span></div>
+              <div className="media-actions">
+                <button type="button" onClick={() => void previewAsset()} disabled={busy}>预览已有素材</button>
+                {!selectedIsVideo ? <button type="button" onClick={() => {
+                  setWorkflowKind("edit");
+                  setMiniSurface("edit");
+                  setWorkflowPromptId("");
+                  setWorkflowOutput(null);
+                  setPreview(null);
+                  setStatus("生成后编辑 · 请输入编辑要求");
+                }}>编辑此素材</button> : null}
+              </div>
+            </section>
+          ) : null}
+
+          {previewUrl ? (
+            <div className="yance-media-mini-preview">
+              <img src={previewUrl} alt={workflowOutput ? "生成结果预览" : "媒体预览"} />
+            </div>
+          ) : null}
+
+          {(miniSurface === "generate" || miniSurface === "edit") ? (
+            <section className="yance-media-mini-generator" aria-label={workflowKind === "edit" ? "生成后编辑" : "根据对话生成"}>
+              <header>
+                <div><strong>{workflowKind === "edit" ? "生成后编辑" : "根据对话生成"}</strong>
+                  <span>{workflowKind === "edit" ? "使用已选真实图片作为编辑输入。" : "描述你希望结合当前对话语境生成的画面；生成任务会交给当前图片生成服务执行。"}</span>
+                </div>
+{workflowKind === "edit" ? <button type="button" onClick={() => { setWorkflowKind("generate"); setMiniSurface("generate"); setWorkflowPromptId(""); setWorkflowOutput(null); }}>改为生成新图</button> : null}
+              </header>
+              <textarea
+                rows={3}
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder={workflowKind === "edit" ? "描述希望怎样编辑这张图片" : "描述希望根据当前对话生成的图片"}
+              />
+              <div className="media-actions">
+                <button type="button" className="media-primary" onClick={() => void queueWorkflow()} disabled={busy || !prompt.trim() || !checkpoint || workflowKind === "edit" && (!selectedAsset || selectedIsVideo)}>
+                  {workflowKind === "edit" ? "提交编辑" : "提交生成"}
+                </button>
+                {workflowPromptId ? <button type="button" onClick={() => void previewWorkflow()} disabled={busy}>查看结果</button> : null}
+                {workflowOutput?.ready ? <button type="button" onClick={() => void saveBack()} disabled={busy}>保存到素材库</button> : null}
+              </div>
+              {workflowPromptId && !workflowOutput ? <p className="media-workflow-status">任务已由真实生成服务接收；点击“查看结果”读取当前生成状态。</p> : null}
+            </section>
+          ) : null}
+
+          <section className="yance-media-mini-send" aria-label="真实会话发送">
+            <label>附言<input value={caption} onChange={(event) => setCaption(event.target.value)} placeholder="可选" /></label>
+            <div>
+              <span aria-live="polite">{status}</span>
+              <span>{productRouteResolved ? "已绑定当前关系会话" : routeBinding?.reason || "当前关系会话路由不可用"}</span>
+            </div>
+            <button type="button" className="media-primary" title="真实会话发送" onClick={() => void send()} disabled={!selectedAsset || !routeReady || busy}>发送</button>
+          </section>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="yance-media-workspace" aria-label="媒体">
@@ -324,21 +522,26 @@ export function MediaWorkspace({
         <h3>预览 / 选择 / 发送</h3>
         <div className="media-actions"><button type="button" title="预览" onClick={() => void previewAsset()} disabled={!selectedAsset || busy}>预览</button><span>{selectedAsset ? displayName(selectedAsset) : "尚未选择媒体资源"}</span></div>
         {previewUrl ? <img className="media-preview" src={previewUrl} alt="媒体预览" /> : null}
-        <div className="media-grid">
-          {standaloneMode ? (
-            <>
-              <label>平台<select value={platform} onChange={(event) => setPlatform(event.target.value)}><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="facebook">Facebook</option></select></label>
-              <label>账号 ID<input value={accountId} onChange={(event) => setAccountId(event.target.value)} /></label>
-              <label>会话 JID<input value={chatJid} onChange={(event) => setChatJid(event.target.value)} /></label>
-            </>
-          ) : (
-            <div role="status" aria-live="polite">
-              {productRouteResolved ? "已绑定当前关系会话" : routeBinding?.reason || "当前关系会话路由不可用"}
-            </div>
-          )}
-          <label>附言<input value={caption} onChange={(event) => setCaption(event.target.value)} /></label>
-          <button type="button" title="发送" onClick={() => void send()} disabled={!selectedAsset || !routeReady || busy}>发送</button>
-        </div>
+        {managementOnly ? (
+          <div className="media-grid" role="note">
+            <strong>管理模式</strong>
+            <span>这里仅管理媒体库、生成、编辑、预览与保存。真实发送只能从已绑定对话进入。</span>
+          </div>
+        ) : (
+          <div className="media-grid">
+            {standaloneMode ? (
+              <>
+                <label>平台<select value={platform} onChange={(event) => setPlatform(event.target.value)}><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="facebook">Facebook</option></select></label>
+                <label>账号 ID<input value={accountId} onChange={(event) => setAccountId(event.target.value)} /></label>
+                <label>会话 JID<input value={chatJid} onChange={(event) => setChatJid(event.target.value)} /></label>
+              </>
+            ) : (
+              <div role="status" aria-live="polite">{productRouteResolved ? "已绑定当前关系会话" : routeBinding?.reason || "当前关系会话路由不可用"}</div>
+            )}
+            <label>附言<input value={caption} onChange={(event) => setCaption(event.target.value)} /></label>
+            <button type="button" title="发送" onClick={() => void send()} disabled={!selectedAsset || !routeReady || busy}>发送</button>
+          </div>
+        )}
       </section>
     </aside>
   );

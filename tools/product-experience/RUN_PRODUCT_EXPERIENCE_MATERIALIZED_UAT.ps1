@@ -160,10 +160,18 @@ $secretRoot = Join-Path ([IO.Path]::GetTempPath()) "yance-materialized-uat-secre
 New-Item -ItemType Directory -Path $secretRoot | Out-Null
 $matrixRegistrationSecretPath = Join-Path $secretRoot 'matrix-registration-shared-secret'
 $mautrixMetaProvisioningSecretPath = Join-Path $secretRoot 'mautrix-meta-provisioning-secret'
+$mautrixWhatsappProvisioningSecretPath = Join-Path $secretRoot 'mautrix-whatsapp-provisioning-secret'
+$mautrixTelegramProvisioningSecretPath = Join-Path $secretRoot 'mautrix-telegram-provisioning-secret'
 New-EphemeralSecretFile -Path $matrixRegistrationSecretPath
 New-EphemeralSecretFile -Path $mautrixMetaProvisioningSecretPath
+New-EphemeralSecretFile -Path $mautrixWhatsappProvisioningSecretPath
+New-EphemeralSecretFile -Path $mautrixTelegramProvisioningSecretPath
 $env:YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE = $matrixRegistrationSecretPath
 $env:YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE = $mautrixMetaProvisioningSecretPath
+$env:YANCE_MAUTRIX_WHATSAPP_PROVISIONING_SECRET_FILE = $mautrixWhatsappProvisioningSecretPath
+$env:YANCE_MAUTRIX_TELEGRAM_PROVISIONING_SECRET_FILE = $mautrixTelegramProvisioningSecretPath
+$env:YANCE_TELEGRAM_API_ID = '1'
+$env:YANCE_TELEGRAM_API_HASH = '00000000000000000000000000000000'
 $env:YANCE_MATRIX_SYNAPSE_PORT_BINDING = '127.0.0.1::8008'
 $env:YANCE_MATRIX_ELEMENT_PORT_BINDING = '127.0.0.1::80'
 $matrixProjectName = "yance-uat-$(([string]$desktop.manifest.candidateCommit).Substring(0, 12))-$([Guid]::NewGuid().ToString('N').Substring(0, 12))"
@@ -185,11 +193,11 @@ try {
   $completedInitServices = @(& docker.exe compose --project-name $matrixProjectName --project-directory $matrix.root -f $composePath ps --all --status exited --services)
   if ($LASTEXITCODE -ne 0) { throw "docker compose init-service status probe failed with exit code $LASTEXITCODE" }
   $completedInit = @($completedInitServices | ForEach-Object { ([string]$_).Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-  foreach ($service in @('synapse-data-init', 'mautrix-meta-registration', 'mautrix-whatsapp-registration')) {
+  foreach ($service in @('synapse-data-init', 'mautrix-meta-registration', 'mautrix-whatsapp-registration', 'mautrix-telegram-registration')) {
     if ($completedInit -notcontains $service) { throw "$service did not complete before Matrix readiness" }
   }
 
-  $requiredServices = @('synapse', 'element', 'mautrix-whatsapp', 'mautrix-meta')
+  $requiredServices = @('synapse', 'element', 'mautrix-whatsapp', 'mautrix-telegram', 'mautrix-meta')
   $matrixReady = $false
   $matrixDeadline = [DateTimeOffset]::UtcNow.AddSeconds(120)
   while ([DateTimeOffset]::UtcNow -lt $matrixDeadline) {

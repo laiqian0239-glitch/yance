@@ -2,6 +2,12 @@ homeserver:
   address: http://synapse:8008
   domain: yance.local
   software: standard
+network:
+  cache_connection_state: true
+  send_presence_on_typing: true
+  thread_backfill:
+    batch_count: -1
+    batch_delay: 2s
 appservice:
   address: http://mautrix-meta:29319
   hostname: 0.0.0.0
@@ -29,14 +35,6 @@ provisioning:
   debug_endpoints: false
   enable_session_transfers: false
   fail_on_webauthn: false
-mode: messenger-lite
-allowed_modes:
-  - messenger-lite
-thread_backfill:
-  batch_count: -1
-  batch_delay: 2s
-cache_connection_state: true
-send_presence_on_typing: true
 env_config_prefix: YANCE_MAUTRIX_META_
 logging:
   min_level: info

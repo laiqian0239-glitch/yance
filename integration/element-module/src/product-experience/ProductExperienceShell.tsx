@@ -1,30 +1,44 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LearningWorkspace } from "../LearningWorkspace";
+import { MediaWorkspace } from "../MediaWorkspace";
+import { VoiceWorkspace } from "../VoiceWorkspace";
 import { AnimatePresence, motion } from "motion/react";
+import { Bot, Cable, Crown, Heart, Home, Info, MessageCircle, MoreHorizontal, Palette, PanelLeft, PanelRight, Search, Settings, Sparkles, Target, UserRound, Users, Zap } from "lucide-react";
 import { BilingualSearchPanel } from "./BilingualSearchPanel";
+import { AIWorkspace } from "./AIWorkspace";
 import { PeopleSurface, type PeopleHomeView } from "./PeopleSurface";
+import { PersonaManagement } from "./PersonaManagement";
 import { RelationshipAssistant } from "./RelationshipAssistant";
 import { RelationshipOverlayHost } from "./RelationshipOverlayHost";
 import { RelationshipWorld } from "./RelationshipWorld";
 import { ProductSystemSettingsSurface } from "./ProductSystemSettingsSurface";
 import { PlatformAccountsSurface } from "./PlatformAccountsSurface";
+import conversationTerraceDuskUrl from "./assets/conversation-terrace-dusk-v5.webp?url";
 
 import {
+  loadDailyChatGoal,
+  loadDailyReview,
   loadPeopleProjections,
+  loadPersonaEffective,
   loadProductAppearance,
+  loadRelationshipAssistant,
   subscribeRelationshipEvents,
   updateProductAppearance,
   type ProductAppearanceProjection,
 } from "./experienceProjection";
 import { useExperiencePreferences } from "./experiencePreferences";
+import { playExperienceSound } from "./experienceSound";
 import {
   clearSelectedRelationship,
   selectRelationship,
+  setSelectedConversationAutomationMode,
   useExperienceSession,
 } from "./experienceSession";
 import type {
+  ConversationAutomationMode,
   ConversationRef,
   GroupConversationProjection,
+  MatrixDirectRoomProjection,
   MotionMode,
   RelationshipAiState,
   RelationshipAtmosphere,
@@ -35,6 +49,34 @@ type ReadRoomStateEvents = (
   roomId: string,
   eventType: string,
 ) => readonly { stateKey: string; content: Record<string, unknown> }[];
+
+
+type SettingsSectionV4 =
+  | "general"
+  | "appearance"
+  | "persona-learning"
+  | "input-typing"
+  | "language"
+  | "models"
+  | "platforms"
+  | "voice-media"
+  | "data-privacy"
+  | "backup"
+  | "diagnostics";
+
+const SETTINGS_SECTIONS_V4: readonly { id: SettingsSectionV4; label: string; hint: string; group: string }[] = [
+  { id: "general", label: "常规", hint: "全局默认与关系行为", group: "基础" },
+  { id: "appearance", label: "外观与氛围", hint: "主题、字体、动效与关系氛围", group: "基础" },
+  { id: "persona-learning", label: "人格管理", hint: "全局、联系人、对话人格与版本", group: "基础" },
+  { id: "input-typing", label: "输入与真人打字", hint: "输入体验与统一发送层边界", group: "基础" },
+  { id: "language", label: "语言与翻译", hint: "真实对话内联理解与发送", group: "基础" },
+  { id: "models", label: "模型与路由", hint: "已验证模型、服务商与路由", group: "能力与连接" },
+  { id: "platforms", label: "平台连接", hint: "WhatsApp、Telegram 与 Meta 账号", group: "能力与连接" },
+  { id: "voice-media", label: "语音与媒体", hint: "声音档案、媒体库与生成", group: "能力与连接" },
+  { id: "data-privacy", label: "数据、隐私与学习", hint: "学习证据、记忆边界与隐私治理", group: "数据与系统" },
+  { id: "backup", label: "同步与备份", hint: "备份、验证与恢复", group: "数据与系统" },
+  { id: "diagnostics", label: "高级诊断", hint: "安全、恢复、版本与更新", group: "数据与系统" },
+];
 
 export type ProductAppearanceHost = {
   setFontScale: (percent: number) => Promise<void>;
@@ -58,12 +100,195 @@ type ProductExperienceShellProps = {
     conversation: GroupConversationProjection,
   ) => Promise<boolean>;
   navigateProductHome?: () => Promise<void> | void;
+  navigateRelationshipHome?: () => Promise<void> | void;
+  renderRoomAvatar?: (roomId: string, size?: string) => React.ReactNode;
+  renderUserAvatar?: (userId: string, size?: string) => React.ReactNode;
+  loadMatrixDirectRooms?: () => Promise<readonly MatrixDirectRoomProjection[]>;
+  subscribeMatrixRoomList?: (listener: () => void) => () => void;
+  renderRoomView?: (roomId: string, props?: {
+    hideHeader?: boolean;
+    hideComposer?: boolean;
+    hideRightPanel?: boolean;
+    hidePinnedMessageBanner?: boolean;
+    hideWidgets?: boolean;
+    enableReadReceiptsAndMarkersOnActivity?: boolean;
+    productPresentation?: "yance-conversation";
+  }) => React.ReactNode;
   readRoomStateEvents?: ReadRoomStateEvents;
+  getMatrixOpenIdToken?: () => Promise<{ access_token: string; token_type: string; matrix_server_name: string; expires_in: number }>;
+  getMatrixUserId?: () => string;
   openUserSettings?: (destination:"account"|"security"|"sessions")=>void;
   requestLogout?: ()=>void;
 };
 
 const loadRelationshipProjectionsForPeople = loadPeopleProjections;
+
+function canonicalPlatformChatId(platformValue: unknown, chatJidValue: unknown): string {
+  const platform = String(platformValue || "").trim().toLowerCase();
+  let normalized = String(chatJidValue || "").trim();
+  if (!platform || !normalized) return normalized;
+  const platformPrefix = `${platform}:`;
+  if (normalized.toLowerCase().startsWith(platformPrefix)) {
+    normalized = normalized.slice(platformPrefix.length);
+  }
+  if (platform === "telegram" && normalized.toLowerCase().startsWith("user:")) {
+    normalized = normalized.slice("user:".length);
+  }
+  return normalized;
+}
+
+function directRouteKey(value: { platform?: string; accountId?: string; chatJid?: string }): string {
+  const platform = String(value.platform || "").trim().toLowerCase();
+  const accountId = String(value.accountId || "").trim();
+  const chatJid = canonicalPlatformChatId(platform, value.chatJid);
+  return platform && accountId && chatJid ? `${platform}\u0000${accountId}\u0000${chatJid}` : "";
+}
+
+function matrixDirectRelationship(room: MatrixDirectRoomProjection): RelationshipProjection {
+  const contactId = `matrix:${room.platformId}:${room.accountId}:${room.roomId}`;
+  const conversation: ConversationRef = {
+    id: `matrix-room:${room.roomId}`,
+    contactId,
+    title: room.name,
+    platform: room.platformId,
+    accountId: room.accountId,
+    chatJid: room.chatJid,
+    sessionKey: room.roomId,
+    matrixRoomId: room.roomId,
+    conversationKind: "direct",
+    automationMode: "HUMAN",
+    unreadCount: 0,
+    pinned: false,
+    archived: false,
+    lastMessage: room.lastMessage,
+    lastMessageAt: room.lastActiveAt,
+    updatedAt: room.lastActiveAt,
+  };
+  return {
+    id: contactId,
+    name: room.name,
+    conversations: [conversation],
+    subtitle: room.platformName || room.platformId,
+    platform: room.platformName || room.platformId,
+    accountId: room.accountId,
+    chatJid: room.chatJid,
+    sessionKey: room.roomId,
+    matrixRoomId: room.roomId,
+    lastMessage: room.lastMessage,
+    updatedAt: room.lastActiveAt,
+    unreadCount: 0,
+    favorite: false,
+    recentAt: room.lastActiveAt,
+    recentMessages: room.recentMessages,
+  };
+}
+
+function roomIdentity(value: { matrixRoomId?: string }): string {
+  return String(value.matrixRoomId || "").trim();
+}
+
+function mergedRelationshipName(
+  current: RelationshipProjection,
+  live: RelationshipProjection,
+): string {
+  const currentName = String(current.name || "").trim();
+  const liveName = String(live.name || "").trim();
+  if (!liveName || liveName === currentName) return currentName;
+  const currentConversation = current.conversations[0];
+  const currentIdentity = canonicalPlatformChatId(
+    current.platform || currentConversation?.platform,
+    current.chatJid || currentConversation?.chatJid,
+  );
+  return currentIdentity === currentName ? liveName : currentName;
+}
+
+function mergeMatrixDirectRelationships(
+  stored: readonly RelationshipProjection[],
+  rooms: readonly MatrixDirectRoomProjection[],
+): readonly RelationshipProjection[] {
+  const merged = [...stored];
+  const routeToRelationship = new Map<string, number>();
+  const roomIdentityToRelationship = new Map<string, number>();
+  const bindRelationshipKeys = (relationship: RelationshipProjection, index: number): void => {
+    const relationshipRoomId = roomIdentity(relationship);
+    if (relationshipRoomId && !roomIdentityToRelationship.has(relationshipRoomId)) {
+      roomIdentityToRelationship.set(relationshipRoomId, index);
+    }
+    const relationshipRouteKey = directRouteKey(relationship);
+    if (relationshipRouteKey && !routeToRelationship.has(relationshipRouteKey)) {
+      routeToRelationship.set(relationshipRouteKey, index);
+    }
+    for (const conversation of relationship.conversations) {
+      const routeKey = directRouteKey(conversation);
+      if (routeKey && !routeToRelationship.has(routeKey)) routeToRelationship.set(routeKey, index);
+      const conversationRoomId = roomIdentity(conversation);
+      if (conversationRoomId && !roomIdentityToRelationship.has(conversationRoomId)) {
+        roomIdentityToRelationship.set(conversationRoomId, index);
+      }
+    }
+  };
+  merged.forEach(bindRelationshipKeys);
+
+  for (const room of rooms) {
+    const live = matrixDirectRelationship(room);
+    const liveConversation = live.conversations[0];
+    const routeKey = directRouteKey(liveConversation);
+    const exactRoomIdentity = roomIdentity(live);
+    const index = (routeKey ? routeToRelationship.get(routeKey) : undefined)
+      ?? (exactRoomIdentity ? roomIdentityToRelationship.get(exactRoomIdentity) : undefined);
+    if (index == null) {
+      const nextIndex = merged.length;
+      merged.push(live);
+      bindRelationshipKeys(live, nextIndex);
+      continue;
+    }
+    const current = merged[index];
+    const canonicalConversationId = String(current.sessionKey || "").trim();
+    const canonicalLiveConversation = {
+      ...liveConversation,
+      id: canonicalConversationId || liveConversation.id,
+      contactId: current.id,
+      sessionKey: canonicalConversationId || liveConversation.sessionKey,
+      platform: current.platform || liveConversation.platform,
+      accountId: current.accountId || liveConversation.accountId,
+      chatJid: current.chatJid || liveConversation.chatJid,
+    };
+    const conversations = current.conversations.length
+      ? current.conversations.map((conversation, conversationIndex) => (
+        conversationIndex === 0
+          ? {
+            ...conversation,
+            matrixRoomId: conversation.matrixRoomId || liveConversation.matrixRoomId,
+            chatJid: conversation.chatJid || liveConversation.chatJid,
+            lastMessage: liveConversation.lastMessage || conversation.lastMessage,
+            lastMessageAt: liveConversation.lastMessageAt || conversation.lastMessageAt,
+            updatedAt: liveConversation.updatedAt || conversation.updatedAt,
+          }
+          : conversation
+      ))
+      : [canonicalLiveConversation];
+    merged[index] = {
+      ...current,
+      name: mergedRelationshipName(current, live),
+      conversations,
+      matrixRoomId: current.matrixRoomId || live.matrixRoomId,
+      chatJid: current.chatJid || live.chatJid,
+      sessionKey: current.sessionKey || live.sessionKey,
+      lastMessage: live.lastMessage || current.lastMessage,
+      updatedAt: live.updatedAt || current.updatedAt,
+      recentAt: live.recentAt || current.recentAt,
+      recentMessages: live.recentMessages?.length ? live.recentMessages : current.recentMessages,
+    };
+    bindRelationshipKeys(merged[index], index);
+  }
+
+  return merged.sort((left, right) => {
+    const leftAt = Date.parse(left.recentAt || left.updatedAt || "") || 0;
+    const rightAt = Date.parse(right.recentAt || right.updatedAt || "") || 0;
+    if (leftAt !== rightAt) return rightAt - leftAt;
+    return left.name.localeCompare(right.name);
+  });
+}
 
 const EMPTY_APPEARANCE: ProductAppearanceProjection = {
   available: false,
@@ -86,6 +311,7 @@ type ProductModelRuntimeRecord = Record<string, unknown>;
 type ProductModelRuntimeDesktopApi = {
   getProductModelRuntimeState: () => Promise<unknown>;
   mutateProductModelRuntime: (input: Record<string, unknown>) => Promise<unknown>;
+  saveCredential?: (ref: string, value: Record<string, unknown>, requestId?: string) => Promise<unknown>;
 };
 
 function modelRuntimeRecord(value: unknown): ProductModelRuntimeRecord {
@@ -102,6 +328,65 @@ function modelRuntimeText(value: unknown, fallback = ""): string {
   if (typeof value === "string") return value.trim() || fallback;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
   return fallback;
+}
+
+const OPENROUTER_CREDENTIAL_REF = "model:openrouter:default";
+
+function modelRuntimeUserMessage(value: unknown, fallback: string): string {
+  const raw = modelRuntimeText(value);
+  const known: Record<string, string> = {
+    OPENROUTER_CREDENTIAL_MISSING: "OpenRouter 密钥尚未生效，请重新保存后再试。",
+    OPENROUTER_CREDENTIAL_INVALID: "OpenRouter 密钥格式无效，请检查后重新输入。",
+    OPENROUTER_CREDENTIAL_REJECTED: "OpenRouter 未识别当前 API Key，请重新保存新密钥后再验证。",
+    OPENROUTER_KEY_STATUS_FAILED: "OpenRouter API Key 验证失败，请稍后重试。",
+    OPENROUTER_CATALOG_REQUEST_FAILED: "OpenRouter 模型目录读取失败，请稍后重试。",
+    OPENROUTER_MODEL_CATALOG_EMPTY: "OpenRouter 已连接，但当前账号没有返回可用于对话的模型。",
+    CREDENTIAL_VAULT_UNAVAILABLE: "Windows 安全存储暂不可用，无法保存云端 AI 密钥。",
+    WP4_DESKTOP_CREDENTIAL_APPLICATION_UNAVAILABLE: "本地凭据服务暂不可用，请稍后重试。",
+  };
+  if (known[raw]) return known[raw];
+  return /^[A-Z0-9_]{8,}$/u.test(raw) ? fallback : (raw || fallback);
+}
+
+function modelRuntimeStateLabel(value: unknown, fallback = "等待"): string {
+  const state = modelRuntimeText(value).toLowerCase();
+  const labels: Record<string, string> = {
+    ready: "已就绪",
+    connected: "已连接",
+    "catalog-ready": "目录已就绪",
+    passed: "通过",
+    running: "验证中",
+    failed: "失败",
+    degraded: "需要处理",
+    pending: "等待验证",
+    unknown: "未知",
+    "not-run": "未验证",
+    "not-configured": "未连接",
+  };
+  return labels[state] || modelRuntimeText(value, fallback);
+}
+
+function modelRuntimeTaskLabel(value: unknown): string {
+  const task = modelRuntimeText(value).toLowerCase();
+  const labels: Record<string, string> = {
+    translation: "双语翻译", "yance.translation": "双语翻译", understanding: "消息理解", "yance.understanding": "消息理解",
+    relationship: "关系分析", "yance.relationship": "关系分析", director: "回复策略", "yance.reply.director": "回复策略",
+    quick_reply: "快速回复", "yance.reply.quick": "快速回复", deep_reply: "深度回复", "yance.reply.deep": "深度回复",
+    fact_extraction: "事实提取", "yance.fact-extraction": "事实提取", memory_extraction: "记忆提取", "yance.memory-extraction": "记忆提取",
+  };
+  return labels[task] || "AI 能力";
+}
+
+function modelRuntimeReasonLabel(value: unknown, fallback = "等待模型服务返回原因"): string {
+  const raw = modelRuntimeText(value);
+  const labels: Record<string, string> = {
+    "no-hard-qualified-capability": "当前没有通过资格验证的可用模型",
+    "model-brain-unavailable": "模型服务当前不可用", "runtime-unavailable": "模型运行环境当前不可用",
+    "provider-unavailable": "当前模型服务商不可用", "credential-missing": "模型服务尚未配置访问凭据",
+  };
+  if (labels[raw.toLowerCase()]) return labels[raw.toLowerCase()];
+  if (!raw) return fallback;
+  return /^[A-Z0-9_]{8,}$/u.test(raw) ? "模型服务返回了一个需要处理的技术错误" : raw;
 }
 
 function modelRuntimeNumber(value: unknown): number {
@@ -142,27 +427,34 @@ function productModelRuntimeApi(): ProductModelRuntimeDesktopApi | null {
 function ProductModelRuntimeSupportSurface(): React.JSX.Element {
   const api = useMemo(() => productModelRuntimeApi(), []);
   const [modelRuntime, setModelRuntime] = useState<ProductModelRuntimeRecord>({});
-  const [feedback, setFeedback] = useState("正在读取高级系统支持状态");
+  const [feedback, setFeedback] = useState("正在读取模型中心状态");
   const [busy, setBusy] = useState(false);
-  const [runtimeTargetName, setRuntimeTargetName] = useState("");
-  const [localAssetPath, setLocalAssetPath] = useState("");
-  const [expectedSha256, setExpectedSha256] = useState("");
-  const [requiredBytes, setRequiredBytes] = useState("");
-  const [ollamaModel, setOllamaModel] = useState("");
-  const [ollamaEndpoint, setOllamaEndpoint] = useState("http://127.0.0.1:11434");
+  const [tab, setTab] = useState<"cloud" | "local" | "activity">("cloud");
+  const [cloudProvider, setCloudProvider] = useState<"openrouter" | "compatible">("openrouter");
+  const [openRouterKey, setOpenRouterKey] = useState("");
+  const [compatibleEndpoint, setCompatibleEndpoint] = useState("https://api.openai.com/v1");
+  const [compatibleKey, setCompatibleKey] = useState("");
+  const [compatibleCredentialRef, setCompatibleCredentialRef] = useState("");
+  const [compatibleModels, setCompatibleModels] = useState<readonly string[]>([]);
+  const [compatibleSelected, setCompatibleSelected] = useState("");
   const [ollamaRequestId, setOllamaRequestId] = useState("");
+  const [pendingDeleteModelId, setPendingDeleteModelId] = useState("");
+  const [modelSearch, setModelSearch] = useState("");
+  const [selectedTask, setSelectedTask] = useState("quick_reply");
+  const ollamaEndpoint = "http://127.0.0.1:11434";
+  const recommendedOllamaModel = "qwen3:8b";
 
   const refreshModelRuntime = useCallback(async (): Promise<void> => {
     if (!api) {
-      setFeedback("高级系统支持桥接暂不可用；不会创建本地替代状态。");
+      setFeedback("模型服务暂不可用，请稍后重试。");
       return;
     }
     setBusy(true);
     try {
       setModelRuntime(modelRuntimeRecord(await api.getProductModelRuntimeState()));
-      setFeedback("高级系统支持状态已从现有权威刷新");
+      setFeedback("模型状态已刷新");
     } catch {
-      setFeedback("高级系统支持状态读取失败；保留现有权威，不启用静默降级。");
+      setFeedback("模型状态读取失败，请稍后重试。");
     } finally {
       setBusy(false);
     }
@@ -180,155 +472,486 @@ function ProductModelRuntimeSupportSurface(): React.JSX.Element {
     setBusy(true);
     try {
       const result = await api.mutateProductModelRuntime(input);
+      const resultRecord = modelRuntimeRecord(result);
+      if (resultRecord.ok === false) {
+        throw new Error(modelRuntimeText(resultRecord.message || resultRecord.reasonCode || resultRecord.code, "模型操作失败"));
+      }
       setFeedback(successMessage);
       setModelRuntime(modelRuntimeRecord(await api.getProductModelRuntimeState()));
       return result;
-    } catch {
-      setFeedback("模型运行态操作失败；正式回复仍由 LiteLLM Model Brain 处理，不做本地静默回退。");
+    } catch (error) {
+      setFeedback(error instanceof Error && error.message
+        ? error.message
+        : "模型操作失败，当前对话设置保持不变。");
       return null;
     } finally {
       setBusy(false);
     }
   }, [api, busy]);
 
+  // Mature authority: backend Model Brain / LiteLLM remains the sole physical provider/model/retry/fallback owner.
   const brainState = modelRuntimeRecord(modelRuntime.modelBrain);
   const brain = modelRuntimeRecord(brainState.modelBrain);
   const brainRuntime = modelRuntimeRecord(brainState.runtime);
-  const catalog = modelRuntimeRecord(modelRuntime.catalog);
+  const modelStatus = modelRuntimeRecord(modelRuntime.modelStatus);
   const hardwareRoot = modelRuntimeRecord(modelRuntime.hardware);
   const hardware = modelRuntimeRecord(hardwareRoot.hardware);
   const adaptiveLocal = modelRuntimeRecord(modelRuntime.adaptiveLocal);
-  const catalogRows = modelRuntimeRows(catalog.models);
-  const materializations = modelRuntimeRows(adaptiveLocal.materializations);
+  const modelRows = modelRuntimeRows(modelStatus.models);
+  const localModels = modelRows.filter((row) => modelRuntimeText(row.provider).toLowerCase() === "ollama");
+  const cloudModels = modelRows.filter((row) => modelRuntimeText(row.provider).toLowerCase() !== "ollama");
+  const openRouter = modelRuntimeRecord(modelStatus.openRouter);
+  const modelSummary = modelRuntimeRecord(modelStatus.summary);
+  const taskReadiness = modelRuntimeRecord(modelStatus.taskReadiness || modelRuntime.taskReadiness);
+  const taskRows = modelRuntimeRows(taskReadiness.tasks);
+  const readyTaskCount = taskRows.filter((row) => row.ready === true).length;
   const pulls = modelRuntimeRows(adaptiveLocal.pulls);
+  const activePull = pulls.find((row) => !["completed", "cancelled", "failed"].includes(modelRuntimeText(row.status).toLowerCase())) || null;
   const brainHealth = modelRuntimeText(
     brain.health || brain.state || brainRuntime.health || brainRuntime.state || brainState.status,
     brainState.ok === false ? "不可用" : "状态已读取",
   );
-  const brainAuthority = modelRuntimeText(brain.authority || brain.litellm || brainRuntime.authority, "LiteLLM");
+  const routeEvidence = modelRuntimeRecord(brainRuntime.lastEvidence || brain.lastEvidence);
+  const selectedModel = modelRuntimeText(routeEvidence.selectedModel);
+  const selectedProvider = modelRuntimeText(routeEvidence.provider);
+  const logicalModel = modelRuntimeText(routeEvidence.logicalModel);
+  const costUsd = modelRuntimeNumber(routeEvidence.costUsd);
+  const retryCount = modelRuntimeNumber(routeEvidence.retryCount);
+  const fallbackCount = modelRuntimeNumber(routeEvidence.fallbackCount);
+  const openRouterConnectionState = modelRuntimeText(openRouter.connectionState, "not-configured").toLowerCase();
+  const openRouterAuthenticationStatus = modelRuntimeText(openRouter.authenticationStatus, "unknown").toLowerCase();
+  const openRouterCatalogStatus = modelRuntimeText(openRouter.catalogStatus, "unknown").toLowerCase();
+  const openRouterSmokeStatus = modelRuntimeText(openRouter.onboardingSmokeStatus, "not-run").toLowerCase();
+  const openRouterConnected = modelSummary.openRouterConnected === true;
+  const openRouterModels = modelRows.filter((row) => modelRuntimeText(row.provider).toLowerCase() === "openrouter");
+  const compatibleCloudModels = cloudModels.filter((row) => modelRuntimeText(row.provider).toLowerCase() !== "openrouter");
+  const verifiedModels = modelRows.filter((row) =>
+    ["verified", "qualified"].includes(modelRuntimeText(row.qualification || row.qualificationStatus).toLowerCase()),
+  );
+  const openRouterVerifiedModels = openRouterModels.filter((row) =>
+    ["verified", "qualified"].includes(modelRuntimeText(row.qualification || row.qualificationStatus).toLowerCase()),
+  );
+  const userPolicy = modelRuntimeRecord(modelStatus.userPolicy || modelRuntime.userPolicy);
+  const reasoningLevel = modelRuntimeText(userPolicy.reasoningLevel, "medium");
+  const reasoningLabel = modelRuntimeText(userPolicy.reasoningLabel, ({ minimum: "最小", low: "低", medium: "中", high: "高", very_high: "极高", maximum: "最高", ultra: "超高" } as Record<string, string>)[reasoningLevel] || "中");
+  const taskEligibleModels = modelRows.filter((row) => {
+    const qualification = modelRuntimeText(row.qualification || row.qualificationStatus).toLowerCase();
+    const capabilities = modelRuntimeRecord(row.capabilities);
+    const tasks = Array.isArray(capabilities.tasks) ? capabilities.tasks.map((value) => modelRuntimeText(value)) : [];
+    return ["verified", "qualified"].includes(qualification) && row.enabled !== false && row.userDisabled !== true && tasks.includes(selectedTask);
+  });
+  const openRouterGroups = useMemo(() => {
+    const needle = modelSearch.trim().toLowerCase();
+    const groups = new Map<string, ProductModelRuntimeRecord[]>();
+    for (const model of openRouterModels) {
+      const id = modelRuntimeText(model.id, modelRuntimeText(model.name));
+      const name = modelRuntimeText(model.displayName || model.name || model.id, id);
+      if (needle && !`${name} ${modelRuntimeText(model.name)} ${id}`.toLowerCase().includes(needle)) continue;
+      const rawName = modelRuntimeText(model.name || model.modelName || id);
+      const providerGroup = rawName.includes("/") ? rawName.split("/", 1)[0] : "OpenRouter";
+      const rows = groups.get(providerGroup) || [];
+      rows.push(model);
+      groups.set(providerGroup, rows);
+    }
+    return [...groups.entries()].sort(([left], [right]) => left.localeCompare(right));
+  }, [modelSearch, openRouterModels]);
 
-  const planAdaptiveLocal = async (): Promise<void> => {
-    const candidates = modelRuntimePlannerCandidates(catalog);
-    if (!candidates.length) {
-      setFeedback("当前自适应本地模型目录没有可规划候选。");
-      return;
-    }
-    const result = modelRuntimeRecord(await mutateModelRuntime(
-      { action: "plan-adaptive-local", candidates },
-      "自适应本地规划已完成；结果来自现有 planner authority。",
-    ));
-    const best = modelRuntimeRecord(result.best);
-    if (Object.keys(best).length) {
-      setFeedback(`规划结果：${modelRuntimeText(best.modelId, "模型")} / ${modelRuntimeText(best.runtimeId, "运行时")} · ${modelRuntimeText(best.capabilityClass, "未知能力级别")}`);
-    }
+  const scanLocalModels = async (): Promise<void> => {
+    await mutateModelRuntime(
+      { action: "scan-local-models" },
+      "本地 AI 已扫描完成。",
+    );
   };
 
-  const pullOllama = async (): Promise<void> => {
-    if (!ollamaModel.trim()) {
-      setFeedback("请输入要下载的 Ollama 模型名称。");
-      return;
-    }
-    const requestId = ollamaRequestId.trim() || globalThis.crypto?.randomUUID?.() || `product-${Date.now()}`;
+  const pullRecommendedOllama = async (): Promise<void> => {
+    const requestId = globalThis.crypto?.randomUUID?.() || `product-${Date.now()}`;
     setOllamaRequestId(requestId);
     await mutateModelRuntime(
       {
         action: "pull-ollama-model",
-        model: ollamaModel.trim(),
-        endpoint: ollamaEndpoint.trim(),
+        model: recommendedOllamaModel,
+        endpoint: ollamaEndpoint,
         requestId,
       },
-      "Ollama 模型下载请求已完成；状态已刷新。",
+      `已提交 ${recommendedOllamaModel} 安装；下载状态已刷新。`,
     );
   };
 
+  const setLocalModelEnabled = async (model: ProductModelRuntimeRecord, enabled: boolean): Promise<void> => {
+    const modelId = modelRuntimeText(model.id);
+    if (!modelId) return;
+    setPendingDeleteModelId("");
+    await mutateModelRuntime(
+      {
+        action: "set-local-model-enabled",
+        modelId,
+        enabled,
+        reason: "product-model-center",
+      },
+      enabled ? "本地模型已重新启用。" : "本地模型已停用；如需永久删除，可再次确认删除。",
+    );
+  };
+
+  const deleteLocalModel = async (model: ProductModelRuntimeRecord): Promise<void> => {
+    const modelId = modelRuntimeText(model.id);
+    const modelName = modelRuntimeText(model.name);
+    if (!modelId || !modelName) return;
+    if (pendingDeleteModelId !== modelId) {
+      setPendingDeleteModelId(modelId);
+      setFeedback(`再次点击“永久删除”将从本机 Ollama 删除 ${modelName}；此操作不可撤销。`);
+      return;
+    }
+    await mutateModelRuntime(
+      {
+        action: "delete-local-model",
+        modelId,
+        confirmName: modelName,
+      },
+      `已永久删除本地模型 ${modelName}。`,
+    );
+    setPendingDeleteModelId("");
+  };
+
+  const configureOpenRouter = async (): Promise<void> => {
+    let credentialChanged = true;
+    if (!api?.saveCredential || !openRouterKey.trim()) {
+      setFeedback("请输入 OpenRouter API Key；密钥只写入 Windows 安全存储。");
+      return;
+    }
+    setBusy(true);
+    try {
+      const credentialRef = OPENROUTER_CREDENTIAL_REF;
+      const saved = modelRuntimeRecord(await api.saveCredential(credentialRef, {
+        apiKey: openRouterKey.trim(),
+        endpoint: "https://openrouter.ai/api/v1",
+        provider: "openai-compatible",
+        service: "openrouter",
+      }));
+      if (saved.ok === false || saved.runtimeConfirmed === false) {
+        throw new Error(modelRuntimeUserMessage(saved.message || saved.reasonCode, "OpenRouter API Key 保存失败"));
+      }
+      credentialChanged = saved.credentialChanged !== false;
+      setOpenRouterKey("");
+      const configured = modelRuntimeRecord(await api.mutateProductModelRuntime({
+        action: "configure-openrouter",
+        credentialRef,
+      }));
+      if (configured.ok === false) {
+        throw new Error(modelRuntimeUserMessage(configured.message || configured.reasonCode || configured.code, "OpenRouter 连接失败"));
+      }
+      const configuredSnapshot = modelRuntimeRecord(configured.snapshot);
+      const registeredCount = modelRuntimeNumber(configuredSnapshot.registeredModelCount);
+      const catalogCount = modelRuntimeNumber(configuredSnapshot.usableCatalogCount || configuredSnapshot.catalogCount);
+      setModelRuntime(modelRuntimeRecord(await api.getProductModelRuntimeState()));
+      setFeedback(registeredCount
+        ? `OpenRouter 已验证连接；已注册 ${registeredCount} 个模型（目录 ${catalogCount || registeredCount} 个）。`
+        : "OpenRouter 已验证连接；模型目录正在同步。");
+    } catch (error) {
+      const message = modelRuntimeUserMessage(error instanceof Error ? error.message : "", "OpenRouter 连接失败");
+      setFeedback(credentialChanged ? message : `${message} 你输入的密钥与当前已保存密钥相同，并未完成更换。`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const discoverCompatibleCloud = async (): Promise<void> => {
+    if (!api?.saveCredential || !compatibleEndpoint.trim() || !compatibleKey.trim()) {
+      setFeedback("请填写 OpenAI 兼容地址与 API Key。");
+      return;
+    }
+    setBusy(true);
+    try {
+      const credentialRef = `model:openai-compatible:${globalThis.crypto?.randomUUID?.() || Date.now()}`;
+      const endpoint = compatibleEndpoint.trim();
+      const saved = modelRuntimeRecord(await api.saveCredential(credentialRef, {
+        apiKey: compatibleKey.trim(),
+        endpoint,
+        provider: "openai-compatible",
+      }));
+      if (saved.ok === false || saved.runtimeConfirmed === false) {
+        throw new Error(modelRuntimeText(saved.message || saved.reasonCode, "API Key 保存失败"));
+      }
+      setCompatibleKey("");
+      const discovered = modelRuntimeRecord(await api.mutateProductModelRuntime({
+        action: "discover-compatible-cloud",
+        endpoint,
+        credentialRef,
+      }));
+      if (discovered.ok === false) {
+        throw new Error(modelRuntimeText(discovered.message || discovered.reasonCode || discovered.code, "云端模型目录读取失败"));
+      }
+      const models = Array.isArray(discovered.models)
+        ? discovered.models.map((value) => modelRuntimeText(value)).filter(Boolean)
+        : [];
+      setCompatibleCredentialRef(credentialRef);
+      setCompatibleModels(models);
+      setCompatibleSelected(models[0] || "");
+      setFeedback(models.length ? `已找到 ${models.length} 个可用模型；请选择一个完成连接。` : "连接已验证，但服务没有返回可用模型。");
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "云端模型目录读取失败");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const registerCompatibleCloud = async (): Promise<void> => {
+    if (!compatibleCredentialRef || !compatibleSelected) {
+      setFeedback("请先读取模型目录并选择模型。");
+      return;
+    }
+    await mutateModelRuntime(
+      {
+        action: "register-compatible-cloud",
+        endpoint: compatibleEndpoint.trim(),
+        credentialRef: compatibleCredentialRef,
+        model: compatibleSelected,
+      },
+      "云端模型已连接；通过资格验证后由现有模型服务自动参与正式能力。",
+    );
+  };
+
+  const saveBrainPreferences = async (nextReasoningLevel: string, nextFastMode: boolean): Promise<void> => {
+    await mutateModelRuntime({
+      action: "set-model-brain-preferences",
+      reasoningLevel: nextReasoningLevel,
+      fastMode: nextFastMode,
+    }, `模型偏好已更新：推理强度 ${({ minimum: "最小", low: "低", medium: "中", high: "高", very_high: "极高", maximum: "最高", ultra: "超高" } as Record<string, string>)[nextReasoningLevel] || nextReasoningLevel}${nextFastMode ? " · 快速优先" : ""}。`);
+  };
+
+  const qualifyCatalogModel = async (model: ProductModelRuntimeRecord): Promise<void> => {
+    const modelId = modelRuntimeText(model.id, modelRuntimeText(model.name));
+    if (!modelId) return;
+    await mutateModelRuntime({ action: "qualify-model", modelId, timeoutMs: 180000 }, `已完成 ${modelRuntimeText(model.displayName || model.name, modelId)} 资格验证。`);
+  };
+
   return (
-    <section aria-label="高级系统支持" data-yance-secondary-system-support>
-      <header>
-        <h4>高级系统支持</h4>
-        <p>仅在明确展开后投影现有模型运行权威；不会创建第二套路由器、运行时或静默回退。</p>
-        <button type="button" onClick={() => void refreshModelRuntime()} disabled={busy}>刷新支持状态</button>
+    <section className="yance-model-center" aria-label="模型中心" data-yance-model-center>
+      <header className="yance-model-center__header">
+        <div>
+          <span className="yance-eyebrow">模型服务</span>
+          <h3>模型中心</h3>
+          <p>模型中心只管理可用模型、资格验证和你的生成偏好；具体模型选择、重试与故障恢复由现有模型服务统一处理。</p>
+        </div>
+        <button type="button" onClick={() => void refreshModelRuntime()} disabled={busy}>刷新</button>
       </header>
-      <p role="status" aria-live="polite">{feedback}</p>
-      <div className="yance-settings-grid">
-        <section>
-          <h5>Model Brain</h5>
-          <p>Model Brain 运行状态：{brainHealth}</p>
-          <p>正式路由权威：{brainAuthority.includes("LiteLLM") ? brainAuthority : `LiteLLM · ${brainAuthority}`}</p>
-          <p>LiteLLM 继续负责 quick_reply / deep_reply / director；本地模型不会静默替代正式回复。</p>
-        </section>
 
-        <section>
-          <h5>自适应本地运行态</h5>
-          <p>目录：{catalogRows.length} 个模型 · 已 materialize：{materializations.length} 项 · 下载任务：{pulls.length} 项</p>
-          <p>
-            硬件：RAM 可用 {modelRuntimeBytes(hardware.memoryFreeBytes || hardware.freeMemoryBytes)}
-            {" · "}
-            GPU VRAM {modelRuntimeBytes(hardware.gpuVramBytes || hardware.vramBytes)}
-          </p>
-          <button type="button" disabled={busy || catalogRows.length === 0} onClick={() => void planAdaptiveLocal()}>
-            规划自适应本地运行时
-          </button>
-          <ul>
-            {catalogRows.slice(0, 8).map((row) => (
-              <li key={modelRuntimeText(row.id, modelRuntimeText(row.displayName, "model"))}>
-                {modelRuntimeText(row.displayName, modelRuntimeText(row.id, "模型"))}
-                {" · "}
-                {Array.isArray(row.runtimeCandidates) ? row.runtimeCandidates.map((value) => modelRuntimeText(value)).filter(Boolean).join(" / ") : "运行时待定"}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section>
-          <h5>安装 / 移除本地运行时</h5>
-          <label><span>目标名称</span><input value={runtimeTargetName} onChange={(event) => setRuntimeTargetName(event.target.value)} placeholder="例如 llama-runtime.zip" /></label>
-          <label><span>本机已验证资产路径</span><input value={localAssetPath} onChange={(event) => setLocalAssetPath(event.target.value)} placeholder="本机路径" /></label>
-          <label><span>SHA-256</span><input value={expectedSha256} onChange={(event) => setExpectedSha256(event.target.value)} placeholder="预期 SHA-256" /></label>
-          <label><span>所需字节数</span><input inputMode="numeric" value={requiredBytes} onChange={(event) => setRequiredBytes(event.target.value)} /></label>
-          <div className="yance-learning-settings-actions">
-            <button
-              type="button"
-              disabled={busy || !runtimeTargetName || !localAssetPath || !expectedSha256}
-              onClick={() => void mutateModelRuntime(
-                {
-                  action: "materialize-adaptive-runtime",
-                  consent: true,
-                  targetName: runtimeTargetName,
-                  localAssetPath,
-                  expectedSha256,
-                  requiredBytes: modelRuntimeNumber(requiredBytes),
-                },
-                "本地运行时安装 / materialize 完成；状态已刷新。",
-              )}
-            >安装本地运行时</button>
-            <button
-              type="button"
-              disabled={busy || !runtimeTargetName}
-              onClick={() => void mutateModelRuntime(
-                { action: "remove-adaptive-runtime", targetName: runtimeTargetName },
-                "本地运行时已移除；状态已刷新。",
-              )}
-            >移除本地运行时</button>
-          </div>
-        </section>
-
-        <section>
-          <h5>Ollama 模型下载</h5>
-          <label><span>模型</span><input value={ollamaModel} onChange={(event) => setOllamaModel(event.target.value)} placeholder="例如 qwen3:8b" /></label>
-          <label><span>Ollama 地址</span><input value={ollamaEndpoint} onChange={(event) => setOllamaEndpoint(event.target.value)} /></label>
-          <div className="yance-learning-settings-actions">
-            <button type="button" disabled={busy || !ollamaModel.trim()} onClick={() => void pullOllama()}>下载 Ollama 模型</button>
-            <button
-              type="button"
-              disabled={busy || !ollamaRequestId}
-              onClick={() => void mutateModelRuntime(
-                { action: "cancel-ollama-pull", requestId: ollamaRequestId },
-                "已请求取消 Ollama 下载。",
-              )}
-            >取消 Ollama 下载</button>
-          </div>
-        </section>
+      <div className="yance-model-center__summary" aria-label="模型中心概览">
+        <span data-state={brainHealth.toLowerCase()}><strong>AI 服务</strong>{brainHealth === "不可用" ? "暂不可用" : "已就绪"}</span>
+        <span><strong>云端 AI</strong>{cloudModels.length ? `${cloudModels.length} 个已注册` : "未连接"}</span>
+        <span><strong>本地 AI</strong>{localModels.length ? `${localModels.length} 个已安装` : "未安装"}</span>
+        <span><strong>正式可用</strong>{verifiedModels.length ? `${verifiedModels.length} 个已验证` : "等待验证"}</span>
       </div>
+      <p className="yance-model-center__trust-note">本地模型不会在你不知情时替代正式回复；只有通过资格验证且符合当前能力要求的模型才会进入现有模型服务。</p>
+
+      <section className="yance-model-capabilities yance-model-control-plane" aria-label="言策功能与模型就绪状态">
+        <header>
+          <div><span>言策功能与模型</span><strong>{taskRows.length ? `${readyTaskCount} / ${taskRows.length} 个能力已就绪` : "正在读取能力状态"}</strong></div>
+          <p>这里展示每项功能的资格与就绪状态；物理模型选择、重试与故障恢复继续由现有模型服务负责。</p>
+        </header>
+        <div className="yance-model-preferences">
+          <label><span>推理强度</span><select value={reasoningLevel} disabled={busy} onChange={(event) => void saveBrainPreferences(event.target.value, userPolicy.fastMode === true)}>
+            <option value="minimum">最小</option><option value="low">低</option><option value="medium">中</option><option value="high">高</option><option value="very_high">极高</option><option value="maximum">最高</option><option value="ultra">超高</option>
+          </select></label>
+          <button type="button" className="yance-model-fast-toggle" aria-pressed={userPolicy.fastMode === true} disabled={busy} onClick={() => void saveBrainPreferences(reasoningLevel, userPolicy.fastMode !== true)}>
+            <span>快速</span><em>{userPolicy.fastMode === true ? "优先低延迟" : "标准路由"}</em>
+          </button>
+          <p>推理强度控制言策的生成预算与等待预算；“快速”会优先低延迟选择，不绕过资格验证。</p>
+        </div>
+        <div className="yance-model-task-workspace">
+          <nav className="yance-model-task-nav" aria-label="言策功能">{taskRows.map((row) => {
+            const task = modelRuntimeText(row.task || row.logicalModel);
+            return <button key={task} type="button" aria-current={selectedTask === task ? "page" : undefined} data-ready={row.ready === true || undefined} onClick={() => setSelectedTask(task)}>
+              <span>{modelRuntimeTaskLabel(task)}</span><em>{row.ready === true ? "就绪" : "未就绪"}</em>
+            </button>;
+          })}</nav>
+          <div className="yance-model-task-editor">
+            <header><div><span>{modelRuntimeTaskLabel(selectedTask)}</span><strong>{modelRuntimeText(taskRows.find((row) => modelRuntimeText(row.task) === selectedTask)?.logicalModel as string || selectedTask)}</strong></div><em>{taskEligibleModels.length} 个已验证模型符合资格</em></header>
+            <div className="yance-model-route-actions"><span>物理模型由现有模型服务在符合资格的候选中选择；言策不维护主模型、备用模型或独立重试链。</span></div>
+          </div>
+        </div>
+      </section>
+
+      <nav className="yance-model-center__tabs" aria-label="模型中心分类">
+        <button type="button" aria-current={tab === "cloud" ? "page" : undefined} onClick={() => setTab("cloud")}>云端 AI</button>
+        <button type="button" aria-current={tab === "local" ? "page" : undefined} onClick={() => setTab("local")}>本地 AI</button>
+        <button type="button" aria-current={tab === "activity" ? "page" : undefined} onClick={() => setTab("activity")}>使用记录</button>
+      </nav>
+
+      <p className="yance-model-center__feedback" role="status" aria-live="polite">{feedback}</p>
+
+      {tab === "cloud" ? (
+        <div className="yance-model-cloud-workspace">
+          <nav className="yance-model-provider-nav" aria-label="云端 AI 服务">
+            <button type="button" aria-current={cloudProvider === "openrouter" ? "page" : undefined} onClick={() => setCloudProvider("openrouter")}>
+              <span><strong>OpenRouter</strong><small>推荐云端 · 自动发现模型</small></span>
+              <em data-state={openRouterConnectionState}>{modelRuntimeStateLabel(openRouterConnectionState)}</em>
+            </button>
+            <button type="button" aria-current={cloudProvider === "compatible" ? "page" : undefined} onClick={() => setCloudProvider("compatible")}>
+              <span><strong>OpenAI 兼容 API</strong><small>连接其他兼容服务</small></span>
+              <em>{compatibleCloudModels.length ? `已连接 ${compatibleCloudModels.length}` : "未连接"}</em>
+            </button>
+          </nav>
+
+          <section className="yance-model-provider-detail" aria-label={cloudProvider === "openrouter" ? "OpenRouter" : "OpenAI 兼容 API"}>
+            {cloudProvider === "openrouter" ? (
+              <>
+                <header className="yance-model-provider-detail__header">
+                  <div><span className="yance-eyebrow">OPENROUTER</span><h4>云端模型连接</h4><p>密钥、模型目录和可用性验证由现有模型服务统一处理。</p></div>
+                  <strong data-state={openRouterConnectionState}>{openRouterConnected ? "已连接" : modelRuntimeStateLabel(openRouterConnectionState)}</strong>
+                </header>
+                <div className="yance-model-provider-status" aria-label="OpenRouter 连接状态">
+                  <span><strong>认证</strong>{modelRuntimeStateLabel(openRouterAuthenticationStatus)}</span>
+                  <span><strong>模型目录</strong>{modelRuntimeStateLabel(openRouterCatalogStatus)}</span>
+                  <span><strong>连接验证</strong>{modelRuntimeStateLabel(openRouterSmokeStatus)}</span>
+                  <span><strong>已注册模型</strong>{modelRuntimeNumber(openRouter.registeredModelCount) || openRouterModels.length}</span>
+                  <span><strong>正式可用</strong>{openRouterVerifiedModels.length}</span>
+                </div>
+                <div className="yance-model-provider-connect">
+                  <label><span>{openRouterConnected ? "更换或重新验证访问密钥" : "访问密钥"}</span><input type="password" autoComplete="off" value={openRouterKey} onChange={(event) => setOpenRouterKey(event.target.value)} placeholder="粘贴 OpenRouter API Key" /></label>
+                  <div><button type="button" disabled={busy || !openRouterKey.trim()} onClick={() => void configureOpenRouter()}>{openRouterConnected ? "重新验证连接" : "连接并读取模型"}</button><small>密钥只保存到 Windows 安全存储；页面和日志不会显示密钥。</small></div>
+                </div>
+                <section className="yance-model-catalog" aria-label="OpenRouter 模型目录">
+                  <header><div><strong>已发现模型</strong><span>{openRouterModels.length ? `${openRouterModels.length} 个已注册 · 按服务商分组` : "连接后自动显示"}</span></div><input className="yance-model-search" value={modelSearch} onChange={(event) => setModelSearch(event.target.value)} placeholder="搜索模型，例如 GPT / Claude / Gemini" aria-label="搜索 OpenRouter 模型" /></header>
+                  {openRouterModels.length ? <div className="yance-model-catalog__groups">{openRouterGroups.map(([providerGroup, rows]) => <section key={providerGroup} className="yance-model-provider-group"><header><strong>{providerGroup}</strong><span>{rows.length}</span></header><div className="yance-model-catalog__list">{rows.map((model) => {
+                    const id = modelRuntimeText(model.id, modelRuntimeText(model.name));
+                    const name = modelRuntimeText(model.displayName || model.name || model.id, id);
+                    const qualification = modelRuntimeText(model.qualification || model.qualificationStatus, "pending").toLowerCase();
+                    const verified = ["verified", "qualified"].includes(qualification);
+                    const eligibleForSelectedTask = taskEligibleModels.some((candidate) => modelRuntimeText(candidate.id) === id);
+                    return <div key={id || name} className="yance-model-catalog__row">
+                      <span><strong>{name}</strong><small>{modelRuntimeText(model.name, id)}</small></span>
+                      <div className="yance-model-catalog__row-actions"><em data-state={qualification}>{modelRuntimeStateLabel(qualification, "等待验证")}</em>{!verified ? <button type="button" disabled={busy} onClick={() => void qualifyCatalogModel(model)}>验证</button> : eligibleForSelectedTask ? <small>符合{modelRuntimeTaskLabel(selectedTask)}资格</small> : <small>未验证当前功能</small>}</div>
+                    </div>;
+                  })}</div></section>)}</div> : <div className="yance-model-catalog__empty">输入 API Key 并连接后，OpenRouter 返回的真实模型目录会显示在这里。</div>}
+                </section>
+              </>
+            ) : (
+              <>
+                <header className="yance-model-provider-detail__header">
+                  <div><span className="yance-eyebrow">兼容接口</span><h4>兼容云端服务</h4><p>使用现有模型服务读取服务端模型目录，验证后加入模型中心。</p></div>
+                  <strong>{compatibleCloudModels.length ? `已连接 ${compatibleCloudModels.length}` : "未连接"}</strong>
+                </header>
+                <div className="yance-model-provider-connect yance-model-provider-connect--compatible">
+                  <label><span>服务地址</span><input value={compatibleEndpoint} onChange={(event) => setCompatibleEndpoint(event.target.value)} placeholder="https://…/v1" /></label>
+                  <label><span>访问密钥</span><input type="password" autoComplete="off" value={compatibleKey} onChange={(event) => setCompatibleKey(event.target.value)} /></label>
+                  <div><button type="button" disabled={busy || !compatibleEndpoint.trim() || !compatibleKey.trim()} onClick={() => void discoverCompatibleCloud()}>验证并读取模型</button></div>
+                </div>
+                {compatibleModels.length ? <div className="yance-model-compatible-choice"><label><span>服务返回的模型</span><select value={compatibleSelected} onChange={(event) => setCompatibleSelected(event.target.value)}>{compatibleModels.map((name) => <option key={name} value={name}>{name}</option>)}</select></label><button type="button" disabled={busy || !compatibleSelected} onClick={() => void registerCompatibleCloud()}>注册到模型中心</button></div> : null}
+                <section className="yance-model-catalog" aria-label="已注册兼容模型">
+                  <header><strong>已注册模型</strong><span>{compatibleCloudModels.length || "暂无"}</span></header>
+                  {compatibleCloudModels.length ? <div className="yance-model-catalog__list">{compatibleCloudModels.map((model) => {
+                    const id = modelRuntimeText(model.id, modelRuntimeText(model.name));
+                    const name = modelRuntimeText(model.displayName || model.name || model.id, id);
+                    const qualification = modelRuntimeText(model.qualification || model.qualificationStatus, "pending");
+                    return <div key={id || name} className="yance-model-catalog__row"><span><strong>{name}</strong><small>{modelRuntimeText(model.provider)}</small></span><em data-state={qualification}>{modelRuntimeStateLabel(qualification, "等待验证")}</em></div>;
+                  })}</div> : <div className="yance-model-catalog__empty">验证兼容服务后，可选择模型注册到这里。</div>}
+                </section>
+              </>
+            )}
+          </section>
+        </div>
+      ) : null}
+
+      {tab === "local" ? (
+        <div className="yance-model-local">
+          <section className="yance-model-local__status">
+            <div>
+              <span className="yance-eyebrow">本地模型</span>
+              <h4>{localModels.length ? `已安装 ${localModels.length} 个本地模型` : "使用本地 AI"}</h4>
+              <p>言策会自动检测本机模型服务。无需填写地址或模型名；安装完成后可以在这里启用、停用或删除。</p>
+            </div>
+            <button type="button" disabled={busy} onClick={() => void scanLocalModels()}>扫描本地 AI</button>
+          </section>
+
+          {localModels.length ? (
+            <div className="yance-model-local__cards">
+              {localModels.map((model) => {
+                const modelId = modelRuntimeText(model.id, modelRuntimeText(model.name, "ollama"));
+                const modelName = modelRuntimeText(model.name, "本地模型");
+                const disabled = model.userDisabled === true || model.enabled === false;
+                return (
+                  <article key={modelId}>
+                    <div><span>Ollama</span><h5>{modelName}</h5></div>
+                    <p>{modelRuntimeText(model.parameterSize || model.quantizationLevel || model.qualificationLabel, "已安装 · 等待可用性检查")}</p>
+                    <em>{modelRuntimeBytes(model.sizeBytes)}</em>
+                    <div className="yance-model-local__actions">
+                      <button type="button" disabled={busy} onClick={() => void setLocalModelEnabled(model, disabled)}>
+                        {disabled ? "重新启用" : "停用"}
+                      </button>
+                      {disabled ? (
+                        <button type="button" className="yance-model-local__delete" disabled={busy}
+                          onClick={() => void deleteLocalModel(model)}>
+                          {pendingDeleteModelId === modelId ? "确认永久删除" : "永久删除"}
+                        </button>
+                      ) : <span>停用后可永久删除</span>}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <article className="yance-model-recommendation">
+              <div>
+                <span className="yance-eyebrow">推荐安装</span>
+                <h4>Qwen3 8B · Ollama</h4>
+                <p>适合作为日常本地 AI。安装完成后会自动检查是否可用，不会在你不知情时替代云端 AI。</p>
+              </div>
+              <button type="button" disabled={busy || Boolean(activePull)} onClick={() => void pullRecommendedOllama()}>安装推荐模型</button>
+            </article>
+          )}
+
+          <details className="yance-model-advanced yance-model-hardware-details">
+            <summary>本机运行信息</summary>
+            <div className="yance-model-hardware">
+              <span><strong>可用内存</strong>{modelRuntimeBytes(hardware.memoryFreeBytes || hardware.freeMemoryBytes)}</span>
+              <span><strong>GPU 显存</strong>{modelRuntimeBytes(hardware.gpuVramBytes || hardware.vramBytes)}</span>
+              <span><strong>本地服务</strong>已由言策自动管理</span>
+            </div>
+          </details>
+
+          {activePull ? (
+            <div className="yance-model-download" role="status">
+              <div><strong>正在安装 {modelRuntimeText(activePull.model, recommendedOllamaModel)}</strong><span>{modelRuntimeText(activePull.status, "下载中")}</span></div>
+              <button type="button" disabled={busy || !ollamaRequestId} onClick={() => void mutateModelRuntime(
+                { action: "cancel-ollama-pull", requestId: ollamaRequestId || modelRuntimeText(activePull.requestId) },
+                "已请求取消 Ollama 下载。",
+              )}>取消</button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {tab === "activity" ? (
+        <div className="yance-model-activity">
+          <article>
+            <span className="yance-eyebrow">最近使用</span>
+            <h4>最近一次 AI 使用</h4>
+            {selectedModel || selectedProvider || logicalModel ? (
+              <>
+                <dl>
+                  <div><dt>使用模型</dt><dd>{selectedModel || "自动选择"}</dd></div>
+                  <div><dt>云端服务</dt><dd>{selectedProvider || "自动选择"}</dd></div>
+                  <div><dt>耗时</dt><dd>{modelRuntimeNumber(routeEvidence.latencyMs).toFixed(0)} ms</dd></div>
+                  <div><dt>费用</dt><dd>${costUsd.toFixed(6)}</dd></div>
+                </dl>
+                <details className="yance-model-advanced">
+                  <summary>运行详情</summary>
+                  <dl>
+                    <div><dt>任务类型</dt><dd>{logicalModel ? modelRuntimeTaskLabel(logicalModel) : "未报告"}</dd></div>
+                    <div><dt>重试次数</dt><dd>{retryCount.toFixed(0)}</dd></div>
+                    <div><dt>备用切换</dt><dd>{fallbackCount.toFixed(0)}</dd></div>
+                  </dl>
+                </details>
+              </>
+            ) : <p>还没有可展示的 AI 使用记录。完成一次真实对话后，这里会显示实际使用的模型与耗时。</p>}
+          </article>
+          <article>
+            <span className="yance-eyebrow">自动选择</span>
+            <h4>言策会自动选择合适的模型</h4>
+            <p>你只需要连接可用的云端或本地 AI。日常对话的模型选择、失败重试和备用切换会由现有模型服务自动处理。</p>
+          </article>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -368,27 +991,28 @@ function projectRuntimeSafety(
     return { state: "offline", title: "网络已离线", detail: "需要联网的关系同步与外部平台操作会暂时不可用。" };
   }
   if (backendReady === false) {
-    return { state: "backend-unready", title: "本地服务未就绪", detail: "可在体验设置的运行安全与恢复中重启后台服务。" };
+    return { state: "backend-unready", title: "本地服务暂未就绪", detail: "可在设置里的“高级恢复工具”中重启本地服务。" };
   }
   const runtime = runtimeRecord(projection.runtime);
   if (String(runtime.operatingMode || "") === "safeMode") {
-    return { state: "safe-mode", title: "安全模式已启用", detail: "部分操作受限；退出前会由现有 RecoveryManager 签发一次性授权。" };
+    return { state: "safe-mode", title: "安全模式已启用", detail: "部分功能暂时受限；恢复正常模式时会执行现有安全校验。" };
   }
   const lifecycleState = String(runtime.lifecycleState || "");
+  const lifecycleReady = !lifecycleState || lifecycleState === "running" || lifecycleState === "local_ready";
   const reasonCode = String(health.reasonCode || "");
   if (
     projectionUnavailable
     || health.fatal === true
     || health.recoverable === true
     || runtime.localReady === false
-    || Boolean(lifecycleState && lifecycleState !== "running")
+    || !lifecycleReady
   ) {
     return {
       state: "degraded",
       title: "运行状态需要处理",
       detail: reasonCode
-        ? `运行健康异常：${reasonCode}。可在体验设置中执行恢复操作。`
-        : "运行投影尚未恢复到正常就绪状态；可在体验设置中执行恢复操作。",
+        ? "部分本地功能暂时不可用；可在设置里的“高级恢复工具”中检查并恢复。"
+        : "本地服务还没有恢复到正常状态；可在设置里的“高级恢复工具”中检查并恢复。",
     };
   }
   return null;
@@ -398,13 +1022,708 @@ function semanticThemeVariables(appearance: ProductAppearanceProjection): Readon
   return appearance.themes.find((theme) => theme.id === appearance.themeId)?.semanticVariables || {};
 }
 
+function YanceMark(): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 256 256" aria-hidden="true" focusable="false">
+      <rect width="256" height="256" rx="58" fill="currentColor" opacity="0.16" />
+      <path d="M67 72h122c13 0 23 10 23 23v56c0 13-10 23-23 23h-60l-41 31v-31H67c-13 0-23-10-23-23V95c0-13 10-23 23-23Z" fill="none" stroke="currentColor" strokeWidth="15" strokeLinejoin="round" />
+      <path d="m86 142 33-32 25 22 34-37" fill="none" stroke="currentColor" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function HomeYanceMark(): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+      <rect x="2" y="2" width="44" height="44" rx="9" fill="none" stroke="currentColor" strokeWidth="2.2" />
+      <path d="M11 32C15 32 17 20 22 20c4 0 4 8 8 8 4 0 5-8 8-12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+type ProductRoomViewProjectionProps = {
+  hideHeader?: boolean;
+  hideComposer?: boolean;
+  hideRightPanel?: boolean;
+  hidePinnedMessageBanner?: boolean;
+  hideWidgets?: boolean;
+  enableReadReceiptsAndMarkersOnActivity?: boolean;
+  productPresentation?: "yance-conversation";
+};
+
+type ProductConversationSurfaceProps = {
+  relationships: readonly RelationshipProjection[];
+  renderRoomAvatar?: (roomId: string, size?: string) => React.ReactNode;
+  renderRoomView: (roomId: string, props?: ProductRoomViewProjectionProps) => React.ReactNode;
+  onOpenRelationshipConversation: (relationship: RelationshipProjection, conversation: ConversationRef) => Promise<boolean>;
+  onReturnToRelationship: () => Promise<void> | void;
+  onReturnHome: () => void;
+  onOpenModels: () => void;
+  onOpenLearning: () => void;
+  onOpenSettings: () => void;
+  onAddContact: () => void;
+};
+
+type ConversationInspectorTab = "relationship" | "persona" | "memory" | "goal" | "advice" | "today";
+type ConversationListFilter = "all" | "unread" | "important" | "favorite";
+
+type ProductConversationReadApi = {
+  storeSocialContext?: (input: {
+    contactId: string;
+    timelineLimit?: number;
+    recentMessageLimit?: number;
+  }) => Promise<Record<string, unknown>>;
+  getProductModelRuntimeState?: () => Promise<Record<string, unknown>>;
+  setConversationAutomationMode?: (input: { conversationId: string; contactId?: string; mode: ConversationAutomationMode }) => Promise<unknown>;
+};
+
+function productConversationReadApi(): ProductConversationReadApi | null {
+  return (window as unknown as { yanceDesktop?: ProductConversationReadApi }).yanceDesktop || null;
+}
+
+function conversationInitials(value: string): string {
+  const parts = value.trim().split(/\s+/u).filter(Boolean);
+  return (parts.length > 1 ? (parts[0]?.[0] || "") + (parts.at(-1)?.[0] || "") : parts[0]?.slice(0, 2) || "Y").toUpperCase();
+}
+
+function conversationRelationshipAvatar(
+  relationship: RelationshipProjection,
+  renderRoomAvatar?: (roomId: string, size?: string) => React.ReactNode,
+  size = "44px",
+): React.ReactNode {
+  const avatarUrl = String(relationship.avatarUrl || "").trim();
+  if (avatarUrl) return <img src={avatarUrl} alt="" />;
+  const roomId = String(relationship.matrixRoomId || relationship.conversations.find((item) => item.matrixRoomId)?.matrixRoomId || "").trim();
+  const roomAvatar = roomId && renderRoomAvatar ? renderRoomAvatar(roomId, size) : null;
+  return roomAvatar || <span>{conversationInitials(relationship.name)}</span>;
+}
+
+function conversationContextFact(context: ProductModelRuntimeRecord, key: string): string {
+  const customer = modelRuntimeRecord(context.customer);
+  const direct = modelRuntimeText(customer[key]);
+  if (direct) return direct;
+  const memory = modelRuntimeRecord(context.memory);
+  const wanted = key.trim().toLowerCase();
+  for (const item of modelRuntimeRows(memory.confirmedFacts)) {
+    const itemKey = modelRuntimeText(item.key || item.name || item.field).toLowerCase();
+    if (itemKey !== wanted) continue;
+    const value = modelRuntimeText(item.value || item.fact || item.text || item.label);
+    if (value) return value;
+  }
+  return "";
+}
+
+function conversationMessagePreview(context: ProductModelRuntimeRecord, fallback = ""): string {
+  const recent = modelRuntimeRows(context.recentMessages);
+  const latest = recent.at(-1) || {};
+  return modelRuntimeText(
+    latest.translatedZh
+      || latest.chineseTranslation
+      || latest.translationZh
+      || latest.text
+      || latest.body,
+    fallback,
+  );
+}
+
+function conversationTimeLabel(value: string | undefined): string {
+  const timestamp = Date.parse(String(value || ""));
+  if (!Number.isFinite(timestamp)) return "";
+  const elapsed = Math.max(0, Date.now() - timestamp);
+  if (elapsed < 60_000) return "刚刚";
+  if (elapsed < 3_600_000) return Math.max(1, Math.floor(elapsed / 60_000)) + " 分钟前";
+  if (elapsed < 86_400_000) return new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit" }).format(new Date(timestamp));
+  if (elapsed < 604_800_000) return new Intl.DateTimeFormat("zh-CN", { weekday: "short" }).format(new Date(timestamp));
+  return new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric" }).format(new Date(timestamp));
+}
+
+function conversationMemoryText(value: unknown): string {
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  const row = modelRuntimeRecord(value);
+  return modelRuntimeText(
+    row.text || row.fact || row.value || row.title || row.label || row.summary || row.detail,
+  );
+}
+
+export function ProductConversationSurface({
+  relationships,
+  renderRoomAvatar,
+  renderRoomView,
+  onOpenRelationshipConversation,
+  onReturnToRelationship,
+  onReturnHome,
+  onOpenModels,
+  onOpenSettings,
+  onAddContact,
+}: ProductConversationSurfaceProps): React.JSX.Element {
+  const session = useExperienceSession();
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const modeMenuRef = useRef<HTMLDivElement | null>(null);
+  const [projectionStatus, setProjectionStatus] = useState("");
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
+  const [contactSearchOpen, setContactSearchOpen] = useState(false);
+  const [contactMenuOpen, setContactMenuOpen] = useState(false);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(true);
+  const [query, setQuery] = useState("");
+  const [listFilter, setListFilter] = useState<ConversationListFilter>("all");
+  const [inspectorTab, setInspectorTab] = useState<ConversationInspectorTab>("advice");
+  const [contextByContactId, setContextByContactId] = useState<Readonly<Record<string, ProductModelRuntimeRecord>>>({});
+  const [personaLabel, setPersonaLabel] = useState("");
+  const [longGoal, setLongGoal] = useState("");
+  const [dailyGoal, setDailyGoal] = useState("");
+  const [dailyReview, setDailyReview] = useState<Awaited<ReturnType<typeof loadDailyReview>> | null>(null);
+  const [modelSummary, setModelSummary] = useState({
+    model: "", provider: "", logicalModel: "",
+    quickReady: null as boolean | null, deepReady: null as boolean | null,
+    quickReason: "", deepReason: "",
+    reasoningLabel: "中", fastMode: false,
+  });
+
+  useEffect(() => {
+    // 920px is the approved compact desktop width, not a phone breakpoint.
+    // Keep the 190px conversation list visible there; only collapse it when
+    // it can no longer coexist with a usable real Element composer.
+    const media = window.matchMedia("(max-width: 760px)");
+    const apply = (matches: boolean): void => {
+      setLeftCollapsed(matches);
+      if (matches) setRightCollapsed(true);
+    };
+    apply(media.matches);
+    const onChange = (event: MediaQueryListEvent): void => apply(event.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  const relationship = useMemo(
+    () => relationships.find((row) => row.id === session.selectedRelationshipId)
+      || relationships.find((row) => (
+        row.matrixRoomId === session.activeMatrixRoomId
+        || row.conversations.some((item) => item.matrixRoomId === session.activeMatrixRoomId)
+      ))
+      || null,
+    [relationships, session.activeMatrixRoomId, session.selectedRelationshipId],
+  );
+  const conversation = useMemo(
+    () => relationship?.conversations.find((row) => row.id === session.selectedConversationId)
+      || relationship?.conversations.find((row) => row.matrixRoomId === session.activeMatrixRoomId)
+      || null,
+    [relationship, session.activeMatrixRoomId, session.selectedConversationId],
+  );
+  const title = relationship?.name || conversation?.title || "真实对话";
+  const platform = conversation?.platform || session.selectedConversationPlatform || "真实对话";
+  const intelligence = relationship?.relationshipIntelligence;
+  const latestMoment = intelligence?.events.at(-1) || null;
+  const summary = intelligence?.summary || relationship?.subtitle || "真实的人，真实的对话，更温暖的互联。";
+  const automationModeLabel = session.selectedConversationAutomationMode === "AI_AUTO"
+    ? "AI自动"
+    : session.selectedConversationAutomationMode === "AI_ASSIST"
+      ? "AI辅助"
+      : "由我回复";
+
+  useEffect(() => {
+    if (!modeMenuOpen) return;
+    const closeOnPointerDown = (event: PointerEvent): void => {
+      const node = event.target as Node | null;
+      if (node && !modeMenuRef.current?.contains(node)) setModeMenuOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") setModeMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [modeMenuOpen]);
+
+  useEffect(() => { setModeMenuOpen(false); setContactMenuOpen(false); }, [conversation?.id]);
+  const contextSignature = relationships.slice(0, 12)
+    .map((row) => row.id + ":" + (row.updatedAt || row.recentAt || ""))
+    .join("|");
+
+  useEffect(() => {
+    let cancelled = false;
+    const bridge = productConversationReadApi();
+    const visible = relationships.slice(0, 12);
+    if (!bridge?.storeSocialContext || !visible.length) {
+      setContextByContactId({});
+      return () => { cancelled = true; };
+    }
+    void Promise.all(visible.map(async (row) => {
+      try {
+        const payload = await bridge.storeSocialContext?.({
+          contactId: row.id,
+          timelineLimit: 24,
+          recentMessageLimit: 12,
+        });
+        return [row.id, modelRuntimeRecord(modelRuntimeRecord(payload).context)] as const;
+      } catch {
+        return [row.id, {}] as const;
+      }
+    })).then((rows) => {
+      if (!cancelled) setContextByContactId(Object.fromEntries(rows));
+    });
+    return () => { cancelled = true; };
+  }, [contextSignature]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const contactId = relationship?.id || conversation?.contactId || "";
+    const conversationId = conversation?.id || "";
+    setPersonaLabel("");
+    setLongGoal("");
+    setDailyGoal("");
+    setDailyReview(null);
+    setModelSummary({ model: "", provider: "", logicalModel: "", quickReady: null, deepReady: null, quickReason: "", deepReason: "", reasoningLabel: "中", fastMode: false });
+    if (!contactId) return () => { cancelled = true; };
+
+    void (async () => {
+      try {
+        const persona = await loadPersonaEffective({ contactId, conversationId });
+        if (!cancelled && persona.available) {
+          setPersonaLabel([persona.profileName, persona.version].filter(Boolean).join(" · "));
+        }
+      } catch {
+        if (!cancelled) setPersonaLabel("");
+      }
+      try {
+        const assistant = await loadRelationshipAssistant(contactId);
+        if (!cancelled && assistant.goal.exists === true) setLongGoal(assistant.goal.goalText);
+      } catch {
+        if (!cancelled) setLongGoal("");
+      }
+      try {
+        const localDate = new Intl.DateTimeFormat("en-CA").format(new Date());
+        const payload = modelRuntimeRecord(await loadDailyChatGoal(contactId, localDate));
+        const goal = modelRuntimeRecord(payload.goal || payload);
+        if (!cancelled) setDailyGoal(modelRuntimeText(goal.goalText || goal.text));
+      } catch {
+        if (!cancelled) setDailyGoal("");
+      }
+      try {
+        const localDate = new Intl.DateTimeFormat("en-CA").format(new Date());
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+        const review = await loadDailyReview(contactId, localDate, timeZone);
+        if (!cancelled) setDailyReview(review);
+      } catch {
+        if (!cancelled) setDailyReview(null);
+      }
+      try {
+        const bridge = productConversationReadApi();
+        if (!bridge?.getProductModelRuntimeState) return;
+        const runtimeState = modelRuntimeRecord(await bridge.getProductModelRuntimeState());
+        const brainState = modelRuntimeRecord(runtimeState.modelBrain);
+        const brain = modelRuntimeRecord(brainState.modelBrain);
+        const brainRuntime = modelRuntimeRecord(brainState.runtime);
+        const evidence = modelRuntimeRecord(brainRuntime.lastEvidence || brain.lastEvidence);
+        if (!cancelled) {
+          const runtimeStatus = modelRuntimeRecord(runtimeState.modelStatus);
+          const readiness = modelRuntimeRecord(runtimeStatus.taskReadiness || runtimeState.taskReadiness);
+          const tasks = modelRuntimeRows(readiness.tasks);
+          const quick = tasks.find((row) => modelRuntimeText(row.task) === "quick_reply") || {};
+          const deep = tasks.find((row) => modelRuntimeText(row.task) === "deep_reply") || {};
+          const policy = modelRuntimeRecord(runtimeStatus.userPolicy);
+          setModelSummary({
+            model: modelRuntimeText(evidence.selectedModel),
+            provider: modelRuntimeText(evidence.provider),
+            logicalModel: modelRuntimeText(evidence.logicalModel),
+            quickReady: typeof quick.ready === "boolean" ? quick.ready : null,
+            deepReady: typeof deep.ready === "boolean" ? deep.ready : null,
+            quickReason: modelRuntimeText(quick.reason || quick.reasonCode),
+            deepReason: modelRuntimeText(deep.reason || deep.reasonCode),
+            reasoningLabel: modelRuntimeText(policy.reasoningLabel, "中"),
+            fastMode: policy.fastMode === true,
+          });
+        }
+      } catch {
+        if (!cancelled) setModelSummary({ model: "", provider: "", logicalModel: "", quickReady: null, deepReady: null, quickReason: "", deepReason: "", reasoningLabel: "中", fastMode: false });
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [relationship?.id, conversation?.id]);
+
+  const selectedContext = contextByContactId[relationship?.id || ""] || {};
+  const selectedAge = conversationContextFact(selectedContext, "age");
+  const selectedCountry = conversationContextFact(selectedContext, "country");
+  const selectedConversationDetail = [selectedCountry, selectedAge ? selectedAge + "岁" : ""].filter(Boolean).join(" · ");
+  const memory = modelRuntimeRecord(selectedContext.memory);
+  const memoryCount = ["confirmedFacts", "recurringInterests", "openLoops", "promises", "boundaries", "sensitiveTopics", "importantEvents"]
+    .reduce((total, key) => total + modelRuntimeRows(memory[key]).length, 0);
+  const goalCount = [dailyGoal, longGoal].filter((value) => value.trim()).length;
+  const replyStrategy = modelRuntimeRecord(selectedContext.replyStrategy);
+  const filteredRelationships = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase();
+    return relationships
+      .filter((row) => {
+        const context = contextByContactId[row.id] || {};
+        const preview = conversationMessagePreview(context, row.lastMessage || row.subtitle || "");
+        const matchesQuery = !needle || (row.name + " " + preview + " " + (row.platform || "")).toLocaleLowerCase().includes(needle);
+        const matchesFilter = listFilter === "all"
+          || (listFilter === "unread" && row.unreadCount > 0)
+          || (listFilter === "favorite" && row.favorite)
+          || (listFilter === "important" && (row.favorite || row.conversations.some((item) => item.pinned)));
+        return matchesQuery && matchesFilter;
+      });
+  }, [relationships, query, listFilter, contextByContactId]);
+
+  const openRelationshipConversation = async (targetRelationship: RelationshipProjection): Promise<void> => {
+    const targetConversation = targetRelationship.conversations.find((row) => !row.archived)
+      || targetRelationship.conversations[0]
+      || null;
+    if (!targetConversation) {
+      setProjectionStatus(targetRelationship.name + " 暂无可用真实对话");
+      return;
+    }
+    try {
+      const opened = await onOpenRelationshipConversation(targetRelationship, targetConversation);
+      setProjectionStatus(opened ? "" : "没有找到唯一匹配的真实对话");
+    } catch {
+      setProjectionStatus("对话解析失败；言策没有执行猜测性跳转");
+    }
+  };
+
+  const openInspector = (tab: ConversationInspectorTab): void => {
+    setInspectorTab(tab);
+    setRightCollapsed(false);
+  };
+
+  const updateConversationMode = async (mode: ConversationAutomationMode): Promise<void> => {
+    if (!conversation?.id) return;
+    const bridge = productConversationReadApi();
+    if (!bridge?.setConversationAutomationMode) { setProjectionStatus("回复方式暂不可用"); return; }
+    try {
+      await bridge.setConversationAutomationMode({ conversationId: conversation.id, contactId: relationship?.id, mode });
+      setSelectedConversationAutomationMode(mode);
+      setProjectionStatus(mode === "HUMAN" ? "已切回由我回复" : mode === "AI_ASSIST" ? "建议模式已启用；发送仍由你确认" : "自动处理已启用；可随时切回由我回复");
+    } catch { setProjectionStatus("回复方式保存失败；保持原状态"); }
+  };
+
+  const renderMemoryGroup = (label: string, key: string): React.ReactNode => {
+    const values = modelRuntimeRows(memory[key])
+      .map((row) => conversationMemoryText(row))
+      .filter(Boolean)
+      .slice(0, 4);
+    return <article className="yance-conversation-inspector__memory-group">
+      <span>{label}</span>
+      {values.length ? <ul>{values.map((value, index) => <li key={key + "-" + index}>{value}</li>)}</ul> : <p>暂无已确认记录</p>}
+    </article>;
+  };
+
+  return <section
+    className="yance-product-conversation yance-product-conversation--immersive yance-conversation-workspace-v4 yance-conversation-final-ia"
+    style={{ "--yance-conversation-v5-bg": `url("${conversationTerraceDuskUrl}")` } as React.CSSProperties}
+    aria-label={"与 " + title + " 的言策对话"}
+    data-left-collapsed={leftCollapsed || undefined}
+    data-right-collapsed={rightCollapsed || undefined}
+    data-navigation-pending={session.conversationNavigationPending || undefined}
+  >
+    <header className="yance-conversation-workspace-v4__topbar" aria-label="对话工具栏">
+      <button type="button" className="yance-conversation-home-button" aria-label="返回首页" onClick={onReturnHome}><Home aria-hidden="true" /><span>首页</span></button>
+      <div className="yance-conversation-workspace-v5__identity">
+        <span className="yance-conversation-workspace-v5__avatar" aria-hidden="true">
+          {relationship ? conversationRelationshipAvatar(relationship, renderRoomAvatar) : conversationInitials(title)}
+        </span>
+        <div className="yance-conversation-workspace-v5__identity-copy">
+          <div className="yance-conversation-workspace-v5__identity-title">
+            <strong title={title}>{title}</strong>
+            {platform ? <span className="yance-conversation-workspace-v5__platform">{platform}</span> : null}
+          </div>
+          <small>{["真实联系人", selectedConversationDetail].filter(Boolean).join(" · ")}</small>
+        </div>
+      </div>
+      <div className="yance-conversation-workspace-v4__status-chips" aria-label="当前对话生效状态">
+        <button type="button" className="yance-conversation-persona-chip" aria-label="查看当前生效人格" onClick={() => openInspector("persona")}>
+          <UserRound aria-hidden="true" />
+          <span className="yance-conversation-persona-chip__copy">
+            <small className="yance-conversation-persona-chip__label">人格 · 当前生效</small>
+            <strong className="yance-conversation-persona-chip__value">{personaLabel || "当前生效"}</strong>
+          </span>
+          <span aria-hidden="true">⌄</span>
+        </button>
+        <div className="yance-header-mode yance-header-mode--top" ref={modeMenuRef}>
+          <button type="button" className="yance-conversation-mode-chip" aria-haspopup="menu" aria-expanded={modeMenuOpen} onClick={() => setModeMenuOpen((value) => !value)}><Zap aria-hidden="true" /><strong>{automationModeLabel}</strong><span aria-hidden="true">⌄</span></button>
+          {modeMenuOpen ? <div className="yance-header-mode__menu" role="menu" aria-label="回复方式">
+            {([ ["HUMAN", "由我回复", "言策给灵感，你决定怎么说"], ["AI_ASSIST", "AI辅助", "言策主动给出建议，最终发送由你确认"], ["AI_AUTO", "AI自动", "按你设定的边界自动处理；可立即接管"] ] as const).map(([mode, label, hint]) => <button key={mode} type="button" role="menuitem" aria-current={session.selectedConversationAutomationMode === mode ? "true" : undefined} onClick={() => { setModeMenuOpen(false); void updateConversationMode(mode); }}><strong>{label}</strong><span>{hint}</span></button>)}
+          </div> : null}
+        </div>
+        <button type="button" className="yance-conversation-model-chip" onClick={onOpenModels}><Bot aria-hidden="true" /><span>模型 · 智能</span><span aria-hidden="true">⌄</span></button>
+        {session.selectedConversationAutomationMode === "AI_AUTO" ? <button type="button" className="yance-conversation-takeover" onClick={() => void updateConversationMode("HUMAN")}>立即接管</button> : null}
+        <button type="button" className="yance-conversation-brain-button" aria-label="打开闺蜜大脑" onClick={() => openInspector("advice")}><Sparkles aria-hidden="true" /><span>闺蜜大脑</span></button>
+      </div>
+      {leftCollapsed ? <button type="button" className="yance-conversation-sidebar-toggle" aria-label="展开左侧联系人栏" aria-pressed={leftCollapsed} onClick={() => setLeftCollapsed(false)}><PanelLeft aria-hidden="true" /></button> : null}
+
+    </header>
+    <section className="yance-product-conversation__workspace" aria-label="联系人、真实对话与关系洞察">
+      <aside className="yance-product-conversation__people" aria-label="对话联系人" data-collapsed={leftCollapsed || undefined}>
+        <header className="yance-product-conversation__pane-header yance-conversation-list-header">
+          <div><strong>对话 ({relationships.length})</strong></div>
+          <div className="yance-conversation-list-header__actions">
+            <button type="button" className="yance-conversation-list-search" aria-label="搜索联系人或消息" aria-pressed={contactSearchOpen} onClick={() => {
+              setContactSearchOpen((value) => !value);
+              window.setTimeout(() => searchRef.current?.focus(), 0);
+            }}><Search aria-hidden="true" /></button>
+            <button type="button" className="yance-conversation-list-collapse" aria-label="收起左侧联系人栏" onClick={() => setLeftCollapsed(true)}><PanelLeft aria-hidden="true" /></button>
+          </div>
+        </header>
+        {!leftCollapsed ? <>
+          {contactSearchOpen ? <label className="yance-product-conversation__search">
+            <Search aria-hidden="true" />
+            <span className="yance-sr-only">搜索联系人或消息</span>
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="搜索联系人或消息…"
+            />
+          </label> : null}
+          <nav className="yance-conversation-filters" aria-label="筛选对话">
+            {([ ["all", "全部"], ["unread", "未读"], ["important", "关注"] ] as const).map(([id, label]) => <button
+              key={id}
+              type="button"
+              aria-pressed={listFilter === id}
+              onClick={() => setListFilter(id)}
+            >{id === "all" ? `${label} ${relationships.length}` : label}{id === "unread" && relationships.some((row) => row.unreadCount > 0)
+                ? <em>{relationships.reduce((sum, row) => sum + row.unreadCount, 0)}</em>
+                : null}</button>)}
+            <div className="yance-conversation-contact-more">
+              <button type="button" aria-label="联系人更多操作" aria-expanded={contactMenuOpen} onClick={() => setContactMenuOpen((value) => !value)}>…</button>
+              {contactMenuOpen ? <div className="yance-conversation-contact-menu" role="menu">
+                <button type="button" role="menuitem" onClick={() => { setContactMenuOpen(false); onAddContact(); }}>＋ 添加联系人</button>
+                <button type="button" role="menuitem" onClick={() => { setContactMenuOpen(false); setListFilter("favorite"); }}>收藏联系人</button>
+              </div> : null}
+            </div>
+          </nav>
+          <div className="yance-product-conversation__people-list">
+            {filteredRelationships.map((row) => {
+              const targetConversation = row.conversations.find((item) => !item.archived) || row.conversations[0] || null;
+              const active = row.id === relationship?.id;
+              const context = contextByContactId[row.id] || {};
+              const preview = conversationMessagePreview(context, row.lastMessage || row.subtitle || targetConversation?.platform || "真实关系");
+              const meta = targetConversation?.platform || row.platform || "";
+              const recentLabel = conversationTimeLabel(targetConversation?.lastMessageAt || targetConversation?.updatedAt || row.recentAt || row.updatedAt);
+              return <button
+                key={row.id}
+                type="button"
+                data-active={active || undefined}
+                aria-current={active ? "true" : undefined}
+                disabled={!targetConversation}
+                onClick={() => void openRelationshipConversation(row)}
+              >
+                <span className="yance-product-conversation__people-avatar" aria-hidden="true">
+                  {conversationRelationshipAvatar(row, renderRoomAvatar)}
+                </span>
+                <span className="yance-product-conversation__people-copy">
+                  <span className="yance-product-conversation__people-line">
+                    <strong>{row.name}</strong>
+                    <span className="yance-product-conversation__people-state">
+                      {recentLabel ? <time>{recentLabel}</time> : null}
+                      {row.unreadCount > 0 ? <em>{row.unreadCount}</em> : null}
+                    </span>
+                  </span>
+                  {meta ? <small className="yance-product-conversation__people-meta">{meta}</small> : null}
+                  <small className="yance-product-conversation__people-preview">{preview}</small>
+                </span>
+              </button>;
+            })}
+          </div>
+        </> : (
+          <div className="yance-product-conversation__people-collapsed">
+            {filteredRelationships.slice(0, 8).map((row) => {
+              const targetConversation = row.conversations.find((item) => !item.archived) || row.conversations[0] || null;
+              return <button
+                key={row.id}
+                type="button"
+                aria-label={"打开与 " + row.name + " 的对话"}
+                disabled={!targetConversation}
+                onClick={() => void openRelationshipConversation(row)}
+              >
+                {conversationRelationshipAvatar(row, renderRoomAvatar)}
+              </button>;
+            })}
+          </div>
+        )}
+      </aside>
+
+      <main className="yance-product-conversation__room" aria-label="真实对话时间线与输入框">
+        {projectionStatus ? <div className="yance-product-conversation__route-status" role="status">{projectionStatus}</div> : null}
+        <div className="yance-product-conversation__room-owner yance-sr-only">
+          <span>真实对话</span>
+          <strong>消息、发送与安全继续由现有消息系统处理</strong>
+        </div>
+        <div className="yance-product-conversation__room-view" key={session.activeMatrixRoomId || `pending:${session.selectedConversationId}`}>
+          {session.activeMatrixRoomId ? renderRoomView(session.activeMatrixRoomId, {
+            hideHeader: true,
+            hideRightPanel: true,
+            hideWidgets: true,
+            enableReadReceiptsAndMarkersOnActivity: true,
+            productPresentation: "yance-conversation",
+          }) : <div className="yance-empty yance-product-conversation__room-transition" role="status">
+            <strong>{session.conversationNavigationPending ? "正在打开真实对话…" : "真实对话暂未就绪"}</strong>
+            <span>{session.conversationNavigationPending ? "正在连接目标联系人对应的真实消息房间。" : "当前目标没有可用的真实聊天房间；言策不会猜测性跳转。"}</span>
+          </div>}
+        </div>
+      </main>
+
+      <aside className="yance-product-conversation__insight" aria-label="闺蜜大脑" data-collapsed={rightCollapsed || undefined} data-drawer-open={!rightCollapsed || undefined}>
+        <header className="yance-product-conversation__pane-header">
+          {!rightCollapsed ? <nav className="yance-conversation-inspector__tabs" aria-label="关系智能分区">
+            {([
+              ["relationship", "关系"],
+              ["persona", "人格"],
+              ["memory", "记忆"],
+              ["goal", "目标"],
+              ["advice", "建议"],
+              ["today", "今日"],
+            ] as const).map(([id, label]) => <button
+              key={id}
+              type="button"
+              aria-current={inspectorTab === id ? "page" : undefined}
+              onClick={() => setInspectorTab(id)}
+            >{label}</button>)}
+          </nav> : null}
+          <button
+            type="button"
+            className="yance-native-pane-toggle"
+            aria-label={rightCollapsed ? "展开关系智能" : "隐藏关系智能"}
+            aria-pressed={rightCollapsed}
+            onClick={() => setRightCollapsed((value) => !value)}
+          ><PanelRight aria-hidden="true" /></button>
+        </header>
+
+        {rightCollapsed ? <div className="yance-conversation-inspector__summary">
+          <section className="yance-conversation-inspector__identity" aria-label="当前联系人摘要">
+            <span className="yance-conversation-inspector__identity-avatar" aria-hidden="true">
+              {relationship ? conversationRelationshipAvatar(relationship, renderRoomAvatar) : conversationInitials(title)}
+            </span>
+            <div><strong>{title}</strong><span>{platform || "真实联系人"}</span></div>
+          </section>
+          <p>{intelligence?.stage || summary || "关系状态待形成"}</p>
+          <div className="yance-conversation-inspector__summary-counts">
+            {memoryCount > 0 ? <span>记忆 {memoryCount}</span> : null}
+            {goalCount > 0 ? <span>目标 {goalCount}</span> : null}
+          </div>
+          <button type="button" onClick={() => setRightCollapsed(false)}>展开</button>
+        </div> : <div className="yance-conversation-inspector__body">
+          <section className="yance-conversation-inspector__identity" aria-label="当前联系人">
+            <span className="yance-conversation-inspector__identity-avatar" aria-hidden="true">
+              {relationship ? conversationRelationshipAvatar(relationship, renderRoomAvatar) : conversationInitials(title)}
+            </span>
+            <div>
+              <strong>{title}</strong>
+              <span>{platform || "真实联系人"}</span>
+              {summary ? <small>{summary}</small> : null}
+            </div>
+          </section>
+          {inspectorTab === "advice" ? <>
+            <section className="yance-conversation-inspector__lead">
+              <span className="yance-eyebrow">当前对话</span>
+              <h3>为什么这样回</h3>
+              <p>{modelRuntimeText(replyStrategy.recommendedTone, "根据关系上下文动态选择策略")} · {modelRuntimeText(replyStrategy.recommendedDepth, "自适应深度")}</p>
+            </section>
+            <article>
+              <span>人物设定</span>
+              <strong>{personaLabel || "使用当前生效人物设定"}</strong>
+              <p>会结合你和这个人的相处方式、边界与最近对话。</p>
+            </article>
+            <article>
+              <span>为什么这样回</span>
+              <strong>{intelligence?.next || modelRuntimeText(replyStrategy.recommendedTone, "等待下一次真实消息形成策略")}</strong>
+              {summary ? <p>{summary}</p> : null}
+            </article>
+            <div className="yance-conversation-inspector__brain-entry">
+              <strong>和闺蜜大脑聊聊</strong>
+              <p>这一次的调整会先作用于当前回复；只有发送成功后的有效反馈才进入学习证据。</p>
+            </div>
+          </> : null}
+
+          {inspectorTab === "persona" ? <>
+            <section className="yance-conversation-inspector__lead">
+              <span className="yance-eyebrow">当前生效人格</span>
+              <h3>{personaLabel || "使用当前生效人物设定"}</h3>
+              <p>人格来自现有人格系统；这里仅展示当前对话真正生效的设定，不创建第二份人格状态。</p>
+            </section>
+            <article><span>沟通基调</span><strong>{modelRuntimeText(replyStrategy.recommendedTone, "根据关系上下文动态调整")}</strong><p>会继续结合边界、最近互动和当前关系阶段。</p></article>
+            <article><span>表达深度</span><strong>{modelRuntimeText(replyStrategy.recommendedDepth, "自适应深度")}</strong><p>人物设定只影响表达策略，不接管真实消息发送。</p></article>
+            <button type="button" onClick={onOpenSettings}>管理人物设定</button>
+          </> : null}
+
+          {inspectorTab === "relationship" ? <>
+            <section className="yance-conversation-inspector__lead">
+              <span className="yance-eyebrow">关系洞察</span>
+              <h3>{title}</h3>
+              <p>{summary}</p>
+            </section>
+            <article><span>关系阶段</span><strong>{intelligence?.stage || "等待可信关系分析"}</strong></article>
+            <article><span>关系动量</span><strong>{intelligence?.momentum || "等待更多真实互动"}</strong></article>
+            <article><span>下一步</span><strong>{intelligence?.next || "继续真实互动后形成建议"}</strong></article>
+            <article className="yance-conversation-inspector__timeline">
+              <span>最近时刻</span>
+              {intelligence?.events.length ? <ul>{intelligence.events.slice(-4).reverse().map((event, index) => <li key={event.at + "-" + index}><strong>{event.title}</strong>{event.detail && event.detail !== event.title ? <small>{event.detail}</small> : null}</li>)}</ul> : <p>{latestMoment?.title || "暂无已确认关系时刻"}</p>}
+            </article>
+            <button type="button" onClick={() => void onReturnToRelationship()}>进入关系世界</button>
+          </> : null}
+
+          {inspectorTab === "memory" ? <>
+            <section className="yance-conversation-inspector__lead">
+              <span className="yance-eyebrow">记忆</span>
+              <h3>可信记忆</h3>
+              <p>这里只投影本地关系权威已经确认的内容；没有证据时保持空白。</p>
+            </section>
+            {renderMemoryGroup("已确认事实", "confirmedFacts")}
+            {renderMemoryGroup("反复兴趣", "recurringInterests")}
+            {renderMemoryGroup("未完话题", "openLoops")}
+            {renderMemoryGroup("承诺", "promises")}
+            {renderMemoryGroup("边界", "boundaries")}
+            {renderMemoryGroup("敏感话题", "sensitiveTopics")}
+            {renderMemoryGroup("重要事件", "importantEvents")}
+          </> : null}
+
+          {inspectorTab === "goal" ? <>
+            <section className="yance-conversation-inspector__lead">
+              <span className="yance-eyebrow">GOALS</span>
+              <h3>今天与长期</h3>
+              <p>目标由现有 Parlant / 关系任务权威保存；对话页只显示当前投影。</p>
+            </section>
+            <article><span>今日目标</span><strong>{dailyGoal || "今天还没有设置对话目标"}</strong></article>
+            <article><span>长期关系目标</span><strong>{longGoal || "还没有设置长期关系目标"}</strong></article>
+            <article><span>现在值得做什么</span><strong>{intelligence?.next || "继续真实互动后形成下一步"}</strong></article>
+            <button type="button" onClick={() => void onReturnToRelationship()}>管理目标与关系</button>
+          </> : null}
+
+          {inspectorTab === "today" ? <>
+            <section className="yance-conversation-inspector__lead">
+              <span className="yance-eyebrow">今日</span>
+              <h3>{dailyReview?.coverageComplete ? "今日对话复盘" : "今日复盘待完整证据"}</h3>
+              <p>{dailyReview ? `今天已覆盖 ${dailyReview.dayMessageCount} 条真实消息。` : "当前联系人今天还没有可展示的可信复盘。"}</p>
+            </section>
+            <article><span>做得好的</span><strong>{conversationMemoryText(dailyReview?.successes?.[0]) || "等待今天的真实互动形成证据"}</strong></article>
+            <article><span>需要留意</span><strong>{conversationMemoryText(dailyReview?.problems?.[0]) || "暂无已确认问题"}</strong></article>
+            <article><span>下一步</span><strong>{conversationMemoryText(dailyReview?.nextActions?.[0]) || intelligence?.next || "继续真实互动后形成下一步"}</strong></article>
+          </> : null}
+        </div>}
+      </aside>
+    </section>
+  </section>;
+}
+
 export function ProductExperienceShell({
   appearanceHost,
   navigateSearchResult,
   navigateConversation,
   navigateGroupConversation,
   navigateProductHome,
+  navigateRelationshipHome,
+  renderRoomAvatar,
+  renderUserAvatar,
+  loadMatrixDirectRooms,
+  subscribeMatrixRoomList,
+  renderRoomView,
   readRoomStateEvents,
+  getMatrixOpenIdToken,
+  getMatrixUserId,
   openUserSettings,
   requestLogout,
 }: ProductExperienceShellProps): React.JSX.Element {
@@ -415,8 +1734,10 @@ export function ProductExperienceShell({
   const [appearance, setAppearance] = useState<ProductAppearanceProjection>(EMPTY_APPEARANCE);
   const [appearanceStatus, setAppearanceStatus] = useState("正在同步外观设置");
   const [assistantVisible, setAssistantVisible] = useState(false);
-  const [learningAdminVisible, setLearningAdminVisible] = useState(false);
-  const [modelSupportVisible, setModelSupportVisible] = useState(false);
+  const [aiWorkspaceVisible, setAiWorkspaceVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [conversationWorkspaceRequested, setConversationWorkspaceRequested] = useState<boolean | null>(null);
+  const [settingsSection, setSettingsSection] = useState<SettingsSectionV4>("general");
   const [aiState, setAiState] = useState<RelationshipAiState>("idle");
   const [peopleHomeView, setPeopleHomeView] = useState<PeopleHomeView>("list");
   const [focusedRelationshipId, setFocusedRelationshipId] = useState("");
@@ -453,6 +1774,11 @@ export function ProductExperienceShell({
     const applyProjection = (payload: unknown): void => {
       if (!active) return;
       setRuntimeProjection(runtimeRecord(payload));
+      // RuntimeProjectionCoordinator only emits projections from a trusted,
+      // validated backend owner. Treat that projection as positive readiness
+      // evidence so a credential-driven backend replacement cannot leave the
+      // Product shell pinned to an obsolete backendReady=false event.
+      setRuntimeBackendReady(true);
       setRuntimeHealth({});
       setRuntimeProjectionUnavailable(false);
     };
@@ -491,20 +1817,22 @@ export function ProductExperienceShell({
     const generation = ++refreshGenerationRef.current;
     try {
       const next = await loadRelationshipProjectionsForPeople();
+      const matrixRooms = loadMatrixDirectRooms ? await loadMatrixDirectRooms() : [];
+      const mergedRelationships = mergeMatrixDirectRelationships(next.relationships, matrixRooms);
       if (generation !== refreshGenerationRef.current) return;
-      setRelationships(next.relationships);
+      setRelationships(mergedRelationships);
       setGroups(next.groups);
       setFocusedRelationshipId((current) => (
-        current && !next.relationships.some((row) => row.id === current) ? "" : current
+        current && !mergedRelationships.some((row) => row.id === current) ? "" : current
       ));
       setLoading(false);
       setStatus(
-        next.relationships.length || next.groups.length
-          ? `已载入 ${next.relationships.length} 段关系 · ${next.groups.length} 个群聊`
+        mergedRelationships.length || next.groups.length
+          ? `已载入 ${mergedRelationships.length} 段关系 · ${next.groups.length} 个群聊`
           : "暂无可用关系或群聊",
       );
       const selectedRelationshipId = selectedRelationshipIdRef.current;
-      if (selectedRelationshipId && !next.relationships.some((row) => row.id === selectedRelationshipId)) {
+      if (selectedRelationshipId && !mergedRelationships.some((row) => row.id === selectedRelationshipId)) {
         clearSelectedRelationship();
       }
     } catch {
@@ -515,7 +1843,7 @@ export function ProductExperienceShell({
       setLoading(false);
       setStatus("关系与群聊数据暂不可用");
     }
-  }, []);
+  }, [loadMatrixDirectRooms]);
 
   const reconcileHostAppearance = useCallback(async (next: ProductAppearanceProjection): Promise<void> => {
     if (!appearanceHost || !next.available) return;
@@ -614,6 +1942,13 @@ export function ProductExperienceShell({
   }, [refreshRelationships]);
 
   useEffect(() => {
+    if (!subscribeMatrixRoomList) return;
+    return subscribeMatrixRoomList(() => {
+      void refreshRelationships();
+    });
+  }, [refreshRelationships, subscribeMatrixRoomList]);
+
+  useEffect(() => {
     setAssistantVisible(false);
     setAiState("idle");
   }, [session.selectedRelationshipId]);
@@ -622,6 +1957,18 @@ export function ProductExperienceShell({
     () => relationships.find((row) => row.id === session.selectedRelationshipId) || null,
     [relationships, session.selectedRelationshipId],
   );
+  const homeRelationship = selectedRelationship
+    || relationships.find((row) => row.id === focusedRelationshipId)
+    || relationships[0]
+    || null;
+  const conversationSurfaceActive = Boolean(
+    conversationWorkspaceRequested === true
+      || (conversationWorkspaceRequested !== false
+        && (session.activeMatrixRoomId || session.conversationNavigationPending || session.selectedConversationId)),
+  );
+  const homePresentationRequested = conversationWorkspaceRequested === false;
+  const homeSurfaceActive = !settingsVisible && !aiWorkspaceVisible && !conversationSurfaceActive
+    && (homePresentationRequested || (!selectedRelationship && peopleHomeView === "list"));
 
   const runtimeSafetyBanner = useMemo(
     () => projectRuntimeSafety(
@@ -659,12 +2006,13 @@ export function ProductExperienceShell({
     }
 
     try {
+      setConversationWorkspaceRequested(null);
       const opened = await navigateConversation(selectedRelationship, conversation);
       setStatus(opened
         ? "已进入对话"
-        : "没有找到唯一匹配的真实对话；请检查账号同步状态");
+        : "对话未就绪：当前平台账号还没有同步出可用的真实聊天房间。请先到“账号与连接”完成登录与同步。");
     } catch {
-      setStatus("对话解析失败；言策没有执行猜测性跳转");
+      setStatus("对话未就绪：真实聊天房间解析失败；言策没有执行猜测性跳转。");
     }
   };
 
@@ -680,10 +2028,19 @@ export function ProductExperienceShell({
       const opened = await navigateGroupConversation(conversation);
       setStatus(opened
         ? "已进入群聊"
-        : "没有找到唯一匹配的真实群聊；请检查账号同步状态");
+        : "群聊未就绪：当前平台账号还没有同步出可用的真实群聊房间。请先到“账号与连接”完成登录与同步。");
     } catch {
-      setStatus("群聊解析失败；言策没有执行猜测性跳转");
+      setStatus("群聊未就绪：真实群聊房间解析失败；言策没有执行猜测性跳转。");
     }
+  };
+
+  const returnToHomeFromConversation = (): void => {
+    setConversationWorkspaceRequested(false);
+    setSettingsVisible(false);
+    setAiWorkspaceVisible(false);
+    setPeopleHomeView("list");
+    setAssistantVisible(false);
+    setStatus("已返回首页");
   };
 
   const returnToPeople = (): void => {
@@ -697,12 +2054,47 @@ export function ProductExperienceShell({
   };
 
   const toggleAssistant = (): void => {
+    playExperienceSound(preferences.soundMode, "open");
     setAssistantVisible((visible) => {
       const next = !visible;
       setAiState(next ? "wake" : "idle");
       return next;
     });
   };
+
+  const conversationRouteFeedback = status.startsWith("对话未就绪：") || status.startsWith("群聊未就绪：") ? status : "";
+  const desktopTopbarTitle = aiWorkspaceVisible
+    ? "AI 工作台"
+    : settingsVisible
+      ? "设置"
+      : selectedRelationship
+        ? "关系世界"
+        : peopleHomeView === "universe"
+          ? "关系视图"
+          : "首页 · People";
+  const desktopTopbarSubtitle = aiWorkspaceVisible
+    ? "深层任务与跨关系分析"
+    : settingsVisible
+      ? "安静地管理默认行为与高级能力"
+      : selectedRelationship
+        ? "深入看一个人，不复制聊天"
+        : peopleHomeView === "universe"
+          ? "从真实人物与关系中定位当前重点"
+          : "先看人，再进入关系与对话";
+  const intelligenceStateLabel = aiState === "thinking"
+    ? "深度思考中"
+    : aiState === "listening"
+      ? "正在倾听"
+      : aiState === "ready"
+        ? "建议已就绪"
+        : aiState === "speaking"
+          ? "正在回应"
+          : aiState === "error"
+            ? "需要检查"
+            : aiState === "wake"
+              ? "已唤醒"
+              : "待命";
+  const currentMatrixUserId = getMatrixUserId?.().trim() || "";
 
   return (
     <main
@@ -712,9 +2104,33 @@ export function ProductExperienceShell({
       data-reduced-motion={preferences.reducedMotion || undefined}
       data-theme-id={appearance.themeId || undefined}
       data-font-scale={appearance.available ? appearance.fontScale : undefined}
-      aria-label="言策关系智能操作系统"
+      data-conversation-active={!settingsVisible && session.activeMatrixRoomId ? session.activeMatrixRoomId : undefined}
+      data-conversation-surface-active={!settingsVisible && session.conversationNavigationPending ? "true" : undefined}
+      data-conversation-presentation-active={!settingsVisible && conversationSurfaceActive ? "true" : undefined}
+      data-home-surface-active={homeSurfaceActive ? "true" : undefined}
+      data-settings-active={settingsVisible || undefined}
+      aria-label="言策"
     >
       <div className="yance-shell-status yance-sr-only" role="status" aria-live="polite">{status}</div>
+      {conversationRouteFeedback ? (
+        <aside className="yance-conversation-route-feedback" role="status" aria-live="polite">
+          <div><strong>对话尚未就绪</strong><span>{conversationRouteFeedback}</span></div>
+          <button type="button" onClick={() => {
+            setSettingsVisible(true);
+            setSettingsSection("platforms");
+              setAssistantVisible(false);
+          }}>检查账号连接</button>
+        <button type="button" aria-current={conversationSurfaceActive ? "page" : undefined} onClick={() => {
+          playExperienceSound(preferences.soundMode, "open");
+          setSettingsVisible(false);
+          setAiWorkspaceVisible(false);
+          setAssistantVisible(false);
+          setConversationWorkspaceRequested(true);
+          setStatus("已打开对话工作台");
+        }}><span aria-hidden="true"><MessageCircle /></span><strong>对话</strong></button>
+
+        </aside>
+      ) : null}
       {runtimeSafetyBanner ? (
         <div
           className="yance-appearance-status yance-runtime-safety-banner"
@@ -727,15 +2143,118 @@ export function ProductExperienceShell({
         </div>
       ) : null}
 
-      <BilingualSearchPanel
-        relationships={relationships}
-        reducedMotion={preferences.reducedMotion}
-        onSelectRelationship={chooseRelationship}
-        onNavigateRelationship={navigateSearchResult}
-      />
+      {!conversationSurfaceActive ? <nav className="yance-desktop-rail" aria-label="言策桌面功能">
+        <button type="button" aria-current={homeSurfaceActive ? "page" : undefined} onClick={() => {
+          playExperienceSound(preferences.soundMode, "open");
+          setSettingsVisible(false);
+          setAiWorkspaceVisible(false);
+          setPeopleHomeView("list");
+          setAssistantVisible(false);
+          setConversationWorkspaceRequested(false);
+          void refreshRelationships();
+        }}><span aria-hidden="true"><Home /></span><strong>首页</strong></button>
+        <button type="button" aria-current={conversationSurfaceActive ? "page" : undefined} onClick={() => {
+          playExperienceSound(preferences.soundMode, "open");
+          setSettingsVisible(false);
+          setAiWorkspaceVisible(false);
+          setAssistantVisible(false);
+          setConversationWorkspaceRequested(true);
+          setStatus("已打开对话工作台");
+        }}><span aria-hidden="true"><MessageCircle /></span><strong>对话</strong></button>
+                <button type="button" aria-current={!settingsVisible && !homeSurfaceActive && !conversationSurfaceActive && Boolean(selectedRelationship) ? "page" : undefined} disabled={!homeRelationship} onClick={() => {
+          if (!homeRelationship) return;
+          setConversationWorkspaceRequested(null);
+          playExperienceSound(preferences.soundMode, "confirm");
+          setSettingsVisible(false);
+          setAiWorkspaceVisible(false);
+          if (conversationSurfaceActive && navigateRelationshipHome) {
+            void Promise.resolve(navigateRelationshipHome())
+              .then(() => setStatus("已返回关系世界"))
+              .catch(() => setStatus("返回关系世界失败；当前对话保持不变"));
+            return;
+          }
+          chooseRelationship(homeRelationship.id);
+        }}><span aria-hidden="true"><Heart /></span><strong>关系世界</strong></button>
+                <button type="button" aria-current={settingsVisible ? "page" : undefined} aria-controls="yance-secondary-settings" aria-expanded={settingsVisible} onClick={() => {
+          playExperienceSound(preferences.soundMode, "open");
+          setSettingsVisible(true);
+          setAiWorkspaceVisible(false);
+          setSettingsSection("general");
+          setAssistantVisible(false);
+        }}><span aria-hidden="true"><Settings /></span><strong>设置</strong></button>
+        {homeSurfaceActive ? <div className="yance-desktop-rail__pro" aria-label="Pro 专业版"><Crown aria-hidden="true" /><strong>Pro</strong><span>专业版</span></div> : null}
+      </nav> : null}
 
-      <AnimatePresence mode="wait" initial={false}>
-        {!selectedRelationship ? (
+      {!conversationSurfaceActive ? <header className="yance-desktop-topbar yance-product-nav" aria-label="言策主导航">
+        <div className="yance-desktop-topbar__brand">
+          <span aria-hidden="true"><YanceMark /></span>
+          <strong>Yance</strong>
+          {!homeSurfaceActive ? <small>Conversation Workspace v4</small> : null}
+        </div>
+        <div className="yance-desktop-topbar__context">
+          <strong>{homeSurfaceActive ? "智能的会对话 · 专为成熟理性打造" : desktopTopbarTitle}</strong>
+          {!homeSurfaceActive ? <span>{desktopTopbarSubtitle}</span> : null}
+        </div>
+        <div className="yance-desktop-topbar__tools">
+          <span className="yance-desktop-topbar__intelligence">智能状态：{intelligenceStateLabel}</span>
+          {!settingsVisible && !aiWorkspaceVisible ? (
+            <div className="yance-desktop-topbar__search">
+              <BilingualSearchPanel relationships={relationships} reducedMotion={preferences.reducedMotion} onSelectRelationship={chooseRelationship} onNavigateRelationship={navigateSearchResult} />
+            </div>
+          ) : null}
+          {!homeSurfaceActive ? <button type="button" aria-label="打开设置" aria-current={settingsVisible ? "page" : undefined} onClick={() => {
+            playExperienceSound(preferences.soundMode, "open"); setSettingsVisible(true); setAiWorkspaceVisible(false); setSettingsSection("general"); setAssistantVisible(false);
+          }}><Settings aria-hidden="true" /></button> : null}
+          {!homeSurfaceActive ? <span className="yance-desktop-topbar__avatar" aria-label="当前账号">{currentMatrixUserId ? (renderUserAvatar ? renderUserAvatar(currentMatrixUserId, "32px") : <span>{currentMatrixUserId.replace(/^@/u, "").slice(0, 1).toUpperCase() || "Y"}</span>) : <UserRound aria-hidden="true" />}</span> : null}
+        </div>
+      </header> : null}
+
+      {!settingsVisible && !aiWorkspaceVisible ? (
+        conversationSurfaceActive && renderRoomView ? (
+          <motion.div
+            key="conversation"
+            className="yance-shell-scene yance-shell-scene--conversation"
+            initial={preferences.reducedMotion ? false : { opacity: 0, x: 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={preferences.reducedMotion ? undefined : { opacity: 0, x: 8 }}
+            transition={{ duration: preferences.reducedMotion ? 0 : 0.16 }}
+          >
+            <ProductConversationSurface
+              relationships={relationships}
+              renderRoomAvatar={renderRoomAvatar}
+              renderRoomView={renderRoomView}
+              onOpenRelationshipConversation={async (targetRelationship, targetConversation) => {
+                if (!navigateConversation) return false;
+                return navigateConversation(targetRelationship, targetConversation);
+              }}
+              onReturnToRelationship={() => navigateRelationshipHome?.()}
+              onReturnHome={returnToHomeFromConversation}
+              onOpenModels={() => {
+                setSettingsVisible(true);
+                setSettingsSection("models");
+                      setAssistantVisible(false);
+              }}
+              onOpenLearning={() => {
+                setSettingsVisible(true);
+                setSettingsSection("general");
+                setSettingsSection("persona-learning");
+                setAssistantVisible(false);
+              }}
+              onOpenSettings={() => {
+                setSettingsVisible(true);
+                setSettingsSection("general");
+                      setAssistantVisible(false);
+              }}
+              onAddContact={() => {
+                setSettingsVisible(true);
+                setSettingsSection("platforms");
+                      setAssistantVisible(false);
+              }}
+            />
+          </motion.div>
+        ) : (
+        <AnimatePresence initial={false}>
+        {conversationWorkspaceRequested === false || !selectedRelationship ? (
           <motion.div
             key="people"
             className="yance-shell-scene"
@@ -747,21 +2266,55 @@ export function ProductExperienceShell({
             {loading ? (
               <div className="yance-empty" role="status" aria-live="polite">
                 <strong>正在加载关系</strong>
-                <span>正在读取已有的可信关系投影。</span>
+                <span>正在整理已有的人物、对话与关系记录。</span>
               </div>
             ) : (
               <PeopleSurface
                 relationships={relationships}
                 groups={groups}
+                renderRoomAvatar={renderRoomAvatar}
                 selectedRelationshipId={session.selectedRelationshipId}
                 focusedRelationshipId={focusedRelationshipId}
                 viewMode={peopleHomeView}
                 reducedMotion={preferences.reducedMotion}
+                soundMode={preferences.soundMode}
+                getMatrixUserId={getMatrixUserId}
+                getMatrixOpenIdToken={getMatrixOpenIdToken}
                 onViewModeChange={setPeopleHomeView}
                 onFocus={setFocusedRelationshipId}
                 onSelect={chooseRelationship}
+                onOpenConversationWorkspace={() => {
+                  setConversationWorkspaceRequested(true);
+                  setSettingsVisible(false);
+                  setAiWorkspaceVisible(false);
+                  setAssistantVisible(false);
+                  setStatus("已打开对话工作台");
+                }}
+                onContinueConversation={(relationship, conversation) => {
+                  if (!navigateConversation) {
+                    setStatus("真实对话导航暂不可用");
+                    return;
+                  }
+                  setConversationWorkspaceRequested(null);
+                  void navigateConversation(relationship, conversation)
+                    .then((opened) => setStatus(opened ? "已进入对话" : "对话未就绪：当前平台账号还没有同步出可用的真实聊天房间。请先到“账号与连接”完成登录与同步。"))
+                    .catch(() => setStatus("对话未就绪：真实聊天房间解析失败；言策没有执行猜测性跳转。"));
+                }}
                 onSelectGroup={(conversation) => {
                   void openGroupConversation(conversation);
+                }}
+                onOpenPersona={() => {
+                  setSettingsVisible(true);
+                  setAiWorkspaceVisible(false);
+                  setSettingsSection("persona-learning");
+                  setAssistantVisible(false);
+                }}
+                onRefreshRelationships={refreshRelationships}
+                onConnectAccounts={() => {
+                  playExperienceSound(preferences.soundMode, "open");
+                  setSettingsVisible(true);
+                  setSettingsSection("platforms");
+                          setAssistantVisible(false);
                 }}
               />
             )}
@@ -777,11 +2330,14 @@ export function ProductExperienceShell({
           >
             <RelationshipWorld
               relationship={selectedRelationship}
+              relationships={relationships}
+              renderRelationshipAvatar={(row, size) => conversationRelationshipAvatar(row, renderRoomAvatar, size)}
               aiState={aiState}
               reducedMotion={preferences.reducedMotion}
               assistantVisible={assistantVisible}
               onBack={returnToPeople}
               onToggleAssistant={toggleAssistant}
+              onSelectRelationship={chooseRelationship}
               onOpenConversation={(conversationId) => {
                 void openConversation(conversationId);
               }}
@@ -805,102 +2361,238 @@ export function ProductExperienceShell({
             </AnimatePresence>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>
+        )
+      ) : null}
 
-      <details
-        className="yance-experience-settings"
-        onToggle={(event) => {
-          if (!event.currentTarget.open) setLearningAdminVisible(false);
-        }}
-      >
-        <summary>体验设置</summary>
-        <div className="yance-settings-grid">
-          <label>
-            <span>全局字号 <output>{appearance.fontScale}%</output></span>
-            <input
-              type="range"
-              min={85}
-              max={150}
-              step={1}
-              value={appearance.fontScale}
-              disabled={!appearance.available}
-              onChange={(event) => {
-                const fontScale = Number(event.target.value);
-                setAppearance((current) => ({ ...current, fontScale }));
-                queueAppearanceUpdate({ fontScale });
-              }}
-            />
-          </label>
-          <label>
-            <span>全局主题</span>
-            <select
-              value={appearance.themeId}
-              disabled={!appearance.available || appearance.themes.length === 0}
-              onChange={(event) => {
-                const themeId = event.target.value;
-                setAppearance((current) => ({ ...current, themeId }));
-                queueAppearanceUpdate({ themeId });
-              }}
-            >
-              {appearance.themes.map((theme) => (
-                <option key={theme.id} value={theme.id}>{theme.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>声音</span>
-            <select value={preferences.soundMode} onChange={(event) => preferences.setSoundMode(event.target.value as SoundMode)}>
-              <option value="Off">关闭</option>
-              <option value="Essential only">仅必要提示</option>
-              <option value="Immersive">沉浸</option>
-            </select>
-          </label>
-          <label>
-            <span>动效</span>
-            <select value={preferences.motionMode} onChange={(event) => preferences.setMotionMode(event.target.value as MotionMode)}>
-              <option value="Standard">标准</option>
-              <option value="Reduced">减少动效</option>
-            </select>
-          </label>
-          <label>
-            <span>氛围</span>
-            <select value={preferences.atmosphere} onChange={(event) => preferences.setAtmosphere(event.target.value as RelationshipAtmosphere)}>
-              <option value="Quiet">安静</option>
-              <option value="Warm">温暖</option>
-              <option value="Vivid">鲜活</option>
-            </select>
-          </label>
-        </div>
-        <p className="yance-appearance-status" role="status" aria-live="polite">{appearanceStatus}</p>
-        {preferences.reducedMotion ? <p className="yance-reduced-motion-note">已启用减少动效；状态变化仍会清晰显示，但不会进行空间移动。</p> : null}
+      {aiWorkspaceVisible ? (
+        <AIWorkspace
+          relationships={relationships}
+          onClose={() => {
+            setAiWorkspaceVisible(false);
+            setSettingsVisible(true);
+            setSettingsSection("general");
+          }}
+          onOpenRelationship={(contactId) => {
+            setAiWorkspaceVisible(false);
+            setSettingsVisible(false);
+            chooseRelationship(contactId);
+          }}
+          onOpenConversation={(contactId, conversationId) => {
+            const relationship = relationships.find((row) => row.id === contactId);
+            const conversation = relationship?.conversations.find((row) => row.id === conversationId || row.sessionKey === conversationId);
+            if (!relationship || !conversation || !navigateConversation) {
+              setStatus("对话未就绪：AI 工作台返回的真实对话当前不可导航。");
+              return;
+            }
+            setAiWorkspaceVisible(false);
+            setSettingsVisible(false);
+            setConversationWorkspaceRequested(null);
+            void navigateConversation(relationship, conversation)
+              .then((opened) => setStatus(opened ? "已从 AI 工作台进入真实对话" : "对话未就绪：当前平台尚未同步该真实房间。"))
+              .catch(() => setStatus("对话未就绪：真实房间导航失败。"));
+          }}
+        />
+      ) : null}
 
-        <PlatformAccountsSurface />
-        <ProductSystemSettingsSurface openUserSettings={openUserSettings} requestLogout={requestLogout} />
-
-        <section className="yance-learning-disclosure" aria-label="学习与成长">
-          <header>
-            <div><strong>学习与成长</strong><p>仅在需要复盘学习记录与反馈时打开。</p></div>
+      {settingsVisible && !aiWorkspaceVisible ? (
+        <section id="yance-secondary-settings" className="yance-secondary-settings yance-settings-v4-shell"
+          data-settings-section={settingsSection} aria-label="设置">
+          <header className="yance-secondary-settings__header yance-settings-v4__header">
+            <div>
+              <span className="yance-eyebrow">YANCE SETTINGS</span>
+              <h2>{SETTINGS_SECTIONS_V4.find((item) => item.id === settingsSection)?.label || "设置"}</h2>
+              <p>安静地管理默认行为与高级能力；复杂度集中在这里，不进入真实聊天主链。</p>
+            </div>
+            <div className="yance-secondary-settings__header-actions">
+              <button type="button" onClick={() => {
+                playExperienceSound(preferences.soundMode, "confirm");
+                setSettingsVisible(false);
+                void refreshRelationships();
+              }}>返回关系</button>
+            </div>
           </header>
-          <button type="button" aria-expanded={learningAdminVisible} disabled={learningAdminVisible} onClick={() => setLearningAdminVisible(true)}>学习控制</button>
-          {learningAdminVisible ? <LearningWorkspace /> : null}
-          {learningAdminVisible ? (
-            <button type="button" onClick={() => setLearningAdminVisible(false)}>收起学习控制</button>
-          ) : null}
+
+          <div className="yance-settings-v4" data-settings-section={settingsSection}>
+            <nav className="yance-settings-v4__nav" aria-label="设置分类">
+              {["基础", "能力与连接", "数据与系统"].map((group) => (
+                <section key={group} className="yance-settings-v4__nav-group" aria-label={group}>
+                  <span>{group}</span>
+                  {SETTINGS_SECTIONS_V4.filter((item) => item.group === group).map((item) => (
+                    <button key={item.id} type="button"
+                      aria-current={settingsSection === item.id ? "page" : undefined}
+                      onClick={() => {
+                        playExperienceSound(preferences.soundMode, "open");
+                        setSettingsSection(item.id);
+                      }}>
+                      <strong>{item.label}</strong><small>{item.hint}</small>
+                    </button>
+                  ))}
+                </section>
+              ))}
+            </nav>
+
+            <div className="yance-settings-v4__content" tabIndex={-1}>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div key={settingsSection} className="yance-settings-v4__panel"
+                  initial={preferences.reducedMotion ? false : { opacity: 0, x: 8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={preferences.reducedMotion ? undefined : { opacity: 0, x: -6 }}
+                  transition={{ duration: preferences.reducedMotion ? 0 : 0.15 }}>
+                  {settingsSection === "general" ? (
+                    <section className="yance-settings-v4__general" aria-label="常规">
+                      <header className="yance-settings-v4__section-heading">
+                        <div><span className="yance-eyebrow">常规</span><h3>全局默认与关系行为</h3>
+                          <p>设置全局基线；联系人和单次对话仍可保留各自的局部设置。</p></div>
+                      </header>
+                      <div className="yance-settings-v4__general-grid">
+                        <article className="yance-settings-v4__general-card">
+                          <header><span>对话默认</span><strong>会话状态优先</strong></header>
+                          <p>真实消息、回复策略和发送模式继续由当前真实对话管理；设置页不复制会话状态。</p>
+                          <button type="button" onClick={() => setSettingsSection("models")}>查看模型与路由</button>
+                        </article>
+                        <article className="yance-settings-v4__general-card">
+                          <header><span>AI 工作台</span><strong>跨关系深度分析</strong></header>
+                          <p>按需进入真实关系分析任务；它不会成为一级导航，也不会接管消息发送。</p>
+                          <button type="button" onClick={() => {
+                            setSettingsVisible(false);
+                            setAiWorkspaceVisible(true);
+                            setAssistantVisible(false);
+                          }}>打开 AI 工作台</button>
+                        </article>
+                        <article className="yance-settings-v4__general-card">
+                          <header><span>真人打字</span><strong>统一发送层</strong></header>
+                          <p>真人打字由统一发送层执行；设置页不创建第二套延迟、队列或发送状态。</p>
+                          <button type="button" onClick={() => setSettingsSection("input-typing")}>查看输入边界</button>
+                        </article>
+                        <article className="yance-settings-v4__general-card">
+                          <header><span>人格管理</span><strong>现有人格系统</strong></header>
+                          <p>联系人绑定、对话覆盖与版本记录保持在现有人格链；学习证据治理独立进入数据、隐私与学习。</p>
+                          <button type="button" onClick={() => setSettingsSection("persona-learning")}>管理人格</button>
+                        </article>
+                        <article className="yance-settings-v4__general-card">
+                          <header><span>外观与关系氛围</span><strong>{preferences.atmosphere}</strong></header>
+                          <div className="yance-settings-v4__segmented" aria-label="关系氛围">
+                            {([['Quiet','Quiet'],['Warm','Warm'],['Vivid','Vivid']] as const).map(([value,label]) =>
+                              <button key={value} type="button" aria-pressed={preferences.atmosphere === value}
+                                onClick={() => preferences.setAtmosphere(value)}>{label}</button>)}
+                          </div>
+                          <div className="yance-settings-v4__segmented" aria-label="动效">
+                            {([['Standard','标准'],['Reduced','减少动效']] as const).map(([value,label]) =>
+                              <button key={value} type="button" aria-pressed={preferences.motionMode === value}
+                                onClick={() => preferences.setMotionMode(value)}>{label}</button>)}
+                          </div>
+                        </article>
+                        <article className="yance-settings-v4__general-card yance-settings-v4__general-card--wide">
+                          <header><span>隐私与学习边界</span><strong>真实发送结果生效</strong></header>
+                          <p>学习只使用真实发送成功后的确认结果；关系事实、记忆与人物设定不会由设置页伪造。</p>
+                          <button type="button" onClick={() => setSettingsSection("data-privacy")}>查看数据与隐私</button>
+                        </article>
+                        <article className="yance-settings-v4__general-card yance-settings-v4__general-card--wide">
+                          <header><span>其他设置</span><strong>按需进入，不占聊天空间</strong></header>
+                          <div className="yance-settings-v4__quick-links">
+                            <button type="button" onClick={() => setSettingsSection("platforms")}>平台连接</button>
+                            <button type="button" onClick={() => setSettingsSection("voice-media")}>语音与媒体</button>
+                            <button type="button" onClick={() => setSettingsSection("backup")}>同步与备份</button>
+                            <button type="button" onClick={() => setSettingsSection("diagnostics")}>高级诊断</button>
+                          </div>
+                        </article>
+                      </div>
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "appearance" ? (
+                    <section className="yance-settings-v4__capability" aria-label="外观与氛围">
+                      <ProductSystemSettingsSurface category="appearance" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "persona-learning" ? (
+                    <section className="yance-settings-v4__capability" aria-label="人格管理">
+                      <header className="yance-settings-v4__section-heading"><div><span className="yance-eyebrow">Persona</span>
+                        <h3>人格管理</h3><p>稳定人格、联系人绑定、单次对话覆盖与版本记录继续由现有人格系统管理；单次风格调整不会偷偷固化为长期人格。</p></div>
+                        <button type="button" disabled={!homeRelationship} onClick={() => {
+                          if (!homeRelationship) return;
+                          setSettingsVisible(false);
+                          chooseRelationship(homeRelationship.id);
+                        }}>到关系世界查看人物上下文</button></header>
+                      <PersonaManagement relationships={relationships} />
+                    </section>
+                  ) : null}
+                  {settingsSection === "input-typing" ? (
+                    <section className="yance-settings-v4__capability" aria-label="输入与真人打字">
+                      <header className="yance-settings-v4__section-heading"><div><span className="yance-eyebrow">Input</span>
+                        <h3>输入与真人打字</h3><p>真人打字由统一发送层控制。这里不保存独立打字延迟、发送队列或会话副本。</p></div></header>
+                      <div className="yance-settings-v4__boundary-note">
+                        <strong>发送边界</strong><p>手写、AI 回复与翻译后的最终文本都必须回到同一真实发送层；具体进度与取消状态只在当前对话显示。</p>
+                      </div>
+                      <ProductSystemSettingsSurface category="desktop" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "language" ? (
+                    <section className="yance-settings-v4__capability" aria-label="语言与翻译">
+                      <header className="yance-settings-v4__section-heading"><div><span className="yance-eyebrow">Language</span>
+                        <h3>语言与翻译</h3><p>翻译在真实对话内联完成；原始消息永远保留，发送前先形成最终文本再翻译与校验。</p></div></header>
+                      <div className="yance-settings-v4__boundary-note">
+                        <strong>没有第二套翻译策略</strong>
+                        <p>入站翻译只辅助理解，出站翻译只处理当前 Composer 的最终文本。设置页不会创建影子语言状态或绕过完整性校验。</p>
+                      </div>
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "models" ? (
+                    <section className="yance-settings-v4__capability" aria-label="模型与路由">
+                      <ProductModelRuntimeSupportSurface />
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "platforms" ? (
+                    <section className="yance-settings-v4__capability" aria-label="平台连接">
+                      <PlatformAccountsSurface getMatrixUserId={getMatrixUserId} getMatrixOpenIdToken={getMatrixOpenIdToken} renderUserAvatar={renderUserAvatar} />
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "voice-media" ? (
+                    <section className="yance-settings-v4__capability" aria-label="语音与媒体">
+                      <header className="yance-settings-v4__section-heading"><div><span className="yance-eyebrow">Voice & Media</span>
+                        <h3>语音与媒体</h3><p>管理声音档案、媒体库和生成能力；发送入口在此隐藏，真实发送只能从已绑定对话进入。</p></div></header>
+                      <div className="yance-settings-v4__capability-split">
+                        <div className="yance-settings-v4__capability-pane yance-settings-v4__capability--voice"><VoiceWorkspace managementOnly /></div>
+                        <div className="yance-settings-v4__capability-pane yance-settings-v4__capability--media"><MediaWorkspace managementOnly /></div>
+                      </div>
+                    </section>
+                  ) : null}
+                  {settingsSection === "data-privacy" ? (
+                    <section className="yance-settings-v4__capability" aria-label="数据、隐私与学习">
+                      <header className="yance-settings-v4__section-heading"><div><span className="yance-eyebrow">Data · Privacy · Learning</span>
+                        <h3>数据、隐私与学习</h3><p>学习只消费真实发送结果与受治理证据；人物事实、记忆和隐私边界仍按现有治理规则管理，不由设置页推断或复制。</p></div>
+                        <button type="button" onClick={() => setSettingsSection("backup")}>同步与备份</button></header>
+                      <LearningWorkspace />
+                      <ProductSystemSettingsSurface category="notifications" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "backup" ? (
+                    <section className="yance-settings-v4__capability" aria-label="同步与备份">
+                      <ProductSystemSettingsSurface category="data" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "diagnostics" ? (
+                    <section className="yance-settings-v4__capability" aria-label="高级诊断">
+                      <header className="yance-settings-v4__section-heading"><div><span className="yance-eyebrow">Diagnostics</span>
+                        <h3>高级诊断</h3><p>仅在安全、恢复或版本维护时使用；不会替代正常关系与对话流程。</p></div></header>
+                      <ProductSystemSettingsSurface category="security" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                      <ProductSystemSettingsSurface category="about" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                    </section>
+                  ) : null}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
         </section>
-
-        <div className="yance-learning-settings-actions">
-          <button type="button" onClick={() => setModelSupportVisible((value) => !value)}>
-            {modelSupportVisible ? "收起高级系统支持" : "高级系统支持"}
-          </button>
-        </div>
-        {modelSupportVisible && (
-          <details open>
-            <summary>高级系统支持</summary>
-            <ProductModelRuntimeSupportSurface />
-          </details>
-        )}
-
-      </details>
+      ) : null}
 
       <RelationshipOverlayHost readRoomStateEvents={readRoomStateEvents} />
     </main>

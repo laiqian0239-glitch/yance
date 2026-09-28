@@ -16,6 +16,7 @@ const expressionLibrary = require('../services/expressionLibraryService');
 const platformDrivers = require('../services/platformDriverRegistry');
 const accountManager = require('../services/accountManager');
 const platformCapabilityAuthority = require('../services/platformCapabilityAuthority');
+const typingStateService = require('../services/typingStateService');
 
 const router = express.Router();
 const coreRuntime = () => getAppRuntime();
@@ -164,6 +165,25 @@ async function sendMediaStream(req, res, next) {
     next(error);
   }
 }
+
+router.post('/typing/element/prepare', async (req, res, next) => {
+  try {
+    const result = await typingStateService.prepareExternalTextSend(req.body || {});
+    res.json({ ok: result?.ready === true, ...result });
+  } catch (error) { next(error); }
+});
+router.post('/typing/element/release', async (req, res, next) => {
+  try { res.json({ ok: true, ...(await typingStateService.releaseExternalTextSend(req.body || {})) }); }
+  catch (error) { next(error); }
+});
+router.post('/typing/element/cancel', async (req, res, next) => {
+  try { res.json({ ok: true, ...(await typingStateService.notifyUserCancel(req.body || {})) }); }
+  catch (error) { next(error); }
+});
+router.post('/typing/element/complete', async (req, res, next) => {
+  try { res.json({ ok: true, ...(await typingStateService.completeExternalTextSend(req.body || {})) }); }
+  catch (error) { next(error); }
+});
 
 router.post('/:platform/:accountId/send-text', sendText);
 router.post('/:platform/:accountId/send-media', sendMediaJson);

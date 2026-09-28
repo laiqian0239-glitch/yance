@@ -16,10 +16,15 @@ import type {
 type MergeTarget = { id: string; name: string };
 type RelationshipDataTarget = { id: string; kind: "timeline" | "signal"; label: string };
 type CharacterCardPreview = { ok?: boolean; name?: string; description?: string };
+type WorldTab = "overview" | "moments" | "journey" | "history" | "insights";
+type RelationshipObjectFilter = "recent" | "important" | "all";
 type RelationshipWorldProps = {
-  relationship: RelationshipProjection; aiState: RelationshipAiState; reducedMotion: boolean;
+  relationship: RelationshipProjection; relationships: readonly RelationshipProjection[];
+  aiState: RelationshipAiState; reducedMotion: boolean;
   assistantVisible: boolean; onBack: () => void; onToggleAssistant: () => void;
+  onSelectRelationship: (relationshipId: string) => void;
   onOpenConversation: (conversationId: string) => void; mergeTargets?: readonly MergeTarget[];
+  renderRelationshipAvatar?: (relationship: RelationshipProjection, size?: string) => React.ReactNode;
   onRefresh?: () => void | Promise<void>;
 };
 function text(value: unknown): string {
@@ -45,17 +50,17 @@ function browserTimeZone(): string {
 function evidenceSourceLabel(event: RelationshipIntelligenceEvent): string {
   if (event.source === "graphiti") return event.kind === "fact" && /用户确认/u.test(event.sourceLabel) ? "用户确认" : "关系线索";
   if (event.source === "user_annotation") return "用户标注";
-  return event.sourceLabel || "关系证据";
+  return event.sourceLabel || "关系记录";
 }
 function timelineAuthorityLabel(value: string): string {
   if (value === "graphiti_temporal_inference") return "关系线索";
   if (value === "user_annotation") return "用户标注";
-  return "暂无关系证据";
+  return "暂无关系记录";
 }
 
 export function RelationshipWorld({
-  relationship, aiState, reducedMotion, assistantVisible, onBack, onToggleAssistant,
-  onOpenConversation, mergeTargets = [], onRefresh,
+  relationship, relationships, aiState, reducedMotion, assistantVisible, onBack, onToggleAssistant,
+  onSelectRelationship, onOpenConversation, mergeTargets = [], renderRelationshipAvatar, onRefresh,
 }: RelationshipWorldProps): React.JSX.Element {
   const intelligence = relationship.relationshipIntelligence;
   const hasAiAnalysis = intelligence?.source === "ai_analysis";
@@ -82,6 +87,9 @@ export function RelationshipWorld({
   const [selectedDataTargetId, setSelectedDataTargetId] = useState("");
   const [correctionText, setCorrectionText] = useState("");
   const [dataStatus, setDataStatus] = useState("");
+  const [worldTab, setWorldTab] = useState<WorldTab>("overview");
+  const [objectQuery, setObjectQuery] = useState("");
+  const [objectFilter, setObjectFilter] = useState<RelationshipObjectFilter>("recent");
 
   useEffect(() => {
     let cancelled = false;
@@ -137,6 +145,29 @@ export function RelationshipWorld({
   }, [relationship.id]);
 
   const selectedDataTarget = dataTargets.find((row) => row.id === selectedDataTargetId) || null;
+  const relationshipObjects = useMemo(() => {
+    const query = objectQuery.trim().toLocaleLowerCase();
+    const matchesQuery = (row: RelationshipProjection): boolean => !query || [
+      row.name, row.subtitle, row.platform, row.lastMessage,
+    ].some((value) => text(value).toLocaleLowerCase().includes(query));
+    let rows = relationships.filter(matchesQuery);
+    if (objectFilter === "important") rows = rows.filter((row) => row.favorite || row.unreadCount > 0);
+    if (objectFilter === "recent") rows = [...rows].sort((left, right) =>
+      (Date.parse(right.recentAt || right.updatedAt || "") || 0) - (Date.parse(left.recentAt || left.updatedAt || "") || 0));
+    return rows;
+  }, [relationships, objectFilter, objectQuery]);
+  const primaryConversation = selectedConversation
+    || relationship.conversations.find((row) => !row.archived)
+    || relationship.conversations[0]
+    || null;
+  const recentEvents = [...events].slice(-4).reverse();
+  const boundaryEvents = events.filter((event) => /boundary|promise|边界|承诺/iu.test(`${event.kind} ${event.title}`));
+  const openLoopEvents = events.filter((event) => /open|loop|pending|未完成|待回应|待办/iu.test(`${event.kind} ${event.title}`));
+  const openPrimaryConversation = (): void => {
+    if (!primaryConversation) return;
+    setSelectedConversationId(primaryConversation.id);
+    onOpenConversation(primaryConversation.id);
+  };
   const refresh = async (): Promise<void> => {
     await onRefresh?.();
     try {
@@ -146,26 +177,103 @@ export function RelationshipWorld({
     } catch { /* existing view remains authoritative when refresh transport is unavailable */ }
   };
 
-  return <section className="yance-relationship-world" aria-labelledby="yance-relationship-title">
-    <header className="yance-world-header">
+  return <section className="yance-relationship-world yance-relationship-world-v4" data-world-tab={worldTab} aria-labelledby="yance-relationship-title">
+    <div className="yance-rw-v4__workspace">
+      <aside className="yance-rw-v4__objects" aria-label="关系对象">
+        <header><div><span className="yance-eyebrow">People</span><h2>关系对象</h2></div><span>{relationships.length} 人</span></header>
+        <label className="yance-rw-v4__search"><span aria-hidden="true">⌕</span><input type="search" value={objectQuery}
+          onChange={(event) => setObjectQuery(event.currentTarget.value)} placeholder="搜索人物、平台或最近消息…" aria-label="搜索关系对象" /></label>
+        <div className="yance-rw-v4__object-filters" aria-label="关系对象筛选">
+          {([["recent", "最近"], ["important", "重要"], ["all", "全部"]] as const).map(([value, label]) =>
+            <button key={value} type="button" aria-pressed={objectFilter === value} onClick={() => setObjectFilter(value)}>{label}</button>)}
+        </div>
+        <div className="yance-rw-v4__object-list" role="list">
+          {relationshipObjects.map((row) => <button key={row.id} type="button" role="listitem" aria-current={row.id === relationship.id ? "page" : undefined}
+            onClick={() => onSelectRelationship(row.id)}>
+            <span className="yance-rw-v4__object-avatar" aria-hidden="true">{renderRelationshipAvatar?.(row, "40px") || row.name.trim().slice(0, 2).toUpperCase()}</span>
+            <span className="yance-rw-v4__object-copy"><strong>{row.name}</strong><small>{row.platform || "真实关系"} · {row.recentAt || row.updatedAt ? new Date(row.recentAt || row.updatedAt || "").toLocaleDateString() : "暂无最近互动"}</small>
+              <em>{row.relationshipIntelligence?.stage || row.relationshipIntelligence?.analysisStatusLabel || "关系洞察待形成"}</em></span>
+            {row.unreadCount > 0 ? <span className="yance-rw-v4__object-unread">{row.unreadCount}</span> : null}
+          </button>)}
+          {!relationshipObjects.length ? <p className="yance-rw-v4__empty">没有匹配的真实关系对象。</p> : null}
+        </div>
+      </aside>
+      <main className="yance-rw-v4__main">
+    <header className="yance-world-header yance-rw-v4__header">
       <button type="button" className="yance-back" onClick={onBack} aria-label="返回我的关系">←</button>
-      <motion.div layoutId={reducedMotion ? undefined : `relationship-avatar-${relationship.id}`}
-        className="yance-world-avatar" aria-hidden="true">
-        {relationship.avatarUrl ? <img src={relationship.avatarUrl} alt="" /> : relationship.name.trim().slice(0, 2).toUpperCase()}
-      </motion.div>
       <div className="yance-world-identity"><span className="yance-eyebrow">关系世界</span>
-        <h2 id="yance-relationship-title">{relationship.name}</h2><p>{relationship.subtitle}</p></div>
+        <h2 id="yance-relationship-title">{relationship.name} 的关系世界</h2>
+        <p>关系、共同时段、目标与历史都围绕同一个真实人物展开，不复制聊天时间线。</p></div>
+      <span className="yance-rw-v4__analysis-state">{intelligence?.analysisStatusLabel || "关系洞察待形成"}</span>
       <button type="button" className="yance-ai-toggle" aria-pressed={assistantVisible}
         aria-label={assistantVisible ? "收起私人任务" : "打开私人任务"} onClick={onToggleAssistant}>私人任务</button>
     </header>
 
-    <div className="yance-world-presence">
-      <RiveRelationshipCompanion state={aiState} reducedMotion={reducedMotion} />
-      <div className="yance-world-copy"><strong>真实对话保持原样</strong>
-        <span>言策在关系周围组织上下文、重要时刻和工具，同时保留真实消息时间线、输入框和发送链路。</span></div>
+    <nav className="yance-rw-v4__tabs" aria-label="关系世界视图">
+      {([["overview", "总览"], ["moments", "共同时段"], ["journey", "关系图"], ["history", "历史"], ["insights", "洞察"]] as const)
+        .map(([value, label]) => <button key={value} type="button" aria-current={worldTab === value ? "page" : undefined}
+          onClick={() => setWorldTab(value)}>{label}</button>)}
+    </nav>
+
+    <article className="yance-rw-v4__hero">
+      <div className="yance-rw-v4__hero-person">
+        <motion.div layoutId={reducedMotion ? undefined : `relationship-avatar-${relationship.id}`}
+          className="yance-world-avatar" aria-hidden="true">
+          {renderRelationshipAvatar?.(relationship, "72px") || relationship.name.trim().slice(0, 2).toUpperCase()}
+        </motion.div>
+        <div><span className="yance-eyebrow">当前关系</span><h3>{relationship.name}</h3>
+          <p>{relationship.subtitle || relationship.platform || "真实关系"}</p></div>
+      </div>
+      <div className="yance-rw-v4__hero-summary">
+        <strong>{intelligence?.summary || "关系结论只会在真实互动形成足够证据后出现。"}</strong>
+        <p>{relationship.lastMessage || "最近互动会继续由真实对话和关系证据更新。"}</p>
+      </div>
+      <dl className="yance-rw-v4__hero-facts">
+        <div><dt>当前阶段</dt><dd>{intelligence?.stage || "待建立"}</dd></div>
+        <div><dt>最近互动</dt><dd>{relationship.recentAt || relationship.updatedAt ? new Date(relationship.recentAt || relationship.updatedAt || "").toLocaleDateString() : "暂无记录"}</dd></div>
+        <div><dt>互动节奏</dt><dd>{intelligence?.momentum || "暂无可确认趋势"}</dd></div>
+      </dl>
+      <div className="yance-rw-v4__hero-actions">
+        <button type="button" className="yance-button-primary" disabled={!primaryConversation} onClick={openPrimaryConversation}>进入真实对话</button>
+        <button type="button" onClick={() => setWorldTab("moments")}>共同片段</button>
+        <button type="button" onClick={() => setWorldTab("insights")}>编辑关系信息</button>
+      </div>
+    </article>
+
+    <div className="yance-rw-v4__overview-grid">
+      <section className="yance-rw-v4__journey" hidden={worldTab !== "overview" && worldTab !== "journey"} aria-label="关系旅程">
+        <header><div><h3>关系旅程</h3><span>只呈现已确认或可追溯的关系记录</span></div><button type="button" onClick={() => setWorldTab("history")}>查看完整历史</button></header>
+        {events.length ? <ol>{events.slice(-5).map((event, index) => <li key={`${event.at}-${event.title}-${index}`}>
+          <span aria-hidden="true" /><div><strong>{event.title}</strong><p>{event.detail || evidenceSourceLabel(event)}</p></div>
+          {event.at && Number.isFinite(Date.parse(event.at)) ? <time dateTime={event.at}>{new Date(event.at).toLocaleDateString()}</time> : null}
+        </li>)}</ol> : <p className="yance-rw-v4__empty">还没有可确认的关系旅程节点。</p>}
+      </section>
+      <section className="yance-rw-v4__moments" hidden={worldTab !== "overview" && worldTab !== "moments"} aria-label="共同时刻">
+        <header><div><h3>共同时刻</h3><span>来自真实关系证据，不复制聊天内容</span></div></header>
+        <div>{recentEvents.length ? recentEvents.map((event, index) => <button key={`${event.at}-${event.title}-${index}`} type="button"
+          disabled={!primaryConversation} onClick={openPrimaryConversation}><span>{evidenceSourceLabel(event)}</span><strong>{event.title}</strong>
+          <small>{event.at && Number.isFinite(Date.parse(event.at)) ? new Date(event.at).toLocaleDateString() : "已记录"}</small><em>打开相关对话 ›</em></button>)
+          : <p className="yance-rw-v4__empty">还没有可展示的共同时刻。</p>}</div>
+      </section>
+      <section className="yance-rw-v4__goal" hidden={worldTab !== "overview" && worldTab !== "insights"} aria-label="当前目标与下一步">
+        <header><h3>当前目标与下一步</h3><span>只显示与当前关系有关的目标</span></header>
+        <div><span>当前私密意图</span><strong>{goalText || "今天还没有已保存的关系目标"}</strong></div>
+        <div><span>建议的下一步</span><strong>{intelligence?.next || "等待更多真实互动后再形成建议"}</strong></div>
+      </section>
+      <section className="yance-rw-v4__signals" hidden={worldTab !== "overview" && worldTab !== "insights"} aria-label="最近关系信号">
+        <header><h3>最近关系信号</h3><span>事实优先，推断可追溯</span></header>
+        <dl><div><dt>阶段</dt><dd>{intelligence?.stage || "待建立"}</dd></div><div><dt>互动变化</dt><dd>{intelligence?.momentum || "暂无可确认趋势"}</dd></div>
+          <div><dt>信息来源</dt><dd>{intelligence ? timelineAuthorityLabel(intelligence.timelineAuthority) : "暂无关系记录"}</dd></div></dl>
+      </section>
     </div>
 
-    <section className="yance-relationship-conversations" aria-label="关系中的对话">
+    <div className="yance-world-presence yance-rw-v4__presence">
+      <RiveRelationshipCompanion state={aiState} reducedMotion={reducedMotion} />
+      <div className="yance-world-copy"><strong>继续真实对话</strong>
+        <span>消息会保持在原有会话中，言策只把与你们有关的上下文、重要时刻和工具整理在这里。</span></div>
+    </div>
+
+    <section className="yance-relationship-conversations yance-relationship-primary yance-rw-v4__history-panel" data-yance-primary-conversation aria-label="关系中的对话">
       <header><span className="yance-eyebrow">对话</span><strong>选择要继续的对话</strong></header>
       {relationship.conversations.length ? <div className="yance-relationship-conversation-list">
         {relationship.conversations.map((conversation) => <button key={conversation.id} type="button"
@@ -175,7 +283,25 @@ export function RelationshipWorld({
       </div> : <p role="status">当前人物还没有可继续的对话。</p>}
     </section>
 
-    <section aria-label="今天想聊什么">
+    <section className="yance-relationship-moments yance-rw-v4__moments-tools" aria-label="共同时刻与陪伴工具">
+      <header><span className="yance-eyebrow">共同时刻与陪伴</span><strong>照片 · 语音 · 实时陪伴</strong></header>
+      <div className="yance-relationship-companion-actions">
+        <button type="button" onClick={() => { captureExperienceFocus(); requestRelationshipOverlay("photo"); }}>
+          <span aria-hidden="true">▧</span><strong>照片与视频</strong><small>共同回忆与媒体</small>
+        </button>
+        <button type="button" onClick={() => { captureExperienceFocus(); requestRelationshipOverlay("voice"); }}>
+          <span aria-hidden="true">◉</span><strong>语音</strong><small>当前关系的语音空间</small>
+        </button>
+        <button type="button" onClick={() => { captureExperienceFocus(); requestRelationshipOverlay("live"); }}>
+          <span aria-hidden="true">✦</span><strong>实时陪伴</strong><small>当前关系的 Live 空间</small>
+        </button>
+      </div>
+    </section>
+
+    <details className="yance-relationship-details yance-rw-v4__advanced">
+      <summary><span>关系详情</span><small>目标、回顾、人物设定与数据管理</small></summary>
+      <div className="yance-relationship-details__body">
+    <section className="yance-relationship-detail-card" aria-label="今天想聊什么">
       <header><span className="yance-eyebrow">今天想聊什么</span><strong>{localDate}</strong></header>
       <textarea value={goalText} onChange={(e) => setGoalText(e.target.value)} placeholder="写下今天想聊的方向" maxLength={4000} />
       <div>
@@ -186,7 +312,7 @@ export function RelationshipWorld({
       </div>{goalStatus ? <p role="status">{goalStatus}</p> : null}
     </section>
 
-    <section aria-label="今日回顾">
+    <section className="yance-relationship-detail-card" aria-label="今日回顾">
       <header><span className="yance-eyebrow">今日回顾</span><strong>{timeZone || "时区不可用"}</strong></header>
       {reviewStatus ? <p role="status">{reviewStatus}</p> : null}
       {review ? <>{review.coverageComplete !== true ? <p role="status">当天消息未能完整扫描，本次回顾不完整</p> : null}
@@ -196,12 +322,7 @@ export function RelationshipWorld({
             : <p>暂无已确认内容</p>}</div>)}</> : null}
     </section>
 
-    <section aria-label="共同时刻">
-      <header><span className="yance-eyebrow">共同时刻</span><strong>照片与视频</strong></header>
-      <button type="button" onClick={() => { captureExperienceFocus(); requestRelationshipOverlay("photo"); }}>打开照片与视频</button>
-    </section>
-
-    <section aria-label="人物设定">
+    <section className="yance-relationship-detail-card" aria-label="人物设定">
       <header><span className="yance-eyebrow">人物设定</span><strong>{effectivePersona?.profileName || "尚未绑定"}</strong></header>
       <label><span>人物设定</span><select value={selectedProfileId} onChange={(e) => setSelectedProfileId(e.target.value)}>
         <option value="">请选择</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
@@ -216,7 +337,7 @@ export function RelationshipWorld({
         }}>绑定到当前对话</button>
       </div>
       {versions.length ? <p>已有 {versions.length} 个版本</p> : null}
-      <label><span>预览 Character Card</span><input type="file" accept=".png,.json,image/png,application/json"
+      <label><span>预览人物设定文件</span><input type="file" accept=".png,.json,image/png,application/json"
         onChange={(e) => { const file = e.currentTarget.files?.[0]; e.currentTarget.value = ""; if (!file) return;
           void file.arrayBuffer().then((bytes) => previewPersonaCharacterCard(new Uint8Array(bytes)))
             .then(setCardPreview).catch(() => setPersonaStatus("预览失败")); }} /></label>
@@ -228,7 +349,7 @@ export function RelationshipWorld({
       {personaStatus ? <p role="status">{personaStatus}</p> : null}
     </section>
 
-    <details><summary>关系数据</summary>
+    <section className="yance-relationship-detail-card yance-relationship-data" aria-label="关系数据"><header><span className="yance-eyebrow">关系数据</span><strong>管理与修正</strong></header>
       <label><span>当前对话</span><select value={selectedConversationId} onChange={(e) => setSelectedConversationId(e.target.value)}>
         <option value="">请选择</option>{relationship.conversations.map((conversation) =>
           <option key={conversation.id} value={conversation.id}>{conversation.title || "对话"}</option>)}</select></label>
@@ -255,7 +376,7 @@ export function RelationshipWorld({
           .catch(() => setDataStatus("当前没有可拒绝的待审核人物画像"))}>拒绝待审核人物画像</button>
       </div>
       {dataTargets.length ? <div>
-        <label><span>关系证据</span><select value={selectedDataTargetId} onChange={(e) => setSelectedDataTargetId(e.target.value)}>
+        <label><span>关系记录</span><select value={selectedDataTargetId} onChange={(e) => setSelectedDataTargetId(e.target.value)}>
           {dataTargets.map((target) => <option key={`${target.kind}:${target.id}`} value={target.id}>{target.label}</option>)}
         </select></label>
         <label><span>修正说明</span><input value={correctionText} maxLength={500}
@@ -284,7 +405,7 @@ export function RelationshipWorld({
             .then(async () => { setDataStatus("已取消关键节点"); await refresh(); })
             .catch(() => setDataStatus("取消关键节点失败"));
         }}>取消关键节点</button>
-      </div> : <p>当前没有可修正或标记的关系证据。</p>}
+      </div> : <p>当前没有可修正或标记的关系记录。</p>}
       {mergeTargets.length ? <><label><span>合并另一个联系人</span><select value={mergeTargetId} onChange={(e) => setMergeTargetId(e.target.value)}>
         <option value="">请选择联系人</option>{mergeTargets.map((target) => <option key={target.id} value={target.id}>{target.name}</option>)}</select></label>
         <button type="button" disabled={!mergeTargetId} onClick={() => {
@@ -298,35 +419,63 @@ export function RelationshipWorld({
         .then(async () => { setMergeJournalId(""); setDataStatus("刚才的合并已撤销"); await refresh(); })
         .catch(() => setDataStatus("撤销失败"))}>撤销刚才的合并</button> : null}
       {dataStatus ? <p role="status">{dataStatus}</p> : null}
+    </section>
+
+      </div>
     </details>
 
-    <section className="yance-relationship-intelligence" data-state={intelligence?.state || "unavailable"}
-      data-authority="RelationshipProjectionAuthority" aria-label="关系智能">
-      <header className="yance-relationship-intelligence__header"><div><span className="yance-eyebrow">关系智能</span>
-        <strong>{intelligence?.analysisStatusLabel || "暂无已确认的关系智能"}</strong></div>
-        <span className="yance-relationship-intelligence__authority">可信关系投影</span></header>
+    <section className="yance-relationship-intelligence yance-rw-v4__insights-panel" data-state={intelligence?.state || "unavailable"}
+      data-authority="RelationshipProjectionAuthority" aria-label="关系洞察">
+      <header className="yance-relationship-intelligence__header"><div><span className="yance-eyebrow">关系洞察</span>
+        <strong>{intelligence?.analysisStatusLabel || "暂无已确认的关系洞察"}</strong></div>
+        <span className="yance-relationship-intelligence__authority">基于真实互动</span></header>
       {intelligence ? <><div className="yance-relationship-intelligence__provenance">
-        <div><span>AI 分析</span><strong>{hasAiAnalysis ? intelligence.state === "stale" ? "AI 推断待更新" : "AI 推断已就绪" : "AI 推断待执行"}</strong></div>
-        <div><span>证据来源</span><strong>{timelineAuthorityLabel(intelligence.timelineAuthority)}</strong></div></div>
+        <div><span>分析状态</span><strong>{hasAiAnalysis ? intelligence.state === "stale" ? "需要更新" : "已形成" : "等待分析"}</strong></div>
+        <div><span>信息来源</span><strong>{timelineAuthorityLabel(intelligence.timelineAuthority)}</strong></div></div>
         {hasAiAnalysis && (intelligence.stage || intelligence.summary || intelligence.next)
           ? <dl className="yance-relationship-intelligence__analysis">
             {intelligence.stage ? <div><dt>阶段</dt><dd>{intelligence.stage}</dd></div> : null}
             {intelligence.summary ? <div><dt>关系摘要</dt><dd>{intelligence.summary}</dd></div> : null}
             {intelligence.next ? <div><dt>下一步</dt><dd>{intelligence.next}</dd></div> : null}</dl>
           : <p className="yance-relationship-intelligence__pending">关系洞察仍在等待可信分析。</p>}
-        {events.length ? <ol className="yance-relationship-intelligence__events" aria-label="关系证据时间线">
+        {events.length ? <ol className="yance-relationship-intelligence__events" aria-label="关系记录时间线">
           {events.map((event, index) => <li key={`${event.at}-${event.title}-${index}`}>
             <div className="yance-relationship-intelligence__event-head"><strong>{event.title}</strong>
               <span data-source={event.source}>{evidenceSourceLabel(event)}</span></div>
             {event.detail && event.detail !== event.title ? <p>{event.detail}</p> : null}
             {event.at && Number.isFinite(Date.parse(event.at)) ? <time dateTime={event.at}>{new Date(event.at).toLocaleDateString()}</time> : null}
-          </li>)}</ol> : <p className="yance-relationship-intelligence__pending">尚无已确认的关系证据。</p>}</>
-        : <p className="yance-relationship-intelligence__pending">暂无已确认的关系智能。</p>}
+          </li>)}</ol> : <p className="yance-relationship-intelligence__pending">尚无已确认的关系记录。</p>}</>
+        : <p className="yance-relationship-intelligence__pending">暂无已确认的关系洞察。</p>}
     </section>
 
-    <div className="yance-world-meta" aria-label="关系上下文">
+    <div className="yance-world-meta yance-rw-v4__meta" aria-label="关系上下文">
       <span>{relationship.platform || "已连接"}</span>
       {relationship.updatedAt ? <span>更新于 {new Date(relationship.updatedAt).toLocaleDateString()}</span> : null}
+    </div>
+      </main>
+      <aside className="yance-rw-v4__person" aria-label="当前人物">
+        <header><div><span className="yance-eyebrow">关系上下文</span><h2>当前人物</h2></div><strong>{relationship.name}</strong></header>
+        <section><h3>人物事实</h3><dl>
+          <div><dt>平台</dt><dd>{relationship.platform || "已连接关系"}</dd></div>
+          <div><dt>真实对话</dt><dd>{relationship.conversations.length}</dd></div>
+          <div><dt>最近互动</dt><dd>{relationship.recentAt || relationship.updatedAt ? new Date(relationship.recentAt || relationship.updatedAt || "").toLocaleDateString() : "暂无记录"}</dd></div>
+          <div><dt>关系阶段</dt><dd>{intelligence?.stage || "待建立"}</dd></div>
+        </dl></section>
+        <section><h3>关系边界</h3>{boundaryEvents.length ? <ul>{boundaryEvents.slice(-4).map((event, index) =>
+          <li key={`${event.at}-${event.title}-${index}`}>{event.title}</li>)}</ul> : <p>暂无已确认的关系边界或承诺记录。</p>}</section>
+        <section><h3>未完成事项</h3><ul>
+          {relationship.unreadCount > 0 ? <li>有 {relationship.unreadCount} 条真实消息等待处理</li> : null}
+          {openLoopEvents.slice(-3).map((event, index) => <li key={`${event.at}-${event.title}-${index}`}>{event.title}</li>)}
+          {relationship.unreadCount === 0 && !openLoopEvents.length ? <li>暂无可确认的未完成事项</li> : null}
+        </ul></section>
+        <section><h3>当前人格</h3><dl>
+          <div><dt>人格</dt><dd>{effectivePersona?.profileName || "尚未绑定"}</dd></div>
+          <div><dt>作用域</dt><dd>{effectivePersona?.sourceScope || "使用默认作用域"}</dd></div>
+          {effectivePersona?.version ? <div><dt>版本</dt><dd>{effectivePersona.version}</dd></div> : null}
+        </dl></section>
+        <button type="button" className="yance-rw-v4__conversation-cta" disabled={!primaryConversation} onClick={openPrimaryConversation}>进入 {relationship.name} 的真实对话</button>
+        <div className="yance-rw-v4__authority"><span>关系智能</span><strong>{intelligence?.analysisStatusLabel || "等待真实关系数据"}</strong></div>
+      </aside>
     </div>
   </section>;
 }

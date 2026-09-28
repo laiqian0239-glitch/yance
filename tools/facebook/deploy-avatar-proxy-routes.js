@@ -18,11 +18,17 @@ const PRODUCTION_BASE_URL = 'https://yance-facebook-gateway.wangyi198675.workers
 const AVATAR_CONTRACT_VERSION = 11;
 const EVIDENCE_CONTRACT_VERSION = 6;
 const DEPLOYMENT_MARKER = 'facebook-avatar-translation-persistence-fix13-20260724';
+const D1_SCHEMA_VERSION = 7;
+const D1_LATEST_MIGRATION = '0007_personal_identity_oauth.sql';
 
 function clean(value) { return value == null ? '' : String(value).trim(); }
 function sha256(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
 function npxCommand(platform = process.platform) { return platform === 'win32' ? 'npx.cmd' : 'npx'; }
-function quoteCmdArg(value) { return `"${String(value ?? '').replace(/"/g, '""')}"`; }
+function quoteCmdArg(value) {
+  const text = String(value ?? '');
+  if (/^[A-Za-z0-9_./:@=\\-]+$/u.test(text)) return text;
+  return `"${text.replace(/"/g, '""')}"`;
+}
 function wranglerArgs(...args) { return ['--yes', `wrangler@${WRANGLER_VERSION}`, ...args]; }
 function commandInvocation(args, platform = process.platform, env = process.env) {
   const commandArgs = wranglerArgs(...args);
@@ -103,21 +109,32 @@ function localWorkerContract() {
   const deploymentMarker = clean(source.match(/deploymentMarker\s*:\s*['"]([^'"]+)['"]/u)?.[1]);
   const pageRoute = source.includes("path === '/api/desktop/avatar/page'");
   const profileRoute = source.includes("path === '/api/desktop/avatar/profile'");
+  const d1SchemaVersion = Number(source.match(/version:\s*personalIdentityOauthColumns\s*\?\s*(\d+)/u)?.[1] || 0);
+  const d1LatestMigration = clean(source.match(/latestRequiredMigration:\s*['"]([^'"]+)['"]/u)?.[1]);
+  const personalIdentityOauthColumns = source.includes("['flow_mode','identity_json']");
   return {
     version,
     evidenceContractVersion,
     deploymentMarker,
     pageRoute,
     profileRoute,
+    d1SchemaVersion,
+    d1LatestMigration,
+    personalIdentityOauthColumns,
     sourceSha256: sha256(source),
     expected: {
       version: AVATAR_CONTRACT_VERSION,
       evidenceContractVersion: EVIDENCE_CONTRACT_VERSION,
-      deploymentMarker: DEPLOYMENT_MARKER
+      deploymentMarker: DEPLOYMENT_MARKER,
+      d1SchemaVersion: D1_SCHEMA_VERSION,
+      d1LatestMigration: D1_LATEST_MIGRATION
     },
     matchesExpected: version === AVATAR_CONTRACT_VERSION
       && evidenceContractVersion === EVIDENCE_CONTRACT_VERSION
       && deploymentMarker === DEPLOYMENT_MARKER
+      && d1SchemaVersion === D1_SCHEMA_VERSION
+      && d1LatestMigration === D1_LATEST_MIGRATION
+      && personalIdentityOauthColumns
       && pageRoute && profileRoute
   };
 }
@@ -137,7 +154,10 @@ function expectedHealth(health = {}) {
   return health.status === 200
     && health.avatarContractVersion === AVATAR_CONTRACT_VERSION
     && health.evidenceContractVersion === EVIDENCE_CONTRACT_VERSION
-    && health.deploymentMarker === DEPLOYMENT_MARKER;
+    && health.deploymentMarker === DEPLOYMENT_MARKER
+    && health.d1SchemaVersion === D1_SCHEMA_VERSION
+    && health.d1LatestMigration === D1_LATEST_MIGRATION
+    && health.personalIdentityOauthColumns === true;
 }
 async function productionSnapshot() {
   const health = await probe(`${PRODUCTION_BASE_URL}/healthz`);
@@ -153,6 +173,9 @@ async function productionSnapshot() {
       deploymentMarker: clean(contract.deploymentMarker),
       service: clean(health.body?.service),
       graphVersion: clean(health.body?.graphVersion),
+      d1SchemaVersion: Number(health.body?.d1Schema?.version || 0),
+      d1LatestMigration: clean(health.body?.d1Schema?.latestRequiredMigration),
+      personalIdentityOauthColumns: health.body?.d1Schema?.personalIdentityOauthColumns === true,
       error: clean(health.error)
     },
     page: { status: page.status, routeExists: page.status > 0 && page.status !== 404, code: clean(page.body?.code), error: clean(page.error) },
@@ -310,7 +333,7 @@ if (require.main === module) main();
 
 module.exports = {
   ROOT, WORKER_DIR, WRANGLER_CONFIG, WRANGLER_VERSION, WORKER_NAME, DATABASE_NAME, PRODUCTION_BASE_URL,
-  AVATAR_CONTRACT_VERSION, EVIDENCE_CONTRACT_VERSION, DEPLOYMENT_MARKER,
+  AVATAR_CONTRACT_VERSION, EVIDENCE_CONTRACT_VERSION, DEPLOYMENT_MARKER, D1_SCHEMA_VERSION, D1_LATEST_MIGRATION,
   rowsFromJson, resolveD1Id, patchPublicConfig, parseArgs, localWorkerContract, expectedHealth,
   productionSnapshot, verifyProduction, commandInvocation
 };

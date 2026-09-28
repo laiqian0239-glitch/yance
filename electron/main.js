@@ -20,7 +20,8 @@ const {
   nativeImage,
   session,
   powerMonitor,
-  net
+  net,
+  screen
 } = require('electron');
 
 const {
@@ -123,11 +124,13 @@ const { createInstalledRuntimeProbeOperations } = require('./wp7InstalledRuntime
 const { createMainWindowActivationController } = require('./mainWindowActivationController');
 const { createMainWindowRuntimeReadiness } = require('./mainWindowRuntimeReadiness');
 const { preserveTaskbarOnMinimize, hideWindowToTray, restoreWindowTaskbar } = require('./windowLifecyclePolicy');
+const { resolveInitialWindowBounds, captureNormalWindowBounds } = require('./windowBoundsPolicy');
 const { getElectronReleaseIdentity } = require('./releaseIdentity');
 const { classifyChildProcessGone } = require('./runtimeProcessHealthAuthority');
 const { readInstallerIdentityReceipt } = require('../installer/installedIdentityReceipt');
 const { isPostInstallReason, writePostInstallLaunchReceipt } = require('./postInstallLaunchReceipt');
 const { loadReleasePlatformAuth } = require('../shared/release/releasePlatformAuth');
+const { mutationSha256: credentialMutationSha256 } = require('../shared/credentialCustodyProtocol');
 earlyBootImportStage = 'business-modules-loaded';
 earlyBootLogSync('electron-main-business-modules-loaded');
 const {
@@ -395,8 +398,12 @@ const MATRIX_RUNTIME_ORIGINAL_ENV = Object.freeze({
   YANCE_PRODUCT_LOCATION_URL: process.env.YANCE_PRODUCT_LOCATION_URL,
   YANCE_MATRIX_BASE_URL: process.env.YANCE_MATRIX_BASE_URL,
   YANCE_MAUTRIX_META_PROVISIONING_URL: process.env.YANCE_MAUTRIX_META_PROVISIONING_URL,
+  YANCE_MAUTRIX_WHATSAPP_PROVISIONING_URL: process.env.YANCE_MAUTRIX_WHATSAPP_PROVISIONING_URL,
+  YANCE_MAUTRIX_TELEGRAM_PROVISIONING_URL: process.env.YANCE_MAUTRIX_TELEGRAM_PROVISIONING_URL,
   YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE: process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE,
-  YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE: process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE
+  YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE: process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE,
+  YANCE_MAUTRIX_WHATSAPP_PROVISIONING_SECRET_FILE: process.env.YANCE_MAUTRIX_WHATSAPP_PROVISIONING_SECRET_FILE,
+  YANCE_MAUTRIX_TELEGRAM_PROVISIONING_SECRET_FILE: process.env.YANCE_MAUTRIX_TELEGRAM_PROVISIONING_SECRET_FILE
 });
 
 function getElementUrl() { return YANCE_ELEMENT_URL; }
@@ -413,6 +420,9 @@ function updateMatrixRuntimeEndpoints(endpoints) {
     if (endpoints.synapse?.url) {
       process.env.YANCE_MATRIX_BASE_URL = endpoints.synapse.url;
     }
+    if (endpoints.mautrixMeta?.url) process.env.YANCE_MAUTRIX_META_PROVISIONING_URL = endpoints.mautrixMeta.url;
+    if (endpoints.mautrixWhatsapp?.url) process.env.YANCE_MAUTRIX_WHATSAPP_PROVISIONING_URL = endpoints.mautrixWhatsapp.url;
+    if (endpoints.mautrixTelegram?.url) process.env.YANCE_MAUTRIX_TELEGRAM_PROVISIONING_URL = endpoints.mautrixTelegram.url;
     r32WindowSecurityController.updateNavigationOrigins([YANCE_ELEMENT_URL]);
     desktopLog('info', 'matrix-runtime-endpoints-updated', {
       elementUrl: YANCE_ELEMENT_URL,
@@ -1219,6 +1229,7 @@ function stopRuntimeWithDeadline(name, operation, timeoutMs) {
 
 async function stopApplicationOwnedRuntimes(options = {}) {
   const reason = String(options.reason || 'application-shutdown');
+  const preserveMatrix = options.preserveMatrix === true;
   const runtimeStopTimeoutMs = Math.min(30000, Math.max(250, Number(options.runtimeStopTimeoutMs || 15000)));
   const backendStopTimeoutMs = Math.min(30000, Math.max(250, Number(options.backendStopTimeoutMs || runtimeStopTimeoutMs)));
 
@@ -1229,6 +1240,12 @@ async function stopApplicationOwnedRuntimes(options = {}) {
     ['graphiti', stopRuntimeWithDeadline('graphiti', () => stopGraphitiRelationshipRuntime(), runtimeStopTimeoutMs)],
     ['backend', stopRuntimeWithDeadline('backend', () => stopBackend({ forShutdown: true, reason }), backendStopTimeoutMs)],
     ['matrix', stopRuntimeWithDeadline('matrix', async () => {
+      if (preserveMatrix) {
+        // Electron relaunch releases Electron-owned runtimes while Docker Compose
+        // remains the sole Matrix lifecycle owner. A later real app quit still
+        // executes the normal Compose shutdown path below.
+        return { stopped: false, preserved: true, owner: 'docker-compose' };
+      }
       if (matrixRuntimeEphemeral) {
         await stopMatrixCompose(matrixRuntimeEphemeral.runtimeDir, matrixRuntimeEphemeral.allComposeFiles);
         // Clean ephemeral secret/config projection; never touch named volumes.
@@ -2335,7 +2352,7 @@ function relaunchApplicationFromTray() {
   return restartElectronApp({
     setRelaunchIntent: () => { relaunchPending = true; quitting = true; backendRestarting = true; stopEventSocket(); buildTrayMenu(); },
     clearRelaunchIntent: () => { relaunchPending = false; quitting = false; backendRestarting = false; buildTrayMenu(); },
-    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-relaunch-from-tray' }),
+    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-relaunch-from-tray', preserveMatrix: true }),
     authoritySnapshot: () => applicationRuntimeAuthoritySnapshot(),
     appRelaunch: () => app.relaunch(),
     appExit: code => { exitAfterBackendShutdown = true; app.exit(code); },
@@ -2513,9 +2530,13 @@ async function backendEnvironment(launch = {}, startupTimeoutMs = backendStartup
   for (const key of [
     'YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE',
     'YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE',
+    'YANCE_MAUTRIX_WHATSAPP_PROVISIONING_SECRET_FILE',
+    'YANCE_MAUTRIX_TELEGRAM_PROVISIONING_SECRET_FILE',
     'YANCE_MATRIX_BASE_URL',
     'YANCE_MATRIX_SERVER_NAME',
-    'YANCE_MAUTRIX_META_PROVISIONING_URL'
+    'YANCE_MAUTRIX_META_PROVISIONING_URL',
+    'YANCE_MAUTRIX_WHATSAPP_PROVISIONING_URL',
+    'YANCE_MAUTRIX_TELEGRAM_PROVISIONING_URL'
   ]) {
     if (process.env[key]) env[key] = process.env[key];
   }
@@ -3014,14 +3035,16 @@ function startBackendProcessForCoordinator(options = {}) {
  * No custom container runtime, port allocator, process supervisor, readiness
  * polling loop, or state machine. Dependency/start completion and final
  * running/healthy readiness remain delegated entirely to Compose public seams.
- * Dynamic port discovery uses official
- * `docker compose port`. Runtime config projection is the narrowest transform
- * from sealed bundle config to host-reachable endpoints.
+ * Product endpoints use one deterministic loopback binding so Chromium keeps
+ * the same mature Element origin across real app restarts. Compose still owns
+ * the actual port binding; Yance stores no parallel origin/session state.
  */
 const crypto = require('crypto');
 const MATRIX_COMPOSE_PROJECT = 'yance-runtime';
 const MATRIX_MANIFEST_FILE = 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json';
 const MATRIX_COMPOSE_FILE = 'materialized-matrix-compose.yml';
+const MATRIX_SYNAPSE_HOST_PORT = 62375;
+const MATRIX_ELEMENT_HOST_PORT = 62395;
 const MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS = 300;
 const MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION = Object.freeze([5, 5, 1]);
 const MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION_TEXT = '5.5.1';
@@ -3150,7 +3173,7 @@ async function ensureDockerComposeWaitAuthorityAvailable() {
 }
 
 /**
- * Project the two runtime secrets consumed by BOTH Compose and the backend.
+ * Project the runtime secrets consumed by Compose and the backend.
  * Reuses the existing secret-file authority (env vars point at files). If the
  * owner already exported the env vars they are reused as-is; otherwise we
  * create narrow ephemeral files (same shape as the mature UAT harness).
@@ -3161,18 +3184,20 @@ function matrixRuntimeStateRoot() {
 }
 
 function projectMatrixRuntimeSecrets(runtimeStateRoot) {
-  const registrationEnv = process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE;
-  const provisioningEnv = process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE;
-  if (Boolean(registrationEnv) !== Boolean(provisioningEnv)) {
+  const configured = [
+    ['YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE', process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE],
+    ['YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE', process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE],
+    ['YANCE_MAUTRIX_WHATSAPP_PROVISIONING_SECRET_FILE', process.env.YANCE_MAUTRIX_WHATSAPP_PROVISIONING_SECRET_FILE],
+    ['YANCE_MAUTRIX_TELEGRAM_PROVISIONING_SECRET_FILE', process.env.YANCE_MAUTRIX_TELEGRAM_PROVISIONING_SECRET_FILE]
+  ];
+  const configuredCount = configured.filter(([, target]) => Boolean(target)).length;
+  if (configuredCount !== 0 && configuredCount !== configured.length) {
     const error = new Error('Configured Matrix secret authority is incomplete');
     error.reasonCode = 'MATRIX_RUNTIME_SECRET_UNAVAILABLE';
     throw error;
   }
-  if (registrationEnv && provisioningEnv) {
-    for (const [name, target] of [
-      ['YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE', registrationEnv],
-      ['YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE', provisioningEnv]
-    ]) {
+  if (configuredCount === configured.length) {
+    for (const [name, target] of configured) {
       if (!fs.existsSync(target)) {
         const error = new Error(`Configured Matrix secret file is missing: ${name}`);
         error.reasonCode = 'MATRIX_RUNTIME_SECRET_UNAVAILABLE';
@@ -3184,9 +3209,13 @@ function projectMatrixRuntimeSecrets(runtimeStateRoot) {
 
   const secretDir = path.join(runtimeStateRoot, 'runtime-secrets');
   fs.mkdirSync(secretDir, { recursive: true, mode: 0o700 });
-  const registrationFile = path.join(secretDir, 'matrix-registration-secret');
-  const provisioningFile = path.join(secretDir, 'mautrix-meta-provisioning-secret');
-  const targets = [registrationFile, provisioningFile];
+  const projected = [
+    ['YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE', path.join(secretDir, 'matrix-registration-secret')],
+    ['YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE', path.join(secretDir, 'mautrix-meta-provisioning-secret')],
+    ['YANCE_MAUTRIX_WHATSAPP_PROVISIONING_SECRET_FILE', path.join(secretDir, 'mautrix-whatsapp-provisioning-secret')],
+    ['YANCE_MAUTRIX_TELEGRAM_PROVISIONING_SECRET_FILE', path.join(secretDir, 'mautrix-telegram-provisioning-secret')]
+  ];
+  const targets = projected.map(([, target]) => target);
   const existing = targets.map(target => fs.existsSync(target));
   if (existing.some(Boolean) && !existing.every(Boolean)) {
     const error = new Error('Internal Matrix secret authority is incomplete');
@@ -3208,8 +3237,7 @@ function projectMatrixRuntimeSecrets(runtimeStateRoot) {
       fs.writeFileSync(target, crypto.randomBytes(32).toString('base64'), { mode: 0o600, flag: 'wx' });
     }
   }
-  process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE = registrationFile;
-  process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE = provisioningFile;
+  for (const [name, target] of projected) process.env[name] = target;
   return { ephemeral: true, secretDir };
 }
 
@@ -3321,11 +3349,23 @@ async function ensureMatrixRuntime() {
     error.reasonCode = 'MATRIX_RUNTIME_MANIFEST_IDENTITY_INVALID';
     throw error;
   }
+  const releasePlatformAuth = loadReleasePlatformAuth({ resourcesPath });
+  const telegramApiId = Number(releasePlatformAuth.telegram?.apiId);
+  const telegramApiHash = String(releasePlatformAuth.telegram?.apiHash || '').trim().toLowerCase();
+  if (!Number.isSafeInteger(telegramApiId) || telegramApiId <= 0 || !/^[a-f0-9]{32}$/u.test(telegramApiHash)) {
+    const error = new Error('Sealed Telegram application credentials are unavailable');
+    error.reasonCode = 'MATRIX_TELEGRAM_APPLICATION_CREDENTIALS_REQUIRED';
+    throw error;
+  }
   const composeEnv = {
     YANCE_UAT_CANDIDATE_SHA: candidateCommit,
-    YANCE_MATRIX_SYNAPSE_PORT_BINDING: '127.0.0.1::8008',
-    YANCE_MATRIX_ELEMENT_PORT_BINDING: '127.0.0.1::80',
-    YANCE_MATRIX_MAUTRIX_META_PORT_BINDING: '127.0.0.1::29319'
+    YANCE_MATRIX_SYNAPSE_PORT_BINDING: `127.0.0.1:${MATRIX_SYNAPSE_HOST_PORT}:8008`,
+    YANCE_MATRIX_ELEMENT_PORT_BINDING: `127.0.0.1:${MATRIX_ELEMENT_HOST_PORT}:80`,
+    YANCE_MATRIX_MAUTRIX_META_PORT_BINDING: '127.0.0.1::29319',
+    YANCE_MATRIX_MAUTRIX_WHATSAPP_PORT_BINDING: '127.0.0.1::29318',
+    YANCE_MATRIX_MAUTRIX_TELEGRAM_PORT_BINDING: '127.0.0.1::29317',
+    YANCE_TELEGRAM_API_ID: String(telegramApiId),
+    YANCE_TELEGRAM_API_HASH: telegramApiHash
   };
 
   try {
@@ -3363,12 +3403,19 @@ async function ensureMatrixRuntime() {
     await dockerExec([
       ...baseArgs, 'up', '-d', '--no-build',
       '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
-      'synapse', 'mautrix-meta', 'mautrix-whatsapp'
+      'synapse', 'mautrix-meta', 'mautrix-whatsapp', 'mautrix-telegram'
     ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
 
-    // 6. Discover the real dynamic Synapse host port (official: compose port).
+    // 6. Compose publishes the deterministic Product homeserver endpoint.
+    // Read it back through the official public seam and fail closed on drift.
     const synapsePortResult = await dockerExec([...baseArgs, 'port', 'synapse', '8008'], { timeoutMs: 15000 });
     const synapseHostPort = composePort(synapsePortResult);
+    if (synapseHostPort !== MATRIX_SYNAPSE_HOST_PORT) {
+      const error = new Error('Docker Compose published an unexpected Synapse Product endpoint');
+      error.reasonCode = 'MATRIX_HOMESERVER_ORIGIN_DRIFT';
+      error.details = { expected: MATRIX_SYNAPSE_HOST_PORT, actual: synapseHostPort };
+      throw error;
+    }
 
     // 7. Project host-reachable Element config + Compose override from that official port.
     const projection = projectMatrixRuntimeConfigs(runtimeStateRoot, sealedConfigDir, synapseHostPort);
@@ -3384,15 +3431,32 @@ async function ensureMatrixRuntime() {
       '--remove-orphans'
     ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
 
-    // 9. Discover Element + mautrix-meta dynamic host ports and publish the real Product URL.
-    // Existing waitForElementShellReady follows getElementHealthUrl dynamically, so the already
-    // created BrowserWindow can load the real Element login surface without inventing a proxy.
+    // 9. Read back Element + mautrix-meta host ports and publish the real Product URL.
+    // Element is a deterministic Compose binding so Chromium/Element own one stable
+    // origin/session across app restarts; mautrix-meta may remain dynamic because it
+    // is not a renderer storage origin.
     const elementPortResult = await dockerExec([...allArgs, 'port', 'element', '80'], { timeoutMs: 15000 });
     const elementHostPort = composePort(elementPortResult);
-    const metaPortResult = await dockerExec([...allArgs, 'port', 'mautrix-meta', '29319'], { timeoutMs: 15000 });
+    if (elementHostPort !== MATRIX_ELEMENT_HOST_PORT) {
+      const error = new Error('Docker Compose published an unexpected Element Product origin');
+      error.reasonCode = 'MATRIX_ELEMENT_ORIGIN_DRIFT';
+      error.details = { expected: MATRIX_ELEMENT_HOST_PORT, actual: elementHostPort };
+      throw error;
+    }
+    const [metaPortResult, whatsappPortResult, telegramPortResult] = await Promise.all([
+      dockerExec([...allArgs, 'port', 'mautrix-meta', '29319'], { timeoutMs: 15000 }),
+      dockerExec([...allArgs, 'port', 'mautrix-whatsapp', '29318'], { timeoutMs: 15000 }),
+      dockerExec([...allArgs, 'port', 'mautrix-telegram', '29317'], { timeoutMs: 15000 })
+    ]);
     const metaHostPort = composePort(metaPortResult);
-    const mautrixProvisioningUrl = `http://127.0.0.1:${metaHostPort}/_matrix/provision`;
-    process.env.YANCE_MAUTRIX_META_PROVISIONING_URL = mautrixProvisioningUrl;
+    const whatsappHostPort = composePort(whatsappPortResult);
+    const telegramHostPort = composePort(telegramPortResult);
+    const mautrixMetaProvisioningUrl = `http://127.0.0.1:${metaHostPort}/_matrix/provision`;
+    const mautrixWhatsappProvisioningUrl = `http://127.0.0.1:${whatsappHostPort}/_matrix/provision`;
+    const mautrixTelegramProvisioningUrl = `http://127.0.0.1:${telegramHostPort}/_matrix/provision`;
+    process.env.YANCE_MAUTRIX_META_PROVISIONING_URL = mautrixMetaProvisioningUrl;
+    process.env.YANCE_MAUTRIX_WHATSAPP_PROVISIONING_URL = mautrixWhatsappProvisioningUrl;
+    process.env.YANCE_MAUTRIX_TELEGRAM_PROVISIONING_URL = mautrixTelegramProvisioningUrl;
 
     const synapseUrl = `http://127.0.0.1:${synapseHostPort}`;
     const elementUrl = `http://127.0.0.1:${elementHostPort}`;
@@ -3403,7 +3467,9 @@ async function ensureMatrixRuntime() {
     const endpoints = {
       synapse: { hostPort: synapseHostPort, url: synapseUrl },
       element: { hostPort: elementHostPort, url: elementUrl },
-      mautrixMeta: { url: mautrixProvisioningUrl }
+      mautrixMeta: { hostPort: metaHostPort, url: mautrixMetaProvisioningUrl },
+      mautrixWhatsapp: { hostPort: whatsappHostPort, url: mautrixWhatsappProvisioningUrl },
+      mautrixTelegram: { hostPort: telegramHostPort, url: mautrixTelegramProvisioningUrl }
     };
     matrixRuntimeEphemeral = { runtimeDir, allComposeFiles, secretProjection, projection };
     updateMatrixRuntimeEndpoints(endpoints);
@@ -3418,23 +3484,20 @@ async function ensureMatrixRuntime() {
       'synapse'
     ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
 
+    desktopLog('info', 'matrix-bridge-readiness-wait', { composeVersion: composeWaitAuthority.version });
+    await dockerExec([
+      ...allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',
+      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
+      'mautrix-meta', 'mautrix-whatsapp', 'mautrix-telegram'
+    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
     matrixRuntimeStarted = true;
     desktopLog('info', 'matrix-runtime-ready', {
       synapseHostPort,
       elementHostPort,
+      metaHostPort,
+      whatsappHostPort,
+      telegramHostPort,
       composeVersion: composeWaitAuthority.version
-    });
-    void dockerExec([
-      ...allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',
-      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
-      'mautrix-meta', 'mautrix-whatsapp'
-    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv }).then(() => {
-      desktopLog('info', 'matrix-bridge-readiness-complete', { composeVersion: composeWaitAuthority.version });
-    }).catch(error => {
-      desktopLog('warn', 'matrix-bridge-readiness-failed', {
-        reasonCode: error.reasonCode || error.code || 'MATRIX_BRIDGE_READINESS_FAILED',
-        message: error.message
-      });
     });
     return { started: true, endpoints, candidateCommit, composeVersion: composeWaitAuthority.version };
   } catch (error) {
@@ -3633,15 +3696,24 @@ function createWindow() {
   if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
 
   const settings = settingsStore.read();
+  const hasStoredPosition = settings.windowX !== null && settings.windowY !== null
+    && Number.isFinite(Number(settings.windowX)) && Number.isFinite(Number(settings.windowY));
+  const targetDisplay = hasStoredPosition
+    ? screen.getDisplayMatching({ x: Number(settings.windowX), y: Number(settings.windowY), width: Math.max(1, Number(settings.windowWidth) || 920), height: Math.max(1, Number(settings.windowHeight) || 620) })
+    : screen.getPrimaryDisplay();
+  const initialBounds = resolveInitialWindowBounds(settings, targetDisplay.workArea);
   const createdWindow = new BrowserWindow({
-    width: 860,
-    height: 580,
-    minWidth: 760,
-    minHeight: 520,
+    x: initialBounds.x,
+    y: initialBounds.y,
+    width: initialBounds.width,
+    height: initialBounds.height,
+    minWidth: 860,
+    minHeight: 580,
     show: false,
-    backgroundColor: '#2A0F4A',
+    backgroundColor: '#06111D',
     title: STATIC_RELEASE_SOURCE.publicProductName,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : process.platform === 'win32' ? 'hidden' : 'default',
+    titleBarOverlay: process.platform === 'win32' ? { color: '#06111D', symbolColor: '#F4F0E6', height: 48 } : false,
     icon: iconPath(),
     autoHideMenuBar: true,
     webPreferences: {
@@ -3657,9 +3729,25 @@ function createWindow() {
     }
   });
   mainWindow = createdWindow;
-  createdWindow.center();
+  if (initialBounds.maximized) createdWindow.maximize();
+
+  let windowBoundsSaveTimer = null;
+  const persistNormalWindowBounds = () => {
+    const normalBounds = captureNormalWindowBounds(createdWindow);
+    if (!normalBounds) return;
+    settingsStore.update(normalBounds);
+  };
+  const scheduleNormalWindowBoundsSave = () => {
+    if (windowBoundsSaveTimer) clearTimeout(windowBoundsSaveTimer);
+    windowBoundsSaveTimer = setTimeout(() => { windowBoundsSaveTimer = null; persistNormalWindowBounds(); }, 160);
+  };
+  createdWindow.on('resize', scheduleNormalWindowBoundsSave);
+  createdWindow.on('move', scheduleNormalWindowBoundsSave);
+  createdWindow.on('maximize', () => settingsStore.update({ windowMaximized: true }));
+  createdWindow.on('unmaximize', () => { settingsStore.update({ windowMaximized: false }); scheduleNormalWindowBoundsSave(); });
 
   createdWindow.on('close', event => {
+    persistNormalWindowBounds();
     if (quitting) return;
     const current = settingsStore.read();
     if (current.closeToTray) {
@@ -3694,6 +3782,7 @@ function createWindow() {
     activateMainWindow('renderer-unresponsive-recovery').catch(error => desktopLog('error', 'desktop-renderer-unresponsive-recovery-failed', { reasonCode: error.reasonCode || '', message: error.message }));
   });
   createdWindow.on('closed', () => {
+    if (windowBoundsSaveTimer) clearTimeout(windowBoundsSaveTimer);
     ensureMainWindowRuntimeReadiness().cancelWindow(createdWindow, 'window-closed');
     if (mainWindow === createdWindow) {
       mainWindow = null;
@@ -4014,8 +4103,79 @@ async function applyVaultMutationWithRestart(operation, ref, value, options = {}
   return desktopCredentialApplicationCoordinator.applyVaultMutationWithRestart(operation, key, value, options);
 }
 
+const OPENROUTER_CANONICAL_CREDENTIAL_REF = 'model:openrouter:default';
+
+async function canonicalizeOpenRouterCredentialRef(applicationLeaseToken) {
+  const host = desktopHost?.credentialVaultHost;
+  if (!host) throw Object.assign(new Error('Credential vault host is unavailable'), { code: 'OPENROUTER_CREDENTIAL_AUTHORITY_UNAVAILABLE' });
+  const refs = host.refs();
+  const legacyRefs = refs.filter(ref => ref.startsWith('model:openrouter:') && ref !== OPENROUTER_CANONICAL_CREDENTIAL_REF);
+  if (refs.includes(OPENROUTER_CANONICAL_CREDENTIAL_REF)) {
+    if (legacyRefs.length === 0) return { migrated: false, reason: 'canonical-present', legacyCandidateCount: 0 };
+    const canonicalValue = host.get(OPENROUTER_CANONICAL_CREDENTIAL_REF);
+    const equivalentLegacyRefs = legacyRefs.filter(ref => (
+      JSON.stringify(host.get(ref)) === JSON.stringify(canonicalValue)
+    ));
+    if (equivalentLegacyRefs.length !== legacyRefs.length) {
+      return { migrated: false, reason: 'ambiguous-legacy-refs', legacyCandidateCount: legacyRefs.length };
+    }
+    for (const legacyRef of equivalentLegacyRefs) {
+      const remove = await host.executeCustodyTransaction('remove', legacyRef, undefined, {
+        source: 'MIGRATION',
+        applicationLeaseToken,
+        requestId: crypto.randomUUID()
+      });
+      if (remove?.transactionState !== 'COMMITTED' || remove?.persisted !== true) {
+        throw Object.assign(new Error('Legacy OpenRouter credential cleanup did not commit'), {
+          code: remove?.reasonCode || 'OPENROUTER_CREDENTIAL_LEGACY_CLEANUP_FAILED'
+        });
+      }
+    }
+    return { migrated: true, reason: 'equivalent-legacy-refs-cleaned', legacyCandidateCount: legacyRefs.length };
+  }
+  if (legacyRefs.length === 0) return { migrated: false, reason: 'no-legacy-ref', legacyCandidateCount: 0 };
+  if (legacyRefs.length !== 1) {
+    return { migrated: false, reason: 'ambiguous-legacy-refs', legacyCandidateCount: legacyRefs.length };
+  }
+
+  const legacyRef = legacyRefs[0];
+  const value = host.get(legacyRef);
+  const persist = await host.persistFromMigration(OPENROUTER_CANONICAL_CREDENTIAL_REF, value, {
+    applicationLeaseToken,
+    requestId: crypto.randomUUID()
+  });
+  if (persist?.transactionState !== 'COMMITTED' || persist?.persisted !== true) {
+    throw Object.assign(new Error('Canonical OpenRouter credential migration did not commit'), {
+      code: persist?.reasonCode || 'OPENROUTER_CREDENTIAL_CANONICALIZATION_FAILED'
+    });
+  }
+  const remove = await host.executeCustodyTransaction('remove', legacyRef, undefined, {
+    source: 'MIGRATION',
+    applicationLeaseToken,
+    requestId: crypto.randomUUID()
+  });
+  if (remove?.transactionState !== 'COMMITTED' || remove?.persisted !== true) {
+    throw Object.assign(new Error('Legacy OpenRouter credential cleanup did not commit'), {
+      code: remove?.reasonCode || 'OPENROUTER_CREDENTIAL_LEGACY_CLEANUP_FAILED'
+    });
+  }
+  return { migrated: true, reason: 'single-legacy-ref-canonicalized', legacyCandidateCount: 1 };
+}
+
 async function saveCredentialFromDesktop(ref, value, options = {}) {
   const requestId = String(options.requestId || '');
+  const key = String(ref || '').trim();
+  let credentialChanged = true;
+  try {
+    if (key && vault?.refs?.().includes(key)) {
+      const current = vault.get(key);
+      credentialChanged = credentialMutationSha256('persist', key, current)
+        !== credentialMutationSha256('persist', key, value || {});
+    }
+  } catch (_) {
+    // Keep the persistence path authoritative if the comparison itself is unavailable.
+    credentialChanged = true;
+  }
   try {
     const result = await applyVaultMutationWithRestart('persist', ref, value, options);
     return {
@@ -4023,6 +4183,7 @@ async function saveCredentialFromDesktop(ref, value, options = {}) {
       ok: true,
       mutationCommitted: result?.mutation?.transactionState === 'COMMITTED' || result?.mutationCommitted === true,
       runtimeConfirmed: true,
+      credentialChanged,
       requestId: String(result?.requestId || requestId),
       reasonCode: '',
       message: ''
@@ -4360,7 +4521,7 @@ function registerIpc() {
   ipcGuardHandle('desktop:restart-app', async () => restartElectronApp({
     setRelaunchIntent: () => { relaunchPending = true; quitting = true; backendRestarting = true; stopEventSocket(); },
     clearRelaunchIntent: () => { relaunchPending = false; quitting = false; backendRestarting = false; },
-    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-relaunch' }),
+    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-relaunch', preserveMatrix: true }),
     authoritySnapshot: () => applicationRuntimeAuthoritySnapshot(),
     appRelaunch: () => app.relaunch(),
     appExit: code => { exitAfterBackendShutdown = true; app.exit(code); },
@@ -4528,7 +4689,8 @@ if (!app.requestSingleInstanceLock()) {
             createVault: file => new CredentialVault(file)
           });
           const graphitiNeo4jCredential = await ensureGraphitiNeo4jCredentialProvisioned(applicationLeaseToken);
-          return { ...recovery, graphitiNeo4jCredential };
+          const openRouterCredentialCanonicalization = await canonicalizeOpenRouterCredentialRef(applicationLeaseToken);
+          return { ...recovery, graphitiNeo4jCredential, openRouterCredentialCanonicalization };
         }),
         mode: 'same-machine-safe-storage-reencryption',
         legacyRoots: legacyDiscovery.legacyRoots

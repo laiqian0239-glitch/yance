@@ -96,10 +96,23 @@ export function BilingualSearchPanel({
   const translationSequence = useRef(0);
   const latestQuery = useRef("");
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     latestQuery.current = query;
   }, [query]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setExpanded(true);
+        window.setTimeout(() => searchInputRef.current?.focus(), 0);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const activeJobStatus = normalizedStatus(activeJob);
   const exactNavigationAvailableByMessage = useMemo(() => {
@@ -264,18 +277,18 @@ export function BilingualSearchPanel({
       try {
         const navigated = await onNavigateRelationship(relationship);
         if (navigated) {
-          setStatus("已打开可信的 Element 会话。");
+          setStatus("已打开真实会话。");
           return;
         }
       } catch (error) {
-        navigationError = errorText(error, "Element 导航暂不可用。");
+        navigationError = errorText(error, "会话导航暂不可用。");
       }
     }
 
     onSelectRelationship(relationship.id);
     setStatus(navigationError
-      ? `已打开关系上下文。Element 导航失败：${navigationError}`
-      : "已打开关系上下文；这条结果暂时无法精确跳转到 Element 消息。 ");
+      ? `已打开关系上下文。会话导航失败：${navigationError}`
+      : "已打开关系上下文；这条结果暂时无法精确跳转到原消息。");
   };
 
   const clearSearch = (): void => {
@@ -294,16 +307,31 @@ export function BilingualSearchPanel({
       aria-label="双语消息搜索"
     >
       <div className="yance-bilingual-search__topline">
-        <button
-          type="button"
-          className="yance-bilingual-search__toggle"
-          aria-expanded={expanded}
-          aria-controls="yance-bilingual-search-panel"
-          onClick={() => setExpanded((value) => !value)}
-        >
+        <label className="yance-bilingual-search__command-field">
           <span aria-hidden="true">⌕</span>
-          <span>搜索</span>
-        </button>
+          <input
+            ref={searchInputRef}
+            type="search"
+            value={query}
+            autoComplete="off"
+            placeholder="搜索人、对话、回忆、关系世界…"
+            aria-expanded={expanded}
+            aria-controls="yance-bilingual-search-panel"
+            onFocus={() => setExpanded(true)}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void runSearch(query);
+              } else if (event.key === "Escape") {
+                event.preventDefault();
+                setExpanded(false);
+                event.currentTarget.blur();
+              }
+            }}
+          />
+          <kbd>Ctrl K</kbd>
+        </label>
         {expanded && query ? (
           <button type="button" className="yance-bilingual-search__quiet-action" onClick={clearSearch}>清除</button>
         ) : null}
@@ -311,25 +339,6 @@ export function BilingualSearchPanel({
 
       {expanded ? (
         <div id="yance-bilingual-search-panel" className="yance-bilingual-search__panel">
-          <label className="yance-bilingual-search__field">
-            <span className="yance-bilingual-search__label">消息、姓名或中文翻译</span>
-            <input
-              type="search"
-              value={query}
-              autoComplete="off"
-              placeholder="搜索原文或中文翻译"
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void runSearch(query);
-                } else if (event.key === "Escape") {
-                  event.preventDefault();
-                  setExpanded(false);
-                }
-              }}
-            />
-          </label>
 
           <div className="yance-bilingual-search__status" aria-live="polite" aria-atomic="true">
             <span>{status}</span>
@@ -406,7 +415,7 @@ export function BilingualSearchPanel({
                         <span>{[result.platform, formatTime(result.sentAt)].filter(Boolean).join(" · ")}</span>
                       </div>
                       <span className="yance-bilingual-search__nav-state">
-                        {exactNavigationAvailable ? "Element 可定位" : "关系上下文"}
+                        {exactNavigationAvailable ? "可精确定位" : "关系上下文"}
                       </span>
                     </div>
                     <button

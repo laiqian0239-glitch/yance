@@ -29,7 +29,7 @@ function assertActive(signal, code = 'FACEBOOK_CHATWOOT_OPERATION_ABORTED') {
 function requirePersistedOperation(input = {}, expectedKind = '', account = {}) {
   const operation = input?.physicalOperationContext;
   if (!operation || typeof operation !== 'object' || Array.isArray(operation) || !Object.isFrozen(operation)) {
-    throw fail('FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED', 'Facebook Page Chatwoot session/sync I/O requires one frozen RUNNING persisted WP-B operation before any network call', 409);
+    throw fail('FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED', 'Facebook Page Chatwoot history synchronization requires one frozen RUNNING persisted WP-B operation before any network call', 409);
   }
   for (const field of ['operationId', 'executionId', 'operationType', 'operationKind', 'scopeKey', 'objectFingerprint', 'ownerId', 'claimId']) {
     if (!clean(operation[field])) {
@@ -196,6 +196,21 @@ async function resolveFacebookInbox(config, { inboxId = '', pageId = '' } = {}, 
   });
   if (matches.length !== 1) throw fail('FACEBOOK_CHATWOOT_INBOX_IDENTITY_AMBIGUOUS', 'Facebook Page must resolve to exactly one Chatwoot Facebook inbox', 409, { inboxId: normalizedInboxId, pageId: normalizedPageId, matchCount: matches.length });
   return matches[0];
+}
+function publicFacebookPageInbox(row = {}) {
+  return {
+    inboxId: clean(row.id),
+    pageId: clean(row.page_id),
+    name: clean(row.name, 'Facebook Page')
+  };
+}
+async function discoverFacebookPageInboxes(operation = {}) {
+  const config = requireRuntimeConfig();
+  return (await listFacebookInboxes(config, operation)).map(publicFacebookPageInbox);
+}
+async function resolveFacebookPageInbox(identity = {}, operation = {}) {
+  const config = requireRuntimeConfig();
+  return publicFacebookPageInbox(await resolveFacebookInbox(config, identity, operation));
 }
 
 function rawBodyBuffer(rawBody) {
@@ -468,7 +483,6 @@ async function sync(account = {}, options = {}) {
   return { state: 'connected', bootstrapped: false, nextBatch, processed, failures };
 }
 async function connect(account = {}, options = {}) {
-  requirePersistedOperation(options, 'SESSION_RESTORE', account);
   const config = requireRuntimeConfig();
   assertActive(options.signal, 'FACEBOOK_CHATWOOT_CONNECT_ABORTED');
   const pageId = pageIdForAccount(account);
@@ -526,7 +540,8 @@ module.exports = {
   RUNTIME, BINDING_EVENT_TYPE, BINDING_STATE_KEY, WEBHOOK_FRESHNESS_MS,
   CHATWOOT_SIGNATURE_HEADER, CHATWOOT_TIMESTAMP_HEADER,
   enabled, runtimeConfig, verifySignedWebhook, handleSignedWebhook,
-  listFacebookInboxes, resolveFacebookInbox, getRoomBinding, findBindingByConversation,
+  listFacebookInboxes, resolveFacebookInbox, discoverFacebookPageInboxes, resolveFacebookPageInbox,
+  getRoomBinding, findBindingByConversation,
   resolveAccountKey, credentialState, credentialReady, status, connect, disconnect, sync,
   externalTarget, adapterAccountId, sendText, sendMedia, sendPresence, markRead
 };

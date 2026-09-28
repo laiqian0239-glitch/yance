@@ -336,7 +336,11 @@ test('trusted Linux Matrix bootstrap keeps checkout native and scopes Git CRLF s
   assert.match(bootstrap, /run\(repoDir, 'git', \['apply', patchPath\]\);/u);
   assert.match(bootstrap, /run\(element, 'git', \['apply', '--check', MODULE_DELIVERY_PATCH\]\);/u);
   assert.match(bootstrap, /run\(element, 'git', \['apply', MODULE_DELIVERY_PATCH\]\);/u);
-  assert.match(bootstrap, /fs\.rmSync\(dir,\s*\{\s*recursive:\s*true,\s*force:\s*true\s*\}\)/u);
+  assert.match(
+    bootstrap,
+    /fs\.rmSync\(dir,\s*\{\s*recursive:\s*true,\s*force:\s*true,\s*maxRetries:\s*5,\s*retryDelay:\s*200\s*\}\)/u,
+    'Windows cleanup retry must remain owned by the Node fs.rmSync public seam'
+  );
   assert.match(bootstrap, /fs\.mkdirSync\(dir,\s*\{\s*recursive:\s*true\s*\}\)/u);
   assert.match(bootstrap, /run\(dir,\s*'git',\s*\['init'\]\)/u);
   assert.match(bootstrap, /run\(dir,\s*'git',\s*\['remote',\s*'add',\s*'origin',\s*upstream\.repository\]\)/u);
@@ -345,7 +349,12 @@ test('trusted Linux Matrix bootstrap keeps checkout native and scopes Git CRLF s
   assert.match(bootstrap, /assertExactCommit\(dir,\s*upstream\.commit\)/u);
   assert.doesNotMatch(bootstrap, /clone',\s*'--no-checkout'|git\s+clone\s+--no-checkout/u);
   assert.doesNotMatch(bootstrap, /checkout',\s*'--detach',\s*upstream\.commit|checkout[^\n]*(?:main|master|origin\/HEAD)/u);
-  assert.doesNotMatch(bootstrap, /retry|fallback|mirror/iu);
+  const materializeBlock = bootstrap.slice(
+    bootstrap.indexOf('function materialize(name, upstream)'),
+    bootstrap.indexOf('function materializeExactReleaseTag')
+  );
+  assert.doesNotMatch(materializeBlock, /\bfunction\s+\w*retry\w*\s*\(|\b(?:for|while)\s*\([^)]*(?:attempt|retry)/iu, 'Yance must not implement a custom cleanup retry owner');
+  assert.doesNotMatch(bootstrap, /\b(?:fallback|mirror)\b/iu);
   assert.doesNotMatch(bootstrap, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
   assert.doesNotMatch(bootstrap, /--ignore-whitespace|--ignore-space-change|--reject|--3way|--recount|--unidiff-zero/u);
   assert.doesNotMatch(source, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
@@ -748,7 +757,7 @@ test('failure-first binds complete materialized Matrix runtime topology, ephemer
   assert.doesNotMatch(runner, /materialized-uat-evidence\.json[^\n]*(?:secret|shared_secret)/iu, 'plaintext secrets must never become evidence authority');
 });
 
-test('production Matrix runtime keeps sealed resources read-only and projects dynamic ports under DATA_ROOT', () => {
+test('production Matrix runtime keeps sealed resources read-only and projects one deterministic Compose-owned Product origin without Yance session state', () => {
   const main = read('electron/main.js');
   const compose = read(COMPOSE);
 
@@ -764,22 +773,31 @@ test('production Matrix runtime keeps sealed resources read-only and projects dy
   assert.doesNotMatch(matrixMaterializationHelper, /writeFileSync|appendFileSync|cache|receipt/iu, 'image admission must stay stateless with no Yance mirror state');
   assert.match(main, /if \(imageMaterialization\.allPresent\)[\s\S]*?matrix-images-already-materialized[\s\S]*?else \{[\s\S]*?matrix-images-loading[\s\S]*?dockerExec\(\['load', '-i', imagesTarPath\]/u, 'docker load must remain only the missing-image materialization path');
   assert.match(main, /function matrixRuntimeStateRoot\(\)[\s\S]*?DATA_ROOT[\s\S]*?matrix-runtime/u);
+  assert.equal(fs.existsSync(absolute('electron/matrixElementOriginAuthority.js')), false,
+    'Yance must not persist a parallel Matrix/Element origin authority');
+  assert.doesNotMatch(main, /matrix-session-origin\.json|matrixElementOriginAuthority|pinSynapseHostPort|pinElementHostPort/u);
   assert.match(main, /projectMatrixRuntimeSecrets\(runtimeStateRoot\)/u);
-  assert.match(main, /YANCE_MATRIX_SYNAPSE_PORT_BINDING:\s*'127\.0\.0\.1::8008'/u);
-  assert.match(main, /YANCE_MATRIX_ELEMENT_PORT_BINDING:\s*'127\.0\.0\.1::80'/u);
+  assert.match(main, /const MATRIX_SYNAPSE_HOST_PORT = 62375;/u);
+  assert.match(main, /const MATRIX_ELEMENT_HOST_PORT = 62395;/u);
+  assert.match(main, /YANCE_MATRIX_SYNAPSE_PORT_BINDING:[^\n]*MATRIX_SYNAPSE_HOST_PORT/u);
+  assert.match(main, /YANCE_MATRIX_ELEMENT_PORT_BINDING:[^\n]*MATRIX_ELEMENT_HOST_PORT/u);
+  assert.match(main, /Docker Compose published an unexpected Synapse Product endpoint/u);
+  assert.match(main, /Docker Compose published an unexpected Element Product origin/u);
   assert.match(main, /YANCE_MATRIX_MAUTRIX_META_PORT_BINDING:\s*'127\.0\.0\.1::29319'/u);
   assert.match(main, /const baseArgs = matrixComposeBaseArgs\(runtimeDir,\s*\[composeFile\]\)/u);
   assert.match(main, /projectMatrixRuntimeConfigs\(runtimeStateRoot,\s*sealedConfigDir,\s*synapseHostPort\)/u);
   assert.match(main, /const overridePath = path\.join\(runtimeStateRoot, 'runtime-override\.yml'\)/u);
   assert.match(main, /const allComposeFiles = \[composeFile,\s*projection\.overridePath\]/u);
-  assert.match(main, /127\.0\.0\.1::8008/u, 'production override must ask Compose for a random Synapse host port');
-  assert.match(main, /127\.0\.0\.1::80/u, 'production override must ask Compose for a random Element host port');
+  assert.match(main, /const synapsePortResult = await dockerExec\(\[\.\.\.baseArgs, 'port', 'synapse', '8008'\]/u,
+    'Electron may read back the Compose-owned deterministic homeserver endpoint');
+  assert.match(main, /const elementPortResult = await dockerExec\(\[\.\.\.allArgs, 'port', 'element', '80'\]/u,
+    'Electron may read back the Compose-owned deterministic Element origin');
   assert.match(main, /127\.0\.0\.1::29319/u, 'production override must expose mautrix-meta provisioning on a random host port');
   assert.doesNotMatch(main, /path\.join\(runtimeDir,\s*'runtime-(?:config|override|secrets)/u, 'sealed resources/matrix-runtime must not receive runtime projections');
   assert.match(main, /restoreMatrixRuntimeDynamicEnvironment/u, 'shutdown and relaunch must restore dynamic Matrix env before the new process starts');
   assert.doesNotMatch(main, /matrix-mautrix-port-discovery-failed[\s\S]{0,200}warn/u, 'mautrix-meta port discovery must fail closed, not warn and continue');
-  assert.match(main, /const metaPortResult = await dockerExec\(\[\.\.\.allArgs, 'port', 'mautrix-meta', '29319'\]/u);
-  assert.match(main, /const mautrixProvisioningUrl = `http:\/\/127\.0\.0\.1:\$\{metaHostPort\}\/_matrix\/provision`/u);
+  assert.match(main, /const \[metaPortResult, whatsappPortResult, telegramPortResult\] = await Promise\.all\(\[[\s\S]*dockerExec\(\[\.\.\.allArgs, 'port', 'mautrix-meta', '29319'\]/u);
+  assert.match(main, /const mautrixMetaProvisioningUrl = `http:\/\/127\.0\.0\.1:\$\{metaHostPort\}\/_matrix\/provision`/u);
   assert.match(main, /const MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS = 300/u);
   assert.match(main, /const MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION_TEXT = '5\.5\.1'/u);
   assert.match(main, /dockerExec\(\['compose', 'version', '--short'\], \{ timeoutMs: 15000 \}\)/u);
@@ -815,8 +833,8 @@ test('production Matrix runtime keeps sealed resources read-only and projects dy
   );
   assert.match(
     main,
-    /matrix-runtime-ready[\s\S]{0,700}\.\.\.allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',[\s\S]{0,180}'mautrix-meta', 'mautrix-whatsapp'/u,
-    'bridge health completion must be deferred until after core Matrix readiness and remain on the same Compose public seam'
+    /matrix-bridge-readiness-wait[\s\S]{0,500}\.\.\.allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',[\s\S]{0,220}'mautrix-meta', 'mautrix-whatsapp', 'mautrix-telegram'[\s\S]{0,260}matrix-runtime-ready/u,
+    'all three bridge health gates must complete through the same Compose public seam before Product runtime readiness is published'
   );
   assert.doesNotMatch(
     main,
@@ -1048,7 +1066,7 @@ test('backendEnvironment forwards the five Matrix backend authority env keys bef
 
 test('desktop first frame stays compact and begins before Matrix/backend materialization without shadow auth', () => {
   const main = read('electron/main.js');
-  assert.match(main, /width:\s*860[\s\S]*height:\s*580[\s\S]*minWidth:\s*760[\s\S]*minHeight:\s*520/u);
+  assert.match(main, /width:\s*1180[\s\S]*height:\s*760[\s\S]*minWidth:\s*960[\s\S]*minHeight:\s*680/u);
   assert.match(main, /mainWindow = createdWindow;\s*createdWindow\.center\(\);/u);
   assert.match(main, /let healthUrl = getElementHealthUrl\(\);[\s\S]*while \(Date\.now\(\) < deadline[\s\S]*healthUrl = getElementHealthUrl\(\);/u);
   const startup = main.indexOf('registerIpc();');
@@ -1110,4 +1128,21 @@ test('Element surface publishes after Compose service_started and before Compose
   const startup = main.indexOf('await ensureMatrixRuntime();');
   const backend = main.indexOf('const backendStartup = launchBackend();', startup);
   assert.ok(startup >= 0 && backend > startup, 'backend launch must remain downstream of full Matrix runtime readiness');
+});
+
+
+test('invitation-to-Product boundary preserves mature owners and removes shadow entitlement polling', () => {
+  const server = fs.readFileSync(path.join(ROOT, 'backend/server.js'), 'utf8');
+  const service = fs.readFileSync(path.join(ROOT, 'backend/services/personalAccessService.js'), 'utf8');
+  const coordinator = fs.readFileSync(path.join(ROOT, 'electron/desktopHost/RuntimeProjectionCoordinator.js'), 'utf8');
+  const surface = fs.readFileSync(path.join(ROOT, 'integration/element-module/src/product-experience/PersonalAccessSurface.tsx'), 'utf8');
+  const localSecurity = server.indexOf('app.use(createR32LocalApiSecurity({');
+  const runtimeApi = server.indexOf("app.use('/api/app/v2'");
+  const personalGuard = server.indexOf('app.use(createPersonalAccessGuard({ personalAccessService }))');
+  assert.ok(localSecurity >= 0 && localSecurity < runtimeApi && runtimeApi < personalGuard);
+  const authorize = service.slice(service.indexOf('async authorizeProductRequest'), service.indexOf('\n}', service.indexOf('async authorizeProductRequest')));
+  assert.match(authorize, /verifyStoredKeyIdForLogin\(keyId\)/u);
+  assert.doesNotMatch(authorize, /matrixOpenId|matrixSubject|this\.status\(/u);
+  assert.doesNotMatch(coordinator, /WAITING_FOR_PRODUCT_ENTITLEMENT|entitlementPollBackoffMs|entitlementPollBlockedUntilMs/u);
+  assert.match(surface, /automaticHandoffAttempted\.current = true/u);
 });

@@ -124,11 +124,10 @@ def _router_structure_key(payload: dict[str, Any]) -> str:
         "logicalNames": _logical_names(payload),
         "catalog": [item for item in _as_list(payload.get("catalog")) if isinstance(item, dict)],
         "routerOptions": {
-            "numRetries": options.get("numRetries", 2),
-            "maxFallbacks": options.get("maxFallbacks", 5),
             "timeoutMs": options.get("timeoutMs", 180000),
         },
         "complexity": payload.get("complexity") if isinstance(payload.get("complexity"), dict) else {},
+        "routePreference": payload.get("routePreference") if isinstance(payload.get("routePreference"), dict) else {},
     }
     return _fingerprint(material)
 
@@ -170,6 +169,7 @@ def _build_router(payload: dict[str, Any]) -> tuple[Router, str, ComplexityRoute
         return cached
     credentials = payload.get("credentials") if isinstance(payload.get("credentials"), dict) else {}
     names = _logical_names(payload)
+    route_preference = payload.get("routePreference") if isinstance(payload.get("routePreference"), dict) else {}
     model_list: list[dict[str, Any]] = []
     for logical_name in names:
         for model in catalog:
@@ -182,9 +182,8 @@ def _build_router(payload: dict[str, Any]) -> tuple[Router, str, ComplexityRoute
         model_list=model_list,
         enable_tag_filtering=True,
         tag_filtering_match_any=False,
-        num_retries=max(0, int(options.get("numRetries", 2) or 0)),
-        max_fallbacks=max(0, int(options.get("maxFallbacks", 5) or 0)),
         timeout=max(1.0, float(options.get("timeoutMs", 180000) or 180000) / 1000.0),
+        routing_strategy="latency-based-routing" if route_preference.get("fastMode") is True else "simple-shuffle",
     )
     complexity = payload.get("complexity") if isinstance(payload.get("complexity"), dict) else {}
     complexity_router: ComplexityRouter | None = None

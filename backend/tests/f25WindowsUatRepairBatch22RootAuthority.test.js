@@ -16,7 +16,6 @@ const { PlatformDeliveryAuthority } = require('../services/platformDeliveryAutho
 const { normalizeAccountRuntime } = require('../services/accountRuntimeAuthority');
 const { STATES } = require('../services/asyncOperationLifecycleAuthority');
 const { DurableInternalOperationAuthority } = require('../services/durableInternalOperationAuthority');
-const { PlatformAuthWorkflowAuthority } = require('../services/platformAuthWorkflowAuthority');
 const { PlatformAdapterFacade } = require('../services/platformAdapterPorts');
 const syncStability = require('../../frontend/js/r32-sync-stability.js');
 const outboundCommandRepository = require('../repositories/outboundCommandRepository');
@@ -70,36 +69,34 @@ test('message:inserted is a behavioral SQLite reload trigger', async () => {
   assert.equal(observed.reloadConversation, true);
 });
 
-test('interactive authentication remains RUNNING until later platform state settles the same workflow', async () => {
-  const f = fixture('yance-b22-auth-');
-  try {
-    const lifecycle = createLifecycle(f.store);
-    const authority = new PlatformAuthWorkflowAuthority({ lifecycle });
-    let directStartCalls = 0;
-    const facade = new PlatformAdapterFacade('telegram', {
-      operationLifecycle: lifecycle,
-      authHandler: {
-        start: async () => { directStartCalls += 1; return { state: 'connected' }; },
-        execute: async input => input.operation === 'cancel'
+test('interactive authentication delegates directly to the mature owner without a Yance durable workflow', async () => {
+  let executeCalls = 0;
+  const forbiddenLifecycle = new Proxy({}, {
+    get() { throw new Error('AUTH_SHADOW_LIFECYCLE_TOUCHED'); }
+  });
+  const facade = new PlatformAdapterFacade('telegram', {
+    operationLifecycle: forbiddenLifecycle,
+    authHandler: {
+      execute: async input => {
+        executeCalls += 1;
+        return input.operation === 'cancel'
           ? { schemaVersion: 1, platform: 'telegram', accountId: input.accountId, cancelled: true, state: 'cancelled' }
-          : { schemaVersion: 1, platform: 'telegram', accountId: input.accountId, state: 'waiting-verification', qrPresented: true }
+          : { schemaVersion: 1, platform: 'telegram', accountId: input.accountId, state: 'waiting-verification', step: 'qr' };
       }
-    });
-    const pending = await facade.auth.start({ accountId: 'tg-1', operation: 'connect' });
-    assert.equal(directStartCalls, 0);
-    assert.equal(pending.operationState, STATES.RUNNING);
-    assert.equal(pending.workflowPending, true);
-    const same = lifecycle.read(pending.operationId);
-    assert.equal(same.state, STATES.RUNNING);
+    }
+  });
+  const pending = await facade.auth.start({ accountId: 'tg-1', operation: 'connect' });
+  assert.equal(executeCalls, 1);
+  assert.equal(pending.state, 'waiting-verification');
+  assert.equal(pending.step, 'qr');
+  assert.equal(pending.operationId, undefined);
+  assert.equal(pending.operationState, undefined);
+  assert.equal(pending.workflowPending, undefined);
 
-    const settled = authority.settleFromState(lifecycle, { platform: 'telegram', accountId: 'tg-1', state: 'connected' });
-    assert.equal(settled.operation.state, STATES.SUCCEEDED);
-
-    const second = await facade.auth.start({ accountId: 'tg-2', operation: 'connect' });
-    const cancelled = await facade.auth.cancel({ accountId: 'tg-2' });
-    assert.equal(cancelled.operationId, second.operationId);
-    assert.equal(lifecycle.read(second.operationId).state, STATES.CANCELLED);
-  } finally { f.close(); }
+  const cancelled = await facade.auth.cancel({ accountId: 'tg-1' });
+  assert.equal(executeCalls, 2);
+  assert.equal(cancelled.state, 'cancelled');
+  assert.equal(cancelled.operationId, undefined);
 });
 
 test('PlatformAccount to ExternalIdentity to IdentityLink to ConversationBinding to Message to OutboxRoute is one constrained chain', () => {

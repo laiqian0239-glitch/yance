@@ -5,6 +5,11 @@ appservice:
   address: http://mautrix-whatsapp:29318
   hostname: 0.0.0.0
   port: 29318
+  id: yance-mautrix-whatsapp
+  bot:
+    username: yance_whatsapp_bot
+    displayname: Yance WhatsApp Bridge
+  username_template: whatsapp_{{.}}
 database:
   type: sqlite3-fk-wal
   uri: /data/mautrix-whatsapp.db
@@ -15,5 +20,12 @@ bridge:
   permissions:
     '*': relay
     'yance.local': user
+provisioning:
+  shared_secret: disable
+  allow_matrix_auth: false
+  debug_endpoints: false
+  enable_session_transfers: false
+  fail_on_webauthn: false
+env_config_prefix: YANCE_MAUTRIX_WHATSAPP_
 logging:
   min_level: info

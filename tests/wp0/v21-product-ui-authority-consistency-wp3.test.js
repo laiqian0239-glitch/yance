@@ -93,8 +93,9 @@ test('WP3-A RED: current Element Product must expose idempotent Personal Access 
 
   assert.match(productSources, /personal[ -]?access|PersonalAccess/iu, 'the active Element Product must own the Personal Access user surface');
   assert.match(login, /邀请码/u, 'a first-use TESTER must have a reachable invitation key action in the pre-auth Product login');
-  assert.match(login, /data-yance-device-resume="unkey-status-element-on-logged-in"/u, 'an already-authorized device must have a no-invitation resume action');
-  assert.match(login, /已授权设备登录/u);
+  assert.match(login, /普通重启由 Element 自动恢复同一会话/u, 'ordinary restart must preserve the mature Element session/device owner');
+  assert.match(login, /不会用已保存的邀请码权限重新创建 Matrix 设备/u, 'Product entitlement must not become a second Matrix resume credential');
+  assert.doesNotMatch(login, /data-yance-device-resume|已授权设备登录/u, 'retired device-resume UI must stay absent');
   assert.doesNotMatch(productSources, /邀请码/u, 'post-login Product must not request the raw invitation bearer again');
   assert.match(productSources, /设备权限收据/u, 'post-login Product must describe the durable keyId projection rather than a raw bearer');
   assert.match(productSources, /刷新/u, 'a blocked TESTER must have a reachable status refresh action');
@@ -134,7 +135,11 @@ test('WP3-B RED: current Chinese Product controls must not leak English-only nat
 test('WP3-C RED: current Product relationship labels and facts must remain visually readable without ellipsis clipping', () => {
   const css = read('integration/element-module/src/product-experience/ProductExperienceShell.css');
 
-  assert.doesNotMatch(css, /text-overflow\s*:\s*ellipsis/u, 'current Product labels/facts must not be clipped to ellipsis');
+  const personNameRule = css.match(/\.yance-person-copy__line strong\s*\{([^}]*)\}/u);
+  assert.ok(personNameRule, 'relationship roster primary-name rule must remain present');
+  assert.match(personNameRule[1], /white-space\s*:\s*normal/u, 'relationship primary names must wrap instead of being clipped');
+  assert.doesNotMatch(personNameRule[1], /text-overflow\s*:\s*ellipsis/u, 'relationship primary names must not ellipsize');
+  assert.match(css, /\.yance-person-preview,[\s\S]*?text-overflow:\s*ellipsis;[\s\S]*?white-space:\s*nowrap;/u, 'secondary preview text may stay bounded to preserve desktop density');
 
   const personCopyRule = css.match(/\.yance-person-copy strong,\s*\.yance-person-copy span\s*\{([^}]*)\}/u);
   assert.ok(personCopyRule, 'relationship list label rule must remain present');
@@ -174,7 +179,8 @@ test('WP3 preserve: authenticated security state projects through Yance Product 
   const patch = read('upstream-patches/element-web/0018-yance-post-login-security-shell.patch');
 
   assert.match(index, /registerPostLoginSecurityComponent/u);
-  assert.match(login, /data-yance-post-login-security-authority=["']product["']/u);
+  assert.match(login, /data-yance-post-login-security-projection=["']yance["']/u);
+  assert.match(login, /data-yance-post-login-security-owner=["']element-matrix["']/u);
   assert.match(login, /data-yance-post-login-security-content=["']element["']/u);
   assert.match(patch, /renderPostLoginSecurity/u);
   assert.match(patch, /AuthPage/u, 'Element AuthPage must remain the fallback presentation when Product renderer is unavailable');

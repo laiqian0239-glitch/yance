@@ -56,6 +56,10 @@ test('the official module owns Yance UI through the Element location renderer an
   assert.match(entry, /registerLocationRenderer/u);
   assert.match(entry, /navigateToLocation/u);
   assert.match(entry, /registerComposerAccessory/u);
+  assert.match(entry, /registerComposerAccessory\(\(props\) => \([\s\S]*<ProductRoomAccessory roomId=\{props\.roomId\} \/>/u, 'room composer accessory must mount the thin Product room projection while Element owns RoomView');
+  assert.match(entry, /const restoreProductConversationBindingForRoom = async/u, 'RoomView mount must restore the Product binding from existing authorities after renderer reload');
+  assert.match(entry, /loadPeopleProjections\(\)[\s\S]*resolveCanonicalConversationRoom\(conversation, \[normalizedRoomId\], readRoomStateEvents\)[\s\S]*bindProductConversation\(relationshipId, conversation, normalizedRoomId\)/u, 'RoomView reload recovery must derive one Product binding from People projection plus the Element room identity instead of storing a second room authority');
+  assert.match(entry, /<RelationshipOverlayHost readRoomStateEvents=\{readRoomStateEvents\} \/>/u, 'room composer accessory must keep the Product relationship overlay host mounted while Element owns RoomView');
   assert.doesNotMatch(entry, /registerGlobalRightPanel|openGlobalRightPanel/u);
   assert.match(entry, /YanceWorkspace/u);
 
@@ -63,7 +67,7 @@ test('the official module owns Yance UI through the Element location renderer an
     const shell = readText(PRODUCT_SENTINEL);
     assert.match(workspace, /ProductExperienceShell/u, 'YanceWorkspace must stay a thin Product Experience composition root');
     assert.match(shell, /data-yance-workspace/u, 'ProductExperienceShell must own the Yance workspace identity');
-    assert.match(shell, /aria-label=["']言策关系智能操作系统["']/u, 'ProductExperienceShell must expose the current accessible Yance relationship intelligence label');
+    assert.match(shell, /aria-label=["']言策["']/u, 'ProductExperienceShell must expose the current accessible Yance product label');
     for (const authority of ['PeopleSurface', 'RelationshipAssistant', 'RelationshipOverlayHost']) {
       assert.match(shell, new RegExp(authority, 'u'), `ProductExperienceShell must compose ${authority}`);
     }
@@ -158,7 +162,7 @@ test('the right workspace remains inside the unified Element shell and is restor
     const shell = readText(PRODUCT_SENTINEL);
     const preferences = readText('integration/element-module/src/product-experience/experiencePreferences.ts');
     assert.match(workspace, /ProductExperienceShell/u);
-    assert.match(shell, /aria-label=["']言策关系智能操作系统["']/u);
+    assert.match(shell, /aria-label=["']言策["']/u);
     assert.match(shell, /data-yance-workspace/u);
     for (const authority of [
       'storeSnapshot',
@@ -572,18 +576,38 @@ test('activation responder binds before fallible Product projections and workspa
   );
 });
 
+test('pinned Element leaves module-view paging to the native module scroll owner when no RoomView is mounted', () => {
+  const patchText = readText('upstream-patches/element-web/0017-yance-product-conversation-control.patch');
+  assert.match(patchText, /case KeyBindingAction\.ScrollUp:[\s\S]*case KeyBindingAction\.JumpToLatestMessage:[\s\S]*if \(this\._roomView\.current\) \{[\s\S]*this\.onScrollKeyPressed\(ev\);[\s\S]*handled = true;[\s\S]*\}/u);
+  assert.match(patchText, /allows native paging for module views when no RoomView owns scroll/u);
+});
+
+test('pinned Element composer preview snapshot keeps mature model text current without a second composer owner', () => {
+  const patchPath = 'upstream-patches/element-web/0017-yance-product-conversation-control.patch';
+  const patchText = readText(patchPath);
+  assert.match(patchText, /apps\/web\/src\/viewmodels\/composer\/MessageComposerUrlPreviewViewModel\.ts/u);
+  assert.match(patchText, /apps\/web\/src\/viewmodels\/composer\/MessageComposerUrlPreviewViewModel\.test\.ts/u);
+  assert.match(patchText, /this\.snapshot\.merge\(\{ content \}\);/u);
+  assert.match(patchText, /expect\(vm\.getSnapshot\(\)\.content\)\.toEqual\("https:\/\/example\.org some extra words"\);/u);
+});
+
 test('pinned Element post-login security seam is explicit, fail-safe and replayed only after 0017', () => {
   const patchPath = 'upstream-patches/element-web/0018-yance-post-login-security-shell.patch';
   assert.equal(fs.existsSync(repositoryPath(patchPath)), true, '0018 post-login security patch must exist');
   const patchText = readText(patchPath);
   assert.deepEqual(patchedPaths(patchText), [
+    'apps/web/src/components/structures/ToastContainer.tsx',
     'apps/web/src/components/structures/auth/CompleteSecurity.tsx',
     'apps/web/src/components/structures/auth/E2eSetup.tsx',
     'apps/web/src/components/structures/auth/PostLoginSecurityShell.test.tsx',
+    'apps/web/src/components/views/dialogs/security/SetupEncryptionDialog.tsx',
     'apps/web/src/modules/customComponentApi.ts',
+    'apps/web/src/toasts/SetupEncryptionToast.tsx',
     'packages/module-api/element-web-module-api.api.md',
     'packages/module-api/src/api/custom-components.ts',
   ]);
+  assert.match(patchText, /yance-product-security-toast-container/u);
+  assert.match(patchText, /yance-product-security-dialog/u);
   assert.match(patchText, /registerPostLoginSecurityComponent/u);
   assert.match(patchText, /renderPostLoginSecurity/u);
   assert.match(patchText, /Post-login security renderer failed to render/u);

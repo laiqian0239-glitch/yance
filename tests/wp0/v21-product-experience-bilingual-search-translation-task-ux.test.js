@@ -138,13 +138,16 @@ test('Product projection composes the desktop authority and Element public navig
   assert.match(projection, /const\s+numericLimit\s*=\s*limit\s*==\s*null\s*\?\s*80\s*:\s*Number\(limit\)/u);
   assert.match(projection, /Number\.isFinite\(numericLimit\)/u);
   assert.doesNotMatch(projection, /Number\(limit\s*\|\|\s*80\)/u);
-  assert.match(index, /api\.navigation\.(?:openRoom|toMatrixToLink)/u);
+  assert.match(index, /resolveCanonicalConversationRoom/u);
+  assert.match(index, /this\.api\.builtins\.renderRoomView/u);
+  assert.match(index, /navigationApi\.navigateToLocation\?\.\("yance"\)/u);
   assert.match(workspace, /ProductExperienceShell/u);
   assert.match(workspace, /navigate/u);
 
   assert.doesNotMatch(product, /\bfetch\s*\(/u, 'Element Product code must not become a renderer-direct local API client');
   assert.doesNotMatch(product, /querySelector\([^)]*(?:timeline|composer)|mx_RoomView|mx_MessageComposer|RightPanelStore/u);
-  assert.doesNotMatch(product, /chatJid\s*(?:as|:)\s*(?:matrix|room)|sessionKey\s*(?:as|:)\s*(?:matrix|room)/iu, 'provider identifiers must not be re-labeled as Matrix identities');
+  assert.match(product, /chatJid:\s*room\.chatJid/u, 'the bridge-projected provider identifier must remain unchanged');
+  assert.match(product, /sessionKey:\s*room\.roomId/u, 'the Element room id remains the canonical navigation session key');
 });
 
 test('bilingual search panel renders evidence and truthful bounded translation lifecycle UX with Product polish seams', () => {
@@ -162,7 +165,7 @@ test('bilingual search panel renders evidence and truthful bounded translation l
   assert.match(panel, />\s*取消\s*</u);
   assert.match(panel, />\s*重试\s*</u);
   assert.match(panel, /翻译任务/u);
-  assert.match(panel, /消息、姓名或中文翻译/u);
+  assert.match(panel, /原文、姓名或中文翻译/u);
   assert.match(panel, /setTimeout\s*\(/u);
   assert.match(panel, /clearTimeout\s*\(/u);
   assert.match(panel, /queued|running/u);

@@ -601,8 +601,9 @@ function renderAI() {
         ${fact('retry / fallback', `${Number(evidence.retryCount || 0)} / ${Number(evidence.fallbackCount || 0)}`)}
       </div>`
     : `<div class="sc32-empty compact"><b>尚无执行证据</b><p>运行一次 logical Model Brain test / probe 后，这里显示实际 selected model、provider、latency、tokens、cost、retry/fallback。</p></div>`;
-  return `<div class="sc32-model-brain-shell"><div class="sc32-panel-head"><div><h2>Model Brain / LiteLLM</h2><p>Yance 只投影 privacy、local/cloud、modality、language、context 与 provider 硬资格；物理选择、重试与运行健康由 LiteLLM v1.95.0 负责。</p></div><div class="sc32-panel-actions">${actionButton('扫描 local Ollama','scan-models','warn')}${actionButton('打开AI工作台','open-ai','primary')}</div></div>
+  return `<div class="sc32-model-brain-shell"><div class="sc32-panel-head"><div><h2>Model Brain / LiteLLM</h2><p>Yance 只投影 privacy、local/cloud、modality、language、context 与 provider 硬资格；物理选择、重试与运行健康由 LiteLLM v1.95.0 负责。</p></div><div class="sc32-panel-actions">${actionButton('连接云端模型 / API Key','open-ai-models','primary')}${actionButton('扫描本地 Ollama','scan-models','warn')}</div></div>
   <div class="sc32-grid">
+    ${section('云端模型与 API Key', `${ai.cloud || 0} 个云端模型`, `<div class="sc32-list">${row('☁','OpenRouter','粘贴一次 API Key，凭据写入 Windows 安全存储；随后读取真实模型目录并执行 Model Brain 烟测。','可连接','',actionButton('连接 OpenRouter','open-ai-openrouter','primary'))}${row('↗','其他 OpenAI 兼容服务','填写服务地址、模型名称与 API Key；测试通过后才进入正式模型注册表。','可添加','',actionButton('添加兼容服务','open-ai-compatible'))}</div>`, true)}
     ${section('Model Brain 运行状态', brain.runtimeAvailable ? 'healthy' : (brain.health || 'unavailable'), `<div class="sc32-service-grid">
       ${service('LiteLLM', brain.litellm || 'LiteLLM v1.95.0', `health ${brain.health || 'unavailable'}`, brain.runtimeAvailable ? 'sealed runtime available' : 'sealed runtime unavailable; fail closed', runtimeClass)}
       ${service('ComplexityRouter', brain.complexityRouter || 'ComplexityRouter', `strict tags: ${brain.strictTagFiltering?.enabled === false ? 'off' : 'on'} · matchAny=${brain.strictTagFiltering?.matchAny === true}`, 'mandatory tags use AND semantics', brain.strictTagFiltering?.matchAny === true ? 'bad' : '')}
@@ -974,6 +975,9 @@ async function execute(action, button) {
     if (action === 'refresh' || action === 'run-diagnostics') return refresh(true);
     if (action === 'open-accounts') { leaveSystemCenter(); return window.__Y27?.openAccountsPage?.(); }
     if (action === 'open-ai') { leaveSystemCenter(); return window.__Y27?.openAIWorkbench?.(); }
+    if (action === 'open-ai-models') { leaveSystemCenter(); return window.__Y27?.openAIModelServices?.(); }
+    if (action === 'open-ai-openrouter') { leaveSystemCenter(); return window.__Y27?.openAIModelServices?.('openrouter'); }
+    if (action === 'open-ai-compatible') { leaveSystemCenter(); return window.__Y27?.openAIModelServices?.('compatible'); }
     if (action === 'open-data') return window.yanceDesktop?.openDataDirectory ? window.yanceDesktop.openDataDirectory() : toast('正式桌面程序中可打开永久数据目录', 'warn');
     if (action === 'open-logs') return window.yanceDesktop?.openLogDirectory ? window.yanceDesktop.openLogDirectory() : toast('正式桌面程序中可打开日志目录', 'warn');
     if (action === 'open-program') return window.yanceDesktop?.openProgramDirectory ? window.yanceDesktop.openProgramDirectory() : toast('正式桌面程序中可打开程序目录', 'warn');

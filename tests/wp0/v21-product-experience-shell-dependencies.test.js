@@ -171,6 +171,20 @@ test('Product dependency replay mutation semantics remain exact across root mani
   assert.ok(patch.includes("+  '@rive-app/canvas@2.39.2':"), '0011 must carry the exact frozen Rive backing runtime');
 });
 
+test('Product dependency replay preserves pnpm git-subpath resolution authority', () => {
+  const patch = read('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
+  assert.doesNotMatch(
+    patch,
+    /^-\s+resolution:\s+\{gitHosted:\s*true,\s*path:\s*\/eslint,/mu,
+    '0011 must never delete pinned Element resolution.path=/eslint for eslint-plugin-element-call'
+  );
+  assert.doesNotMatch(
+    patch,
+    /^\+\s+resolution:\s+\{gitHosted:\s*true,\s*integrity:[^\n]*element-call\/tar\.gz\/e20abb19fbdb2b6fd729e02ab66b53c70fec48d0\}/mu,
+    '0011 must not replace the git-subpath resolution with repository-root metadata'
+  );
+});
+
 test('Product dependency lock replay remains canonical and uses strict ordinary git apply', () => {
   const patch = read('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
   const bootstrap = read('tools/matrix/bootstrap.js');

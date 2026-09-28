@@ -31,7 +31,7 @@ index 5c39e9896b15a604a2203c1b506568f018f2c981..9de9ba842df490daac80390d20a045c4
      },
      "engines": {
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
-index f13b569df10a63311d7bba874c452b568617e5d0..2fdedb86157406e88726b25c18ba06bdb72dccbb 100644
+index f13b569df10a63311d7bba874c452b568617e5d0..5c4d8be519b12bbcd29e9d969fcf938429924fde 100644
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
 @@ -329,6 +329,9 @@ importers:
@@ -1911,15 +1911,6 @@ index f13b569df10a63311d7bba874c452b568617e5d0..2fdedb86157406e88726b25c18ba06bd
    default-browser@5.5.0:
      resolution: {integrity: sha512-H9LMLr5zwIbSxrmvikGuI/5KGhZ8E2zH3stkMgM5LpOWDutGM2JZaj460Udnf1a+946zc7YBgrqEWwbk7zHvGw==}
      engines: {node: '>=18'}
-@@ -8742,7 +9608,7 @@ packages:
-     engines: {node: '>=12'}
- 
-   eslint-plugin-element-call@https://codeload.github.com/element-hq/element-call/tar.gz/e20abb19fbdb2b6fd729e02ab66b53c70fec48d0#path:/eslint:
--    resolution: {gitHosted: true, path: /eslint, integrity: sha512-/CIcur0QDkX0WhQ8S+hKdv26TRSZb40wCJl/rl3sHNCxdM1Isg13Aw7uohyqdf08VovKUSxdgxMs3G+X9MREQA==, tarball: https://codeload.github.com/element-hq/element-call/tar.gz/e20abb19fbdb2b6fd729e02ab66b53c70fec48d0}
-+    resolution: {gitHosted: true, integrity: sha512-/CIcur0QDkX0WhQ8S+hKdv26TRSZb40wCJl/rl3sHNCxdM1Isg13Aw7uohyqdf08VovKUSxdgxMs3G+X9MREQA==, tarball: https://codeload.github.com/element-hq/element-call/tar.gz/e20abb19fbdb2b6fd729e02ab66b53c70fec48d0}
-     version: 0.0.0
- 
-   eslint-plugin-storybook@10.5.3:
 @@ -9299,6 +10165,9 @@ packages:
      resolution: {integrity: sha512-kyCuEOWjJqZuDbRHzL8V93NzQhwIB71oFWSyzVo+KPZI+pnQPPxucdkrOZvkLRnrf5URsQM+IJ09Dw29cRALIA==}
      engines: {node: '>=10'}

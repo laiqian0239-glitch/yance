@@ -125,24 +125,17 @@ test('Facebook Page polling cannot resume a legacy Worker flow after Chatwoot be
   assert.equal(fetchCalls, 0, 'legacy Page polling must fail before any Worker request');
 });
 
-test('Facebook Page selection is retired and cannot persist legacy Worker Page authority', async () => {
-  await assert.rejects(
-    facebookOAuthService.selectPage('facebook-oauth-account', 'legacy-page-flow', 'page-1'),
-    error => error.code === 'FACEBOOK_PAGE_OAUTH_OWNED_BY_CHATWOOT' && error.status === 409
-  );
+test('Facebook Page selection surface is fully retired from the Worker OAuth service', () => {
+  assert.equal(typeof facebookOAuthService.selectPage, 'undefined');
 });
 
-test('Facebook OAuth UI stops cancelled flows and reports Page discovery evidence without blaming App Domains', () => {
+test('Facebook OAuth UI keeps Personal Identity polling while retired Page selection UI is absent', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '../../frontend/r32-account-center.js'), 'utf8');
   assert.match(source, /\['denied','error','cancelled'\]/u);
-  assert.match(source, /\/me\/accounts/u);
-  assert.match(source, /target_ids/u);
-  assert.match(source, /不要反复修改 App Domains/u);
-  assert.doesNotMatch(source, /请检查 Meta 应用域名、精确 OAuth 回调/u);
   assert.match(source, /elapsed < 15000 \? 1300 : elapsed < 60000 \? 2500 : 5000/u);
-  assert.match(source, /缺少 pages_read_engagement 时历史对账受限/u);
-  assert.match(source, /data-panel-action="facebook-sync-now"/u);
-  assert.match(source, /立即执行会话对账/u);
+  assert.match(source, /Facebook 个人身份登录完成/u);
+  assert.match(source, /Facebook 公共主页[\s\S]*现有 Page 连接服务管理/u);
+  assert.doesNotMatch(source, /facebook\/oauth\/select-page|data-facebook-page|selectFacebookPage|\/me\/accounts|target_ids/u);
 });
 
 test('official Facebook personal identity login completes without Page selection and never grants Messenger capability', async t => {

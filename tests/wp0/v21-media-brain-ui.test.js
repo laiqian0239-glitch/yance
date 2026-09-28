@@ -22,10 +22,11 @@ test('Media stays reachable through Product relationship tools with real runtime
     const composer = read('integration/element-module/src/product-experience/ProductComposerAccessory.tsx');
     const overlay = read('integration/element-module/src/product-experience/RelationshipOverlayHost.tsx');
     assert.match(yance, /ProductExperienceShell/u, 'YanceWorkspace must remain the thin Product composition root');
-    assert.match(composer, /label: "照片"/u);
-    assert.match(composer, /照片库与智能编辑/u, 'Photo action must expose the existing Media Brain authority through Product language');
+    assert.match(composer, /label: "发送照片"/u, 'final V4 Product action must expose real-media selection');
+    assert.match(composer, /label: "生成 \/ 编辑图片"/u, 'final V4 Product action must expose the existing generate/edit path');
+    assert.match(composer, /从真实素材库选择|生成、编辑后再选择/u, 'Photo actions must expose the existing Media Brain authority through Product language');
     assert.doesNotMatch(composer, /label: "附件"|kind: "attachment"|媒体与文件/u, 'generic attachment must remain on the real Element native uploader');
-    assert.match(composer, /打开照片、语音和实时陪伴工具/u, 'Product relationship tools must expose only Product-owned media capabilities');
+    assert.match(composer, /aria-label="丰富回复"/u, 'Product relationship tools must remain grouped as Conversation rich-reply capabilities');
     assert.doesNotMatch(composer, /Immich|ComfyUI/u, 'normal Product chrome must not expose Media provider inventory');
     assert.match(overlay, /import \{ MediaWorkspace \} from "\.\.\/MediaWorkspace"/u);
     assert.match(overlay, /overlay === "photo"/u, 'Product photo relationship tool must route to MediaWorkspace');

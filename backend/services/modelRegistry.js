@@ -383,7 +383,15 @@ function recordOpenRouterOnboardingSmoke(modelId, result = {}) {
 }
 function recordOpenRouterSnapshot(snapshot = {}) {
   return update(current => {
-    current.openRouter = { ...(current.openRouter || {}), ...snapshot, credentialRef: clean(snapshot.credentialRef || current.openRouter?.credentialRef), updatedAt: nowIso() };
+    const previous = current.openRouter || {};
+    const passed = clean(snapshot.onboardingSmokeStatus).toLowerCase() === 'passed' || snapshot.logicalModelBrainSmoke === true;
+    current.openRouter = {
+      ...previous,
+      ...snapshot,
+      credentialRef: clean(snapshot.credentialRef || previous.credentialRef),
+      ...(passed ? { onboardingSmokeErrorCode: '', onboardingSmokeError: '' } : {}),
+      updatedAt: nowIso()
+    };
     return current;
   });
 }

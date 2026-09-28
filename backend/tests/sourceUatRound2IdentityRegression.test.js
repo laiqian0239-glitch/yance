@@ -41,10 +41,12 @@ test('WhatsApp account profile picture is cached to the local media route before
   assert.equal(result.avatarStatus, 'ready');
 });
 
-test('Telegram login source contains QR authorization polling, account avatar caching and automatic history sync', () => {
+test('Telegram login keeps QR/password lifecycle on the mature SDK and preserves avatar/history projection', () => {
   const source = read('backend/services/telegramAdapter.js');
-  assert.match(source, /waitForQrAuthorization/);
-  assert.match(source, /Promise\.race\(\[sdkLogin, this\.waitForQrAuthorization/);
+  assert.doesNotMatch(source, /waitForQrAuthorization/);
+  assert.doesNotMatch(source, /Promise\.race\(\[sdkLogin/u);
+  assert.match(source, /const\s+user\s*=\s*await\s+sdkLogin/u);
+  assert.match(source, /row\.step\s*=\s*'password'/u);
   assert.match(source, /telegram-account-avatar/);
   assert.match(source, /this\.sync\(account\)/);
   assert.match(source, /telegram:history-synced/);
@@ -53,7 +55,7 @@ test('Telegram login source contains QR authorization polling, account avatar ca
 test('runtime identity persistence carries Telegram and WhatsApp live avatars into account metadata', () => {
   const source = read('backend/services/accountManagerCore.js');
   assert.match(source, /metadata\.liveUser = \{ \.\.\.\(metadata\.liveUser \|\| \{\}\), \.\.\.result\.user \}/);
-  assert.match(source, /if \(payload\.user\) this\.updateIdentityFromRuntime/);
+  assert.match(source, /\['connected', 'limited'\]\.includes\(runtime\.state\) \|\| payload\.user[\s\S]*?this\.updateIdentityFromRuntime\(account, runtime\)/u);
 });
 
 test('contact search is an independent modal rather than an alias of the identity page', () => {

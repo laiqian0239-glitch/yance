@@ -13,6 +13,7 @@
   },
   "setting_defaults": {
     "language": "zh-hans",
+    "layout": "bubble",
     "UIFeature.registration": false,
     "notificationsEnabled": false,
     "audioNotificationsEnabled": false

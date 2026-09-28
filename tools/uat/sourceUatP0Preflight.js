@@ -9,7 +9,7 @@ const { discoverExistingDataRoots } = require('../runtime-delivery/source-uat-de
 const EXPECTED_WORKER_AVATAR_CONTRACT = 11;
 const EXPECTED_WORKER_EVIDENCE_CONTRACT = 6;
 const EXPECTED_WORKER_DEPLOYMENT_MARKER = 'facebook-avatar-translation-persistence-fix13-20260724';
-const EXPECTED_D1_SCHEMA_VERSION = 6;
+const EXPECTED_D1_SCHEMA_VERSION = 7;
 const DEFAULT_WORKER = 'https://yance-facebook-gateway.wangyi198675.workers.dev';
 
 const REQUIRED_LOCAL_COLUMNS = Object.freeze({
@@ -335,9 +335,11 @@ async function runPreflight(options = {}) {
   const d1Version = Number(worker?.d1Schema?.version || 0);
   const latestRequiredMigration = clean(worker?.d1Schema?.latestRequiredMigration);
   const permissionAuthorityColumns = worker?.d1Schema?.permissionAuthorityColumns === true;
+  const personalIdentityOauthColumns = worker?.d1Schema?.personalIdentityOauthColumns === true;
   const d1Ready = d1Version === EXPECTED_D1_SCHEMA_VERSION
-    && latestRequiredMigration === '0006_permission_authority.sql'
+    && latestRequiredMigration === '0007_personal_identity_oauth.sql'
     && permissionAuthorityColumns === true
+    && personalIdentityOauthColumns === true
     && worker?.d1Schema?.ready === true
     && worker?.d1Schema?.pagePictureColumn === true;
   const d1Evidence = {
@@ -345,6 +347,7 @@ async function runPreflight(options = {}) {
     actual: d1Version || null,
     latestRequiredMigration,
     permissionAuthorityColumns,
+    personalIdentityOauthColumns,
     ready: worker?.d1Schema?.ready === true,
     pagePictureColumn: worker?.d1Schema?.pagePictureColumn === true
   };

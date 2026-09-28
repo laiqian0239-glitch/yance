@@ -1,16 +1,15 @@
-import React, { useState } from "react";
-import { Popover } from "@base-ui/react/popover";
+import React from "react";
+import { AudioLines, Camera, ImagePlus, Radio } from "lucide-react";
 import { useExperiencePreferences } from "./experiencePreferences";
 import { playExperienceSound } from "./experienceSound";
+import { loadHumanTypingProjection } from "./experienceProjection";
 import { ReplyBrainCandidate } from "./ProductConversationProjection";
 import {
   captureExperienceFocus,
   requestRelationshipOverlay,
-  setSelectedConversationAutomationMode,
   useExperienceSession,
 } from "./experienceSession";
 import type {
-  ConversationAutomationMode,
   RelationshipOverlayKind,
 } from "./experienceTypes";
 
@@ -19,52 +18,27 @@ type ProductComposerAccessoryProps = {
   stageApprovedReply: (input: { outboxId: string; text: string; roomId: string }) => Promise<void>;
 };
 
-type DesktopConversationApi = {
-  setConversationAutomationMode?: (input: {
-    conversationId: string;
-    contactId?: string;
-    mode: ConversationAutomationMode;
-  }) => Promise<unknown>;
+type HumanTypingDesktopApi = {
+  releaseHumanTypingElementSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  cancelHumanTypingElementSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  onDesktopEvent?: (callback: (event: Record<string, unknown>) => void) => (() => void) | void;
 };
 
-const ACTIONS: readonly Readonly<{
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+const RICH_REPLY_ACTIONS: readonly Readonly<{
   label: string;
   kind: RelationshipOverlayKind;
   hint: string;
+  icon: React.ReactNode;
 }>[] = [
-  {
-    label: "照片",
-    kind: "photo",
-    hint: "照片库与智能编辑",
-  },
-  {
-    label: "语音",
-    kind: "voice",
-    hint: "语音能力",
-  },
-  {
-    label: "实时陪伴",
-    kind: "live",
-    hint: "实时空间",
-  },
+  { label: "发送照片", kind: "photo", hint: "从真实素材库选择", icon: <Camera aria-hidden="true" /> },
+  { label: "生成 / 编辑图片", kind: "photo", hint: "生成、编辑后再选择", icon: <ImagePlus aria-hidden="true" /> },
+  { label: "语音回复", kind: "voice", hint: "用我的声音预览回复", icon: <AudioLines aria-hidden="true" /> },
+  { label: "实时互动", kind: "live", hint: "进入当前关系的实时空间", icon: <Radio aria-hidden="true" /> },
 ];
-
-const MODES: readonly Readonly<{
-  mode: ConversationAutomationMode;
-  label: string;
-}>[] = [
-  { mode: "HUMAN", label: "由我回复" },
-  { mode: "AI_ASSIST", label: "建议我" },
-  { mode: "AI_AUTO", label: "自动处理" },
-];
-
-function desktopApi(): DesktopConversationApi | null {
-  return (
-    window as unknown as {
-      yanceDesktop?: DesktopConversationApi;
-    }
-  ).yanceDesktop || null;
-}
 
 export function ProductComposerAccessory({
   roomId,
@@ -72,9 +46,48 @@ export function ProductComposerAccessory({
 }: ProductComposerAccessoryProps): React.JSX.Element {
   const { soundMode } = useExperiencePreferences();
   const session = useExperienceSession();
+  const [typingState, setTypingState] = React.useState<Record<string, unknown>>({});
+  const [humanTypingModeLabel, setHumanTypingModeLabel] = React.useState("读取中");
 
-  const [modeBusy, setModeBusy] = useState(false);
-  const [modeStatus, setModeStatus] = useState("");
+  React.useEffect(() => {
+    const contactId = session.selectedConversationContactId.trim();
+    const conversationId = session.selectedConversationId.trim();
+    const api = (window as unknown as { yanceDesktop?: HumanTypingDesktopApi }).yanceDesktop;
+    if (!contactId || !conversationId || !api) {
+      setTypingState({});
+      setHumanTypingModeLabel("不可用");
+      return () => {};
+    }
+
+    let current = true;
+    void loadHumanTypingProjection(contactId)
+      .then((projection) => {
+        if (!current) return;
+        setHumanTypingModeLabel(projection.modeLabel);
+        setTypingState({ ...projection.typingState });
+      })
+      .catch(() => {
+        if (!current) return;
+        setHumanTypingModeLabel("不可用");
+        setTypingState({});
+      });
+
+    const unsubscribe = typeof api.onDesktopEvent === "function"
+      ? api.onDesktopEvent((event) => {
+          if (!current || String(event.type || "") !== "conversation.selfTyping.updated") return;
+          const payload = record(event.payload);
+          if (String(payload.contactId || "").trim() !== contactId) return;
+          const eventConversationId = String(payload.conversationId || "").trim();
+          if (eventConversationId && eventConversationId !== conversationId) return;
+          setTypingState(payload);
+        })
+      : undefined;
+
+    return () => {
+      current = false;
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [session.selectedConversationContactId, session.selectedConversationId]);
 
   const routeReady = Boolean(
     session.selectedConversationId
@@ -90,45 +103,38 @@ export function ProductComposerAccessory({
     playExperienceSound(soundMode, "open");
   };
 
-  const updateMode = async (
-    mode: ConversationAutomationMode,
-  ): Promise<void> => {
-    if (!routeReady || modeBusy) return;
+  const typingOperationId = String(typingState.operationId || "").trim();
+  const typingPhase = String(typingState.phase || "").trim();
+  const typingReason = String(typingState.reason || "").trim();
+  const typingActive = typingState.isTyping === true
+    && typingPhase.startsWith("approved_send_")
+    && Boolean(typingOperationId);
+  const typingProgress = Math.max(0, Math.min(100, Number(typingState.progress || 0)));
+  const typingOutcome = !typingActive && typingPhase.startsWith("approved_send_")
+    ? typingReason === "element_send_success" || typingReason === "message_send_completed"
+      ? "sent"
+      : /cancel|abort|failed|stale/i.test(typingReason) ? "cancelled" : ""
+    : "";
 
-    const api = desktopApi();
+  const releaseTyping = async (): Promise<void> => {
+    const api = (window as unknown as { yanceDesktop?: HumanTypingDesktopApi }).yanceDesktop;
+    if (!typingOperationId || typeof api?.releaseHumanTypingElementSend !== "function") return;
+    await api.releaseHumanTypingElementSend({ operationId: typingOperationId });
+    playExperienceSound(soundMode, "confirm");
+  };
 
-    if (
-      !api
-      || typeof api.setConversationAutomationMode !== "function"
-    ) {
-      setModeStatus("回复模式暂不可用");
-      return;
-    }
-
-    setModeBusy(true);
-    setModeStatus("正在保存回复模式");
-
-    try {
-      await api.setConversationAutomationMode({
-        conversationId: session.selectedConversationId,
-        contactId: session.selectedConversationContactId,
-        mode,
-      });
-
-      setSelectedConversationAutomationMode(mode);
-
-      setModeStatus(
-        mode === "HUMAN"
-          ? "已立即切回由我回复"
-          : mode === "AI_ASSIST"
-            ? "建议模式已启用；发送仍由你确认"
-            : "自动处理已启用；你可随时切回由我回复",
-      );
-    } catch {
-      setModeStatus("回复模式保存失败；保持原状态");
-    } finally {
-      setModeBusy(false);
-    }
+  const cancelTyping = async (): Promise<void> => {
+    const api = (window as unknown as { yanceDesktop?: HumanTypingDesktopApi }).yanceDesktop;
+    if (!typingOperationId || typeof api?.cancelHumanTypingElementSend !== "function") return;
+    await api.cancelHumanTypingElementSend({
+      operationId: typingOperationId,
+      contactId: session.selectedConversationContactId,
+      conversationId: session.selectedConversationId,
+      accountId: session.selectedConversationAccountId,
+      platform: session.selectedConversationPlatform,
+      reason: "USER_CANCELLED_SEND",
+    });
+    playExperienceSound(soundMode, "alert");
   };
 
   return (
@@ -138,76 +144,54 @@ export function ProductComposerAccessory({
       data-room-id={roomId}
       data-product-conversation-bound={routeReady || undefined}
     >
-      <div
-        className="yance-conversation-mode"
-        aria-label="回复方式"
-      >
-        {MODES.map((item) => (
-          <button
-            key={item.mode}
-            type="button"
-            aria-pressed={
-              session.selectedConversationAutomationMode === item.mode
-            }
-            disabled={!routeReady || modeBusy}
-            onClick={() => void updateMode(item.mode)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      <Popover.Root>
-        <Popover.Trigger
-          className="yance-action-trigger"
-          aria-label="打开照片、语音和实时陪伴工具"
-          disabled={!routeReady}
-        >
-          <span aria-hidden="true">＋</span>
-          <span>关系工具</span>
-        </Popover.Trigger>
-
-        <Popover.Portal>
-          <Popover.Positioner
-            sideOffset={8}
-            className="yance-action-positioner"
-          >
-            <Popover.Popup
-              className="yance-action-popover"
-              aria-label="关系工具面板"
-            >
-              <div className="yance-action-grid">
-                {ACTIONS.map((action) => (
-                  <Popover.Close
-                    key={action.label}
-                    className="yance-action-item"
-                    aria-label={`${action.label} · ${action.hint}`}
-                    onClick={() => open(action.kind)}
-                  >
-                    <strong>{action.label}</strong>
-                    <span>{action.hint}</span>
-                  </Popover.Close>
-                ))}
-              </div>
-            </Popover.Popup>
-          </Popover.Positioner>
-        </Popover.Portal>
-      </Popover.Root>
-
-
-      {modeStatus ? (
-        <span role="status">
-          {modeStatus}
-        </span>
-      ) : null}
-
-      {routeReady && session.selectedConversationAutomationMode === "AI_ASSIST" ? (
+      {routeReady ? (
         <ReplyBrainCandidate
+          key={session.selectedConversationId || roomId}
           conversationId={session.selectedConversationId}
           contactId={session.selectedConversationContactId}
           stageApprovedReply={({ outboxId, text }) => stageApprovedReply({ outboxId, text, roomId })}
         />
       ) : null}
+
+      {routeReady ? (
+        <section className="yance-human-typing" data-state={typingActive ? "typing" : typingOutcome || "ready"} aria-live="polite">
+          <div className="yance-human-typing__copy">
+            <strong>真人打字 · 全局：{humanTypingModeLabel}</strong>
+            <span>{typingActive
+              ? "正在输入 · 由真实发送层控制节奏；你可以立即发送或取消。"
+              : typingOutcome === "sent"
+                ? "已发送 · 状态来自真实发送结果。"
+                : typingOutcome === "cancelled"
+                  ? "已取消，未发送 · 状态来自真实发送结果。"
+                  : "AI、手写与翻译后的最终文本统一经过真实发送层。"}</span>
+          </div>
+          {typingActive ? (
+            <div className="yance-human-typing__progress" aria-label="真人打字进度">
+              <span style={{ width: `${typingProgress}%` }} />
+            </div>
+          ) : null}
+          {typingActive ? (
+            <div className="yance-human-typing__actions">
+              <button type="button" disabled={typingState.canRelease !== true} onClick={() => void releaseTyping()}>立即发送</button>
+              <button type="button" disabled={typingState.canCancel !== true} onClick={() => void cancelTyping()}>取消</button>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      <div className="yance-rich-reply-tools" aria-label="丰富回复">
+        {RICH_REPLY_ACTIONS.map((action) => (
+          <button
+            key={action.label}
+            type="button"
+            disabled={!routeReady}
+            onClick={() => open(action.kind)}
+          >
+            <span className="yance-rich-reply-tools__icon">{action.icon}</span>
+            <span className="yance-rich-reply-tools__copy"><strong>{action.label}</strong><span>{action.hint}</span></span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

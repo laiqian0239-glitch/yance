@@ -2,22 +2,6 @@
 
 const { assertNoRollback, assertSnapshot, digest, makeError } = require('../../shared/runtimeApiV2Contract');
 
-const PRODUCT_ENTITLEMENT_WAIT_REASON_CODES = new Set([
-  'PERSONAL_ACCESS_REQUIRED',
-  'INVITATION_REQUIRED',
-  'INVITATION_KEY_REQUIRED',
-  'MATRIX_OPENID_REQUIRED',
-  'MATRIX_OPENID_TOKEN_REQUIRED',
-  'MATRIX_OPENID_SERVER_MISMATCH',
-  'MATRIX_OPENID_USERINFO_UNAVAILABLE',
-  'UNKEY_AUTHORITY_UNAVAILABLE',
-  'UNKEY_AUTHORITY_REJECTED',
-  'UNKEY_ENTITLEMENT_INVALID',
-  'UNKEY_ENTITLEMENT_DISABLED',
-  'UNKEY_ENTITLEMENT_EXPIRED',
-  'MATRIX_SUBJECT_MISMATCH'
-]);
-
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 
 class RuntimeProjectionCoordinator {
@@ -27,13 +11,6 @@ class RuntimeProjectionCoordinator {
     this.backendSnapshot = options.backendSnapshot;
     this.expectedBuildId = String(options.expectedBuildId || '');
     this.pollIntervalMs = Math.max(50, Number(options.pollIntervalMs || 750));
-    const configuredEntitlementBackoffMs = Number(options.entitlementPollBackoffMs || 5000);
-    this.entitlementPollBackoffMs = Math.max(
-      this.pollIntervalMs,
-      Number.isFinite(configuredEntitlementBackoffMs) ? configuredEntitlementBackoffMs : 5000
-    );
-    this.now = typeof options.now === 'function' ? options.now : (() => Date.now());
-    this.entitlementPollBlockedUntilMs = 0;
     this.eventLimit = Math.max(1, Math.min(500, Number(options.eventLimit || 100)));
     this.clock = options.clock || (() => new Date().toISOString());
     this.onProjection = options.onProjection || (() => {});
@@ -84,9 +61,6 @@ class RuntimeProjectionCoordinator {
     return snapshot;
   }
 
-  _isProductEntitlementWait(error) {
-    return PRODUCT_ENTITLEMENT_WAIT_REASON_CODES.has(String(error?.reasonCode || error?.code || ''));
-  }
 
   async validateCandidateProjection(context = {}) {
     this.state = 'FETCHING_UNTRUSTED_OWNER_CANDIDATE';
@@ -151,7 +125,6 @@ class RuntimeProjectionCoordinator {
     this.candidate = null;
     this.generation += 1;
     this.mutationsBlocked = false;
-    this.entitlementPollBlockedUntilMs = 0;
     this.state = 'API_V2_SYNCHRONIZED';
     this.lastFailure = null;
     this.onProjection(this.snapshot());
@@ -165,7 +138,6 @@ class RuntimeProjectionCoordinator {
     this.binding = null;
     this.candidate = null;
     this.mutationsBlocked = true;
-    this.entitlementPollBlockedUntilMs = 0;
     this.metrics.baselineDiscards += 1;
     this.state = 'NO_BASELINE';
   }
@@ -425,27 +397,10 @@ class RuntimeProjectionCoordinator {
     const generation = this.generation;
     const tick = async () => {
       if (!this.pollTimer || generation !== this.generation || !this.baseline) return;
-      const nowMs = Number(this.now());
-      if (this.entitlementPollBlockedUntilMs > (Number.isFinite(nowMs) ? nowMs : Date.now())) return;
       try {
         await this.pollOnce();
-        if (this.state === 'WAITING_FOR_PRODUCT_ENTITLEMENT') {
-          this.state = 'POLLING_PERSISTED_EVENTS';
-          this.lastFailure = null;
-          this.entitlementPollBlockedUntilMs = 0;
-          this.onProjection(this.snapshot());
-        }
       } catch (error) {
         const reasonCode = error.reasonCode || error.code || 'WP6_EVENT_POLL_FAILED';
-        if (this._isProductEntitlementWait(error)) {
-          const shouldNotify = this.state !== 'WAITING_FOR_PRODUCT_ENTITLEMENT' || this.lastFailure?.reasonCode !== reasonCode;
-          const observedNowMs = Number(this.now());
-          this.lastFailure = { reasonCode, message: error.message, atUtc: this.clock() };
-          this.state = 'WAITING_FOR_PRODUCT_ENTITLEMENT';
-          this.entitlementPollBlockedUntilMs = (Number.isFinite(observedNowMs) ? observedNowMs : Date.now()) + this.entitlementPollBackoffMs;
-          if (shouldNotify) this.onFailure(error, this.snapshot());
-          return;
-        }
         this.lastFailure = { reasonCode, message: error.message, atUtc: this.clock() };
         this.onFailure(error, this.snapshot());
         if (['API_SESSION_UNAUTHORIZED', 'WP6_STALE_API_SESSION_RESPONSE', 'WP6_STALE_OWNER_EVENT'].includes(reasonCode)) this.discardBaseline(reasonCode);

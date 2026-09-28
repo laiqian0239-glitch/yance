@@ -106,8 +106,22 @@ test('model status returns a sanitized OpenRouter snapshot and tracked cost summ
   assert.equal(projected.openRouter.credentialRef, undefined);
   assert.equal(projected.openRouter.benchmarkStatus, 'completed');
   assert.equal(projected.openRouter.key.limitRemaining, 7.5);
-  assert.equal(projected.summary.openRouterConnected, true);
+  assert.equal(projected.summary.openRouterConnected, false, 'credential presence alone is not a connection proof');
   assert.equal(projected.summary.trackedCloudCostUsd, 0.0062);
+});
+
+test('model status marks OpenRouter connected only after mature onboarding reaches ready', async () => {
+  await registry.recordOpenRouterSnapshot({
+    credentialRef,
+    endpoint,
+    connectionState: 'ready',
+    authenticationStatus: 'passed',
+    catalogStatus: 'passed',
+    onboardingSmokeStatus: 'passed'
+  });
+  const projected = projection.project(registry.read());
+  assert.equal(projected.openRouter.credentialConfigured, true);
+  assert.equal(projected.summary.openRouterConnected, true);
 });
 
 test('OpenAI-compatible client retains provider-reported usage cost for registry accounting', async t => {

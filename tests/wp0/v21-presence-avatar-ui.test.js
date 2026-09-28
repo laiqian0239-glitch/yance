@@ -23,7 +23,7 @@ test('Presence stays reachable through Product relationship tools backed by real
     const composer = read('integration/element-module/src/product-experience/ProductComposerAccessory.tsx');
     const overlay = read('integration/element-module/src/product-experience/RelationshipOverlayHost.tsx');
     assert.match(yance, /ProductExperienceShell/u, 'YanceWorkspace must remain the thin Product composition root');
-    assert.match(composer, /label: "实时陪伴"/u);
+    assert.match(composer, /label: "实时互动"/u, 'final V4 Product action names the relationship-scoped Live entry');
     assert.match(composer, /实时空间/u, 'Live action must expose the existing Presence/Avatar authority through Product language');
     assert.doesNotMatch(composer, /LiveKit|CyberVerse/u, 'normal Product chrome must not expose Presence provider inventory');
     assert.match(overlay, /import \{ PresenceWorkspace \} from "\.\.\/PresenceWorkspace"/u);

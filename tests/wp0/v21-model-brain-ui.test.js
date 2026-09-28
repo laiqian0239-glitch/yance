@@ -13,7 +13,7 @@ const read = value => {
 };
 const exists = value => fs.existsSync(p(value));
 
-test('active Element Product exposes current Model Brain/LiteLLM status without a task-route editor', () => {
+test('active Element Product keeps mature Model Brain authority while normal Product UI stays user-facing', () => {
   const surface = read('integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx');
   const shell = read('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
   const bridge = read('electron/r32StoreBridge.js');
@@ -21,20 +21,37 @@ test('active Element Product exposes current Model Brain/LiteLLM status without 
 
   assert.match(shell, /ProductSystemSettingsSurface/u);
   assert.match(shell, /ProductModelRuntimeSupportSurface/u);
-  assert.match(shell, /modelSupportVisible[\s\S]{0,240}useState\(false\)/u);
-  assert.match(shell, /modelSupportVisible\s*&&\s*\([\s\S]{0,240}<details open>[\s\S]{0,240}<ProductModelRuntimeSupportSurface \/>/u);
-  assert.match(shell, /Model Brain/iu);
-  assert.match(shell, /LiteLLM/iu);
-  assert.match(shell, /运行状态|不可用|状态已读取/iu);
-  assert.match(shell, /quick_reply/u);
-  assert.match(shell, /deep_reply/u);
-  assert.match(shell, /director/u);
-  assert.doesNotMatch(shell, /任务路由|主模型|备用模型|primaryModelId|fallbackModelId|replyBrainScore/iu);
+  assert.match(shell, /type SettingsSectionV4/u);
+  assert.match(shell, /useState<SettingsSectionV4>\("general"\)/u);
+  assert.match(shell, /settingsSection === "models"[\s\S]{0,900}<ProductModelRuntimeSupportSurface \/>/u);
+  assert.match(shell, /setSettingsSection\("models"\)/u);
+  assert.match(shell, /label: "模型与路由"/u);
+  assert.match(shell, /Mature authority: backend Model Brain \/ LiteLLM remains the sole physical provider\/model\/retry\/fallback owner\./u);
+  for (const label of ['AI 服务', '云端 AI', '本地 AI', '使用记录', 'OpenAI 兼容 API']) {
+    assert.match(shell, new RegExp(label, 'u'), `missing Product model label: ${label}`);
+  }
+  assert.match(shell, /className="yance-model-advanced"/u);
+  assert.doesNotMatch(shell, />Model Brain<|>LiteLLM<|>Authority<|>运行证据</u);
+  assert.doesNotMatch(shell, /replyBrainScore|质量评分|成本评分|速度评分|score slider/iu);
+  assert.doesNotMatch(shell, /primaryModelId|fallbackModelId|set-task-model-policy/u, 'Product must not retain a second physical model route authority');
   assert.doesNotMatch(surface, /LiteLLM|Ollama|GPU|Model Brain|API Key|SHA-?256/iu);
 
   assert.match(bridge, /\/api\/r32\/models\/model-brain\/status/u);
   assert.match(bridge + preload, /store:product-system-model-runtime-state/u);
   assert.match(preload, /getProductModelRuntimeState/u);
+});
+
+test('active Element Product exposes cloud-model credentials without creating a second routing authority', () => {
+  const shell = read('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
+  const preload = read('electron/preload.js');
+
+  assert.match(shell, /OpenRouter API Key/u);
+  assert.match(shell, /OpenAI 兼容 API/u);
+  assert.match(shell, /密钥只保存到 Windows 安全存储/u);
+  assert.match(shell, /saveCredential/u);
+  assert.match(preload, /saveCredential/u);
+  assert.doesNotMatch(shell, /replyBrainScore|质量评分|成本评分|速度评分/iu);
+  assert.doesNotMatch(shell, /primaryModelId|fallbackModelId|set-task-model-policy/u);
 });
 
 test('route-draft and ranked OpenRouter presentation authorities remain retired', () => {
@@ -89,7 +106,14 @@ test('active Product uses fixed authenticated model capabilities, not Yance scor
   ]) assert.match(preload, new RegExp(method, 'u'));
 
   assert.doesNotMatch(bridge, /input\.(?:url|method)|apiRequest\(\s*clean\(input/iu);
-  assert.doesNotMatch(shell, /score slider|质量评分|成本评分|速度评分|首选主模型|备用模型|replyBrainScore/iu);
-  assert.match(shell, /本地模型不会静默替代正式回复/u);
+  assert.doesNotMatch(shell, /score slider|质量评分|成本评分|速度评分|replyBrainScore/iu);
+  assert.match(shell, /主模型/u, 'final v4 preserves explicit user primary selection');
+  assert.match(shell, /备用模型/u, 'final v4 preserves explicit user fallback selection');
+  assert.match(shell, /本地模型不会在你不知情时替代正式回复/u);
+  assert.match(shell, /功能与模型/u);
+  assert.match(shell, /当前没有通过资格验证的可用模型/u);
+  assert.match(shell, /快速回复/u);
+  assert.match(shell, /深度回复/u);
+  assert.doesNotMatch(shell, />AI MODELS<|>RECENT AI<|>AUTO SELECT<|>CONVERSATIONS<|>REPLY BRAIN</u);
   assert.doesNotMatch(surface, /getProductModelRuntimeState|mutateProductModelRuntime|requestId|endpoint/iu);
 });

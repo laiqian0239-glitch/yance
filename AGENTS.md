@@ -9,6 +9,28 @@ This file is durable, repository-level execution guidance for AI/coding agents w
 3. The execution-method invariants in **First execution principle — shortest path to Release** are repository-global defaults and MUST NOT be weakened by issue/controller comments, chat/session summaries, ad-hoc scripts, temporary helper instructions, work-package handoffs, or lower-level process documents. Relaxing one of those execution-method invariants requires an explicit merged change to this file authorized by the owner; a later comment or helper cannot silently override it.
 4. This document never grants implementation or merge authority by itself.
 
+## Mandatory repository skill routing (non-waivable)
+
+The following repository-owned skills are executable governance entrypoints. They travel with the exact source tree and MUST be read from the current worktree before use; remembered copies, chat summaries, and similarly named personal skills are not substitutes.
+
+```text
+Fresh chat / context recovery
+-> skills/yance-release-controller/
+
+Any production mutation
+-> skills/yance-mature-authority-audit/
+
+Any real UI / Windows Product acceptance
+-> skills/yance-windows-visual-closure/
+```
+
+- On a fresh chat or genuine context-continuity break, read `skills/yance-release-controller/SKILL.md` and run `corepack npm run admit:yance-release-controller -- --evidence <evidence.json> --output <admission.json>` exactly once for that continuity segment, then bind the recovered projection with `corepack npm run prove:yance-release-controller -- --evidence <evidence.json> --admission <admission.json>`. Recovery must bind the current Git state and latest Issue #1051 Controller evidence before execution continues; repeated broad recovery is not progress.
+- Before any production mutation, read `skills/yance-mature-authority-audit/SKILL.md` and run `corepack npm run admit:yance-mature-authority -- --manifest <manifest.json> --output <admission.json>`. A RED blocks the mutation. After the admitted mutation and its focused local checks, run `corepack npm run prove:yance-mature-authority -- --manifest <manifest.json> --admission <admission.json>`. A changed owner topology, scope, or causal batch requires fresh admission.
+- Before and after any real UI or Windows Product acceptance, read `skills/yance-windows-visual-closure/SKILL.md`. Run `corepack npm run admit:yance-windows-visual -- --evidence <evidence.json>` before the proof operation and `corepack npm run prove:yance-windows-visual -- --evidence <evidence.json>` on the materialized result.
+- A DOM node, mounted class, source test, successful build, or synthetic/browser-only image is never sufficient Windows visual proof. The visual closure entrypoint requires loaded and visible image metrics, real screenshots, design-baseline comparison evidence, responsive coverage, and the applicable materialized Windows artifact identities.
+- These skills validate evidence and enforce stop conditions; they do not become a second Controller, mature subsystem owner, runtime lifecycle, visual reviewer, package manager, or release authority. A GREEN admission never expands allowed paths and never grants commit, push, PR, CI, merge, RC, UAT, or release permission.
+- The skill packages and their routing contract are guarded by `corepack npm run test:yance-skills`. Bypassing an applicable entrypoint is a promotion-admission failure.
+
 ## First execution principle — shortest path to Release (mandatory)
 
 This is the highest-priority default execution rule in this repository. Apply it before every action, in every new chat/session, and again whenever a work package has accumulated multiple diagnostic or harness steps. It never overrides a more-specific trusted authorization or safety/policy contract; within those boundaries, it decides which allowed action is worth doing next.
@@ -52,7 +74,56 @@ INTERRUPTION_RERUN=forbidden
 OWNER_ABSENT_EXECUTION=default_when_authorized
 USER_CONTINUE_PROMPT=forbidden_when_executor_can_continue
 REMOTE_PROMOTION_ROUNDTRIP=after_local_closure_only
+MATURE_AUTHORITY_FIRST=non_waivable
+OSS_FIRST_CAPABILITY_ADMISSION=mandatory
+SELF_REINVENT_MATURE_CAPABILITY=forbidden
+SHADOW_AUTHORITY=release_blocker
+PARALLEL_LIFECYCLE=release_blocker
+MIRROR_STATE=release_blocker
+CUSTOM_FALLBACK_OVER_MATURE_OWNER=release_blocker
+UPSTREAM_PUBLIC_SEAM=narrowest_first
+FULL_CAPABILITY_MIGRATION=state_lifecycle_recovery_errors_tests_not_ui_only
+PRODUCT_ADAPTER=stateless_or_thinnest_projection
+MATURE_OWNER_RETAINS_LIFECYCLE_STATE_RETRY_RECOVERY=mandatory
+DELETE_SHADOW_BEFORE_COMPATIBILITY_LAYER=mandatory
+OSS_CORE_REFRESH_DURING_RELEASE=current_root_only
+TARGETED_MATURE_OSS_UPGRADE_DURING_REPAIR=allowed_when_same_root_same_owner_stronger_upstream
+OSS_UPGRADE_DECISION=prefer_upstream_upgrade_when_it_closes_root_and_reduces_custom_code
+CAPABILITY_GAIN_WITH_ROOT_FIX=allowed_when_from_same_mature_upgrade_and_no_scope_expansion
+UNRELATED_BROAD_OSS_REFRESH=forbidden_during_release
+UPGRADE_MUST_PRESERVE_MATURE_AUTHORITY=mandatory
+UPGRADE_REQUIRES_CHANGELOG_MIGRATION_COMPATIBILITY_LOCAL_PROOF=mandatory
+MATURE_AUTHORITY_VIOLATION=controller_execution_failure
+FROZEN_ACCEPTANCE_RUNTIME=mandatory_during_real_ui_acceptance
+UI_ACCEPTANCE_RUNTIME_REBUILD=forbidden_by_default
+UI_ACCEPTANCE_STARTUP_CHAIN_MUTATION=forbidden_by_default
+UI_ACCEPTANCE_LOOP=screenshot_to_ui_diff_to_focused_proof_to_same_runtime_reload
+UI_ACCEPTANCE_USER_SCREENSHOT=preferred_high_leverage_evidence
+UI_ACCEPTANCE_INFRA_DEBUG_LOOP=controller_execution_failure
+ACCEPTANCE_LAUNCH_ADMISSION=mandatory_before_showing_ui_to_owner
+ACCEPTANCE_PROFILE_IDENTITY=must_be_exact_not_inferred
+ACCEPTANCE_SESSION_READY=must_be_proven_by_element_owner_before_launch
+ACCEPTANCE_LOGIN_ROUTE=forbidden_for_acceptance_unless_owner_explicitly_requests_login_proof
+UI_ACCEPTANCE_ADMISSION_COMMAND=corepack_npm_run_admit_ui_acceptance_runtime
+UI_ACCEPTANCE_BUILD_ADMISSION_COMMAND=corepack_npm_run_admit_ui_acceptance_build
+UI_ACCEPTANCE_SAFE_RELOAD_COMMAND=corepack_npm_run_reload_ui_acceptance_safe
+UI_ACCEPTANCE_ROOT_PACKAGE_MANAGER=corepack_exact_packageManager
+AMBIENT_NPM_VERSION_IS_AUTHORITY=false
+UI_ACCEPTANCE_DIRECT_RENDERER_RELOAD=forbidden
+UI_ACCEPTANCE_TOOLCHAIN_DISCOVERY_DURING_BUILD=controller_execution_failure
+UI_ACCEPTANCE_TRANSIENT_AUTH_SCREEN_IS_READY=false
 ```
+
+### Frozen UI acceptance executable admission
+
+During real owner screenshot acceptance, the repository entrypoints below are mandatory and replace ad-hoc shell discovery:
+
+- Before showing or mutating the frozen acceptance UI, run `corepack npm run admit:ui-acceptance:runtime`.
+- Before any Element/Yance build in that same acceptance runtime, run `corepack npm run admit:ui-acceptance:build`. A missing package-manager, Corepack/Pnpm, Git Bash `sh`, Nx materialization, container, mount, session, or origin is a pre-action RED; do not discover it halfway through a build.
+- Renderer reload is only allowed through `corepack npm run reload:ui-acceptance:safe`. Direct CDP `Page.reload`, `location.reload()`, Electron restart, or equivalent bypass is forbidden during frozen acceptance.
+- The guard is read-only with respect to Docker/runtime lifecycle. It may inspect containers, networks, mounts, hashes, health, CDP state, and session readiness, but it must not build, recreate, restart, stop, install, reconnect, re-login, or mutate account/session authority.
+- A transient Personal Access/authorization screen after reload is not an acceptance-ready state. The safe reload must wait for the existing Element session, Yance Product shell, Matrix user/device identity, and entitlement projection to become ready before the UI can be handed back to the owner.
+- UI screenshot iteration remains `owner screenshot -> one causal UI diff -> focused proof -> materialized bytes -> safe reload -> admission GREEN -> owner screenshot`. Infrastructure discovery or runtime rebuilding inside that loop is a Controller execution failure unless a newly locked root cause explicitly requires the mature runtime owner itself to change.
 
 Before executing any action, answer all of the following:
 
@@ -137,10 +208,91 @@ A work cycle may not end merely because a status was read, a Controller comment 
 ### Mature authority first / no self-reinvention
 
 - Read the pinned upstream and repository's existing production authority before designing a replacement, helper, or workaround.
-- Reuse the mature authority as a whole where practical. Prefer the existing public seam plus the thinnest Product projection/adapter.
+- Reuse the mature authority as a whole whenever it satisfies the current Product need. This is mandatory; prefer the existing public seam plus the thinnest Product projection/adapter.
 - Do not manually emulate package-manager/workspace resolution, Element/Matrix runtime behavior, process supervision, readiness/state machines, IPC, locking, transactions, persistence, migration, retry/recovery, routing, translation, Electron native integration, or other mature infrastructure merely to make a local proof convenient.
 - If the public seam genuinely does not exist, add only the narrowest additive seam required by the current root cause, within explicit authorization.
 - A validation convenience is never sufficient justification for new production or proof infrastructure.
+
+### Mature Authority First / OSS First admission (non-waivable execution invariant)
+
+This is a repository-global admission rule, not a preference. When a mature upstream or an already-admitted repository owner provides a capability that satisfies the current Product need, Yance MUST reuse, migrate, or project that mature capability through its narrowest public seam. A bespoke Yance implementation of the same ownership, lifecycle, state machine, persistence, retry/recovery, routing, protocol, native integration, materialization, or packaging mechanic is forbidden unless an explicit merged owner authorization proves that no suitable mature seam exists.
+
+The default decision is **mature OSS/owner reuse**, not custom implementation.
+
+Before every production mutation, the Controller MUST complete the following Mature Authority Admission. Every applicable item must be YES:
+
+1. **Existing mature owner identified** — name the pinned upstream/repository subsystem that already owns the capability and read its current public seam.
+2. **No second owner** — the Yance change does not create a second owner for the same session, lifecycle, state, route, persistence, protocol, native resource, dependency materialization, packaging mechanic, or recovery flow.
+3. **Thin projection only** — any Yance adapter is stateless or the thinnest Product projection needed for People / Relationship / World / AI identity, navigation, and presentation.
+4. **Lifecycle remains upstream-owned** — startup, shutdown, reconnect, login, logout, QR/OAuth progression, retry, timeout, recovery, cleanup, migration, and resume remain with the mature owner.
+5. **State remains upstream-owned** — Yance does not mirror, fork, or independently reconcile mature owner state.
+6. **Retry/recovery remains upstream-owned** — Yance does not add a parallel retry loop, fallback state machine, watchdog, lifecycle timer, or recovery authority around a mature subsystem.
+7. **Materialization remains tool-owned** — package managers, the pinned upstream workspace build seam, Docker Compose, Electron/platform tooling, NSIS, and other mature materializers remain authoritative for their outputs.
+8. **Narrowest public seam used** — use the upstream public API/module/IPC/extension/adapter seam before private internals, duplicated protocol code, DOM scraping, filesystem shadow state, or custom transport.
+9. **Whole capability migrated, not UI copied** — when adopting OSS, preserve the applicable state machine, lifecycle, error handling, persistence, accessibility, responsive behavior, security assumptions, recovery behavior, and regression tests. Copying only visible UI while rebuilding behavior in Yance is non-compliant.
+10. **No retired/shadow authority remains reachable** — old Yance helpers, mirror stores, fallback routes, duplicate login/session/composer/timeline/model-routing paths, and parallel lifecycle code must be removed from the production chain rather than wrapped in another compatibility layer.
+11. **Current-release scope respected** — during release closure, do not perform unrelated broad core OSS replacement or wholesale framework migration. A targeted upgrade of the same mature owner is allowed and preferred when the stronger upstream version directly closes the current root cause, removes Yance custom code or shadow ownership, preserves the public seam, and can be proven locally with bounded migration risk. Capability gains delivered by that same mature upgrade are allowed when they do not create a new root, second owner, or unrelated release scope.
+12. **Final Product language remains Yance-owned** — mature infrastructure owns capability/state; user-facing Product identity, navigation, People / Relationship / World / AI experience, and the thinnest presentation projection remain Yance responsibilities.
+
+#### Targeted stronger-upstream upgrade admission
+
+When the current root cause touches a mature subsystem, the Controller MUST check whether the pinned upstream already has a newer stable version that fixes the defect or provides a materially stronger implementation of the same capability. Do not keep an older pin merely to preserve a Yance custom patch when a stronger mature upstream can delete that patch.
+
+A targeted mature OSS upgrade MAY be selected during the current repair when all applicable conditions are satisfied:
+
+- the target is the **same mature owner or a strictly better mature owner for the same admitted capability**, not an unrelated framework migration;
+- the upgrade directly closes the current root cause, removes custom/shadow code, materially reduces lifecycle/state/recovery risk, or provides a stronger public seam that makes the Product projection thinner;
+- the exact current pin and exact target version are identified;
+- upstream release notes/changelog and relevant issue/fix history are reviewed;
+- breaking changes, migrations, config changes, data compatibility, runtime requirements, security implications, license/provenance, and packaging/materialization changes are audited;
+- the mature owner remains the sole lifecycle/state/retry/recovery authority after the upgrade;
+- the target version can be pinned and reproduced by the existing package/workspace/container/materialization authority;
+- affected source, focused tests, production-equivalent local proof, and final materialized output can be validated before promotion;
+- the upgrade does not require a broad unrelated rewrite of Yance Product code.
+
+Capability gains that come from the same approved mature upgrade MAY be adopted in the same causal batch when they are compatible with Yance Product, require only a thin projection, and do not introduce a new owner, new persistence model, unrelated release root, or new user-operated setup burden. Prefer useful mature capability already delivered by the upgrade over rebuilding an equivalent Yance feature later.
+
+Do not perform a broad OSS/version census after the root is already locked. The upgrade check is bounded to the mature subsystem already implicated by the current root cause. Unrelated dependency refresh remains post-release work.
+
+If the stronger upstream version is rejected, record the concrete reason in the causal evidence: incompatible public seam, unacceptable migration risk, security/licensing issue, materialization incompatibility, or scope expansion. "We already have custom code" is not a valid rejection reason.
+
+Recognized mature ownership includes at minimum:
+
+- **Element / Matrix** — login, session, crypto, timeline, composer, send, and recovery.
+- **mautrix and admitted platform bridges** — selected platform protocol/session/login lifecycle.
+- **Chatwoot or the admitted external Page owner** — selected Facebook Page/public-inbox authorization/session lifecycle.
+- **LiteLLM / admitted model runtime** — physical provider/model selection, routing, retry/fallback, and route evidence.
+- **Ollama / admitted local model runtime** — local model runtime/download/materialization lifecycle.
+- **Electron and platform tooling** — BrowserWindow, tray, native shell, OS integration, desktop lifecycle, and native resources.
+- **Docker Compose** — selected local service/runtime lifecycle.
+- **npm/pnpm plus the pinned upstream workspace build seam** — dependency resolution and materialization.
+- **NSIS / mature packaging tooling** — installer mechanics and packaging materialization.
+- **Mature UI/component libraries already admitted by Product** — focus, keyboard, modal, dropdown, list, accessibility, responsive, and interaction primitives where they satisfy the Product need.
+
+Hard release blockers include:
+
+- Reusing mature code while reimplementing its authority in Yance.
+- Shadow Authority, Parallel Lifecycle, Mirror State, or a custom fallback around a mature owner.
+- Stateful compatibility adapters where a stateless projection is sufficient.
+- A second Matrix login/session/composer/timeline/send/crypto/retry/recovery implementation.
+- A second model router, provider selector, retry/fallback owner, or local-model lifecycle owner.
+- A second package/workspace resolver, runtime supervisor, installer mechanic, or native integration owner.
+- Copying an OSS UI while replacing its mature behavior with Yance-owned lifecycle/state.
+- Adding a compatibility layer on top of an already-wrong shadow authority instead of deleting that shadow authority.
+- Promoting when an equivalent mature upstream public seam was available but not audited.
+
+Required repair order for a blocker in a mature subsystem:
+
+    identify mature owner
+    -> inspect the narrowest public seam
+    -> delete Yance shadow/mirror/fallback ownership
+    -> project the mature owner into Yance Product
+    -> preserve upstream lifecycle/state/retry/recovery/materialization
+    -> add regression admission that forbids the shadow authority from returning
+
+A validation convenience, harness limitation, visual shortcut, schedule pressure, or desire for faster implementation is never sufficient justification for self-reinvention.
+
+Any promotion attempt with a known mature-authority violation is forbidden. A mature-authority violation that was discoverable before CI/RC/UAT but allowed through promotion is additionally classified as **CONTROLLER EXECUTION FAILURE**.
 
 ### Harness and helper containment
 
@@ -206,6 +358,51 @@ Operational consequences:
 - One production candidate should produce one RC and one final Windows UAT unless a genuine new Product bug invalidates candidate bytes.
 - If UAT discovers a bug, close the Product root cause locally and improve the existing regression/harness seam that should have caught it; do not normalize UAT as the debugger.
 - Ask the user for Windows-local execution only when the required proof truly needs the user's machine. First settle all source, GitHub, upstream, diff, workflow, log, and authority questions that can be settled remotely, then provide one complete self-contained fail-fast script rather than an interactive sequence of exploratory commands.
+
+### Frozen Acceptance Runtime / UI acceptance fast loop (non-waivable execution invariant)
+
+Once the owner begins real Product UI acceptance against an already-booted production-equivalent runtime, that runtime becomes the **FROZEN ACCEPTANCE RUNTIME** until the current visual/product acceptance batch is closed or a genuine runtime FIRST RED proves the runtime itself is the root cause.
+
+The purpose is to prevent a five-minute UI correction from expanding into hours of bootstrap, dependency, container, Matrix-session, packaging, or startup repair. During this phase the owner screenshot is valid high-leverage Product evidence; do not replace a faster owner screenshot loop with a slower autonomous UI-debugger or infrastructure-debugger loop.
+
+During a FROZEN ACCEPTANCE RUNTIME:
+
+- Keep the same Docker Compose project, Synapse/Element/bridge containers, host ports, data root, Electron userData/profile, Element origin, Matrix origin, runtime config, and already-proven session/lifecycle authorities.
+- Do **not** run Matrix/Element bootstrap, pnpm/npm install, upstream rematerialization, image rebuild, Compose project replacement, container recreation, port reassignment, data-root migration, runtime-config regeneration, installer/RC/UAT rebuild, or session/entitlement lifecycle mutation merely because a UI file changed.
+- Do **not** touch Matrix login/logout/session/crypto, Personal Access entitlement lifecycle, bridge login/session state, package-manager authority, Compose ownership, or packaging authority unless fresh Product/runtime evidence directly identifies that subsystem as the current FIRST RED.
+- A UI screenshot requesting visual/layout/interaction correction authorizes only the narrowest already-authorized Product UI/projection paths required by that defect. Infrastructure mutation is forbidden by default.
+- Already-closed runtime boundaries are frozen preservation contracts. A UI fix must not reopen them for cleanup, optimization, refactor, dependency refresh, or convenience.
+- The normal acceptance loop is exactly:
+
+```text
+owner screenshot / exact visual defect
+-> narrow Product UI/projection production diff
+-> focused regression + typecheck
+-> Yance module build/materialize only
+-> same acceptance runtime renderer reload or Electron relaunch
+-> owner continues acceptance on the same runtime/profile
+```
+
+- Prefer renderer reload when sufficient. If Electron relaunch is required, relaunch only the same executable/source against the same frozen runtime, ports, data root, and profile. Do not rebuild the surrounding runtime.
+- Rebuilding the whole runtime to apply a CSS/TSX/Product-projection change is a Controller execution failure unless the changed file is itself part of the runtime materialization authority and no narrower mature public seam exists.
+- If a relaunch fails, classify the failure before mutation. A helper, DevTools, proxy, port-probe, or harness failure is not permission to rebuild Product infrastructure. Consume the exact FIRST RED and preserve all already-GREEN runtime boundaries.
+- If a genuine runtime FIRST RED invalidates the frozen runtime, leave UI acceptance, close that runtime root once as its own causal batch, restore one stable acceptance runtime, and then re-enter this mode. Do not interleave runtime repair and visual iteration.
+- Never rotate among multiple Element/Synapse origins or temporary proxies during acceptance. One acceptance runtime has one stable origin set.
+- Do not create a shadow proxy, fallback origin, copied session, mirrored browser profile, custom retry loop, or alternate login flow to keep acceptance moving.
+- Owner credentials or owner-only login may be requested only when a real mature owner requires them and no valid session can be restored. After successful login, freeze that same profile for the remainder of acceptance.
+- **Acceptance Launch Admission is mandatory before showing any acceptance window to the owner.** A healthy Docker/Backend runtime is necessary but not sufficient. Before launch/relaunch, prove all of the following from the exact frozen acceptance profile/runtime:
+  1. exact Electron userData/profile path is the frozen acceptance profile; never infer from folder age, naming, business-data volume, or previous use;
+  2. Element origin and Matrix origin exactly match the frozen acceptance origins;
+  3. Element mature session owner reports a real active session for that profile (for example current Matrix client user/device/session metadata); do not treat stale LevelDB/SST text hits or mere IndexedDB schema presence as an active session;
+  4. the current Element route is not `#/login` / Yance invitation login unless the owner explicitly asked to test login;
+  5. Product route can be reached without creating a new Matrix device/session;
+  6. backend data root matches the frozen Product data root.
+- If any Acceptance Launch Admission check fails, **do not show the window to the owner and do not ask the owner to interact with the wrong surface**. Close the preflight locally, preserve the frozen runtime, and report the exact blocker.
+- `runtime healthy` MUST NOT be used as a proxy for `acceptance session ready`. Confusing these is `CONTROLLER_EXECUTION_FAILURE`.
+- The target cadence for screenshot-driven UI work is minutes, not infrastructure hours. Repeated acceptance cycles spent on bootstrap/install/container/startup work without a fresh runtime root cause are **CONTROLLER EXECUTION FAILURE**.
+- Acceptance ends only when the visual/product batch is accepted or explicitly frozen for handoff. Only then may broader Local Closure, Exact Head, CI, packaging, RC, or UAT materialization resume.
+
+This invariant survives new chats, context compaction, model changes, and Controller handoff. A later chat summary, helper instruction, or ad-hoc Controller comment must not weaken it. Any exception requires either a fresh runtime FIRST RED that directly implicates the frozen subsystem or an explicit owner instruction changing this repository-global policy.
 
 ## Default execution mode
 

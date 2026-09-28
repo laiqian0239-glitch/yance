@@ -1,0 +1,144 @@
+diff --git a/apps/web/res/css/structures/_RoomView.pcss b/apps/web/res/css/structures/_RoomView.pcss
+index 5e94194..3a41f83 100644
+--- a/apps/web/res/css/structures/_RoomView.pcss
++++ b/apps/web/res/css/structures/_RoomView.pcss
+@@ -431,3 +431,139 @@ Please see LICENSE files in the repository root for full details.
+         margin-block: 4px 7px;
+     }
+ }
++
++/* YANCE_V5_CONVERSATION_GOLDEN_BUBBLES_20260928 */
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"] .mx_EventTile_line {
++  max-width:72% !important;
++  padding:8px 44px 8px 10px !important;
++  border:1px solid color-mix(in srgb,var(--yance-theme-border) 78%,transparent) !important;
++  border-radius:14px !important;
++  box-shadow:0 7px 18px color-mix(in srgb,var(--yance-theme-shadow-source) 18%,transparent);
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_EventTile[data-self="false"] .mx_EventTile_line {
++  background:linear-gradient(145deg,color-mix(in srgb,var(--yance-theme-card-raised) 96%,var(--yance-theme-border)),color-mix(in srgb,var(--yance-theme-panel) 88%,var(--yance-theme-border))) !important;
++  border-color:color-mix(in srgb,var(--yance-theme-border) 84%,var(--yance-theme-border)) !important;
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_EventTile[data-self="true"] .mx_EventTile_line {
++  background:linear-gradient(145deg,color-mix(in srgb,var(--yance-theme-accent) 36%,var(--yance-theme-panel)),color-mix(in srgb,var(--yance-theme-accent) 18%,var(--yance-theme-app))) !important;
++  border-color:color-mix(in srgb,var(--yance-theme-accent) 58%,var(--yance-theme-border)) !important;
++}
++
++/* YANCE_V5_CONVERSATION_GOLDEN_TIMELINE_POLISH_20260928 */
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_EventTile_line {
++  background:transparent !important;
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_EventTile,
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_EventTile::before,
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_EventTile::after { background:transparent !important; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_EventTile[data-self="false"] .mx_EventTile_line {
++  background:linear-gradient(145deg,color-mix(in srgb, var(--yance-theme-card-raised) 96%, transparent),color-mix(in srgb, var(--yance-theme-control) 97%, transparent)) !important; border-color:color-mix(in srgb, var(--yance-theme-highlight) 58%, transparent) !important; box-shadow:0 6px 14px color-mix(in srgb, var(--yance-theme-shadow-source) 14%, transparent);
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_EventTile[data-self="true"] .mx_EventTile_line {
++  background:linear-gradient(145deg,color-mix(in srgb, var(--yance-theme-card-raised) 95%, transparent),color-mix(in srgb, var(--yance-theme-panel) 97%, transparent)) !important; border-color:color-mix(in srgb, var(--yance-theme-accent) 62%, transparent) !important; box-shadow:0 6px 14px color-mix(in srgb, var(--yance-theme-shadow-source) 14%, transparent);
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .yance-product-message__ai-action { opacity:0; pointer-events:none; transition:opacity 120ms ease,transform 120ms ease; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_EventTile:hover .yance-product-message__ai-action,
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_EventTile:focus-within .yance-product-message__ai-action,
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .yance-product-message__ai-action[aria-expanded="true"] { opacity:1; pointer-events:auto; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_RoomView_messagePanel { scroll-padding-top:18px; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_RoomView_MessageList { padding-top:18px !important; padding-bottom:8px !important; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_RoomView_MessageList { box-sizing:border-box; width:min(100%,760px); margin-inline:auto; padding-inline:8px !important; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_MessageComposer_wrapper { box-sizing:border-box; width:min(calc(100% - 16px),760px); margin:0 auto 6px !important; padding:6px 7px 5px; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .yance-action-dock { margin:0 !important; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_MessageComposer_row { min-height:46px; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .yance-composer-controlbar { min-height:34px; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_MessageComposer_sendMessage { box-sizing:border-box; width:auto !important; min-width:68px !important; height:40px !important; min-height:40px !important; padding:0 13px !important; border:1px solid var(--yance-theme-accent) !important; border-radius:10px !important; color:var(--yance-theme-app) !important; background:linear-gradient(135deg,var(--yance-theme-accent),var(--yance-theme-accent)) !important; box-shadow:0 4px 14px color-mix(in srgb, var(--yance-theme-accent) 22%, transparent) !important; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_MessageComposer_sendMessage::after { content:"鍙戦€?; margin-left:5px; font-size:.62rem; font-weight:800; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_MessageComposer_sendMessage svg { width:17px; height:17px; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_EventTile[data-self="true"] .mx_EventTile_line { background:linear-gradient(145deg,color-mix(in srgb, var(--yance-theme-border) 91%, transparent),color-mix(in srgb, var(--yance-theme-panel) 96%, transparent)) !important; border-color:color-mix(in srgb, var(--yance-theme-accent) 78%, transparent) !important; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_MessageComposer_buttonMenu,
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation button[aria-label="闄勪欢"] { display:none !important; }
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_MessageComposer_row { padding-left:2px; }
++
++.yance-conversation-final-ia .yance-product-conversation__room,
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation,
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_RoomView_body {
++  border-left:0 !important; box-shadow:none !important;
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_RoomView_messagePanel {
++  box-sizing:border-box !important; width:100% !important;
++  padding-left:0 !important; padding-right:0 !important; margin-inline:0 !important;
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_RoomView_MessageList {
++  box-sizing:border-box !important; width:100% !important; max-width:none !important;
++  margin-inline:0 !important; padding:18px 4px 8px !important;
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_MessageComposer_wrapper {
++  box-sizing:border-box !important; width:calc(100% - 6px) !important;
++  margin:0 3px 3px !important; padding:4px 4px 3px !important;
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_MessageComposer_wrapper {
++  border:0 !important; border-radius:0 !important;
++  background:transparent !important; box-shadow:none !important;
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .yance-action-dock {
++  margin:0 !important; padding:0 !important;
++}
++
++/* YANCE_V5_CONVERSATION_FULL_WIDTH_NATIVE_CLOSURE_20260928 */
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_RoomView_timeline {
++  box-sizing: border-box;
++  max-width: none !important;
++  width: 100% !important;
++  margin: 0 !important;
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_MessageComposer {
++  box-sizing: border-box;
++  max-width: none !important;
++  width: 100% !important;
++  margin: 0 !important;
++  padding: 0 4px 4px !important;
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_RoomView_messagePanel,
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_RoomView_messageListWrapper,
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_RoomView_MessageList {
++  max-width: none !important;
++  width: 100% !important;
++  margin-inline: 0 !important;
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .mx_MessageComposer_wrapper {
++  width: 100% !important;
++  max-width: none !important;
++  margin: 0 !important;
++  padding: 0 4px 4px !important;
++}
++
++.yance-conversation-final-ia .mx_RoomView_yanceProductConversation .yance-action-dock {
++  width: 100% !important;
++  max-width: none !important;
++  margin: 0 !important;
++}

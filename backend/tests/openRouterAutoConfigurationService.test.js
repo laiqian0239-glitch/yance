@@ -56,13 +56,13 @@ test('one OpenRouter credential auto-discovers, filters non-chat generators, and
   const requestJson = async url => {
     calls.push(url);
     if (url.endsWith('/key')) return { data: { is_free_tier: false, limit: 20, limit_remaining: 15, usage: 5, usage_daily: 1 } };
-    if (url.endsWith('/models/user')) return { data: catalog };
+    if (url.endsWith('/models')) return { data: catalog };
     throw new Error(`unexpected URL ${url}`);
   };
 
   const snapshot = await service.autoConfigure({ credentialRef, securityGuard, registry, requestJson });
 
-  assert.deepEqual(calls, ['https://openrouter.ai/api/v1/key', 'https://openrouter.ai/api/v1/models/user']);
+  assert.deepEqual(calls, ['https://openrouter.ai/api/v1/key', 'https://openrouter.ai/api/v1/models']);
   assert.equal(snapshot.catalogCount, catalog.length);
   assert.equal(snapshot.usableCatalogCount, 7);
   assert.equal(snapshot.registeredModelCount, registered.length);
@@ -74,6 +74,7 @@ test('one OpenRouter credential auto-discovers, filters non-chat generators, and
   assert.equal(synchronized.models.some(row => row.name === 'vendor/image-only'), false);
   assert.equal(synchronized.models.some(row => row.name === 'anthropic/claude-sonnet'), true);
   assert.equal(registered.every(row => row.credentialRef === credentialRef), true);
+  assert.equal(registered.every(row => row.provider === 'openrouter'), true, 'LiteLLM must receive the OpenRouter provider identity');
   assert.equal(registered.every(row => row.endpoint === 'https://openrouter.ai/api/v1'), true);
   // A text-in/image-in -> text-out model carries the vision capability alongside text.
   assert.deepEqual(registered.find(row => row.name === 'google/gemini-flash:free').capabilities, ['text', 'vision']);
@@ -85,6 +86,56 @@ test('one OpenRouter credential auto-discovers, filters non-chat generators, and
   assert.equal(snapshot.qualificationStatus, 'pending');
   assert.equal(snapshot.key.usageWeekly, 0);
   assert.equal(snapshot.key.limitRemaining, 15);
+});
+
+test('OpenRouter auto configuration reports API-key rejection in Chinese before catalog discovery', async () => {
+  const credentialRef = 'model:openrouter:rejected';
+  const calls = [];
+  await assert.rejects(
+    service.autoConfigure({
+      credentialRef,
+      securityGuard: { credentials: new Map([[credentialRef, { apiKey: 'rejected-secret' }]]) },
+      registry: {},
+      requestJson: async url => {
+        calls.push(url);
+        const error = new Error('User not found.');
+        error.status = 404;
+        error.code = 'CLOUD_MODEL_HTTP_404';
+        throw error;
+      }
+    }),
+    error => error.code === 'OPENROUTER_CREDENTIAL_REJECTED'
+      && error.testStage === 'key'
+      && /未识别当前 API Key/u.test(error.message)
+  );
+  assert.deepEqual(calls, ['https://openrouter.ai/api/v1/key']);
+});
+
+test('OpenRouter catalog failure is distinguished from API-key verification failure', async () => {
+  const credentialRef = 'model:openrouter:catalog-failed';
+  const calls = [];
+  await assert.rejects(
+    service.autoConfigure({
+      credentialRef,
+      securityGuard: { credentials: new Map([[credentialRef, { apiKey: 'valid-secret' }]]) },
+      registry: {},
+      requestJson: async url => {
+        calls.push(url);
+        if (url.endsWith('/key')) return { data: { limit: 10 } };
+        const error = new Error('catalog unavailable');
+        error.status = 503;
+        error.code = 'CLOUD_MODEL_HTTP_503';
+        throw error;
+      }
+    }),
+    error => error.code === 'OPENROUTER_CATALOG_REQUEST_FAILED'
+      && error.testStage === 'catalog'
+      && /模型目录读取失败/u.test(error.message)
+  );
+  assert.deepEqual(calls, [
+    'https://openrouter.ai/api/v1/key',
+    'https://openrouter.ai/api/v1/models'
+  ]);
 });
 
 test('missing secure credential blocks auto configuration before any model is registered', async () => {

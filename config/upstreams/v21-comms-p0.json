@@ -18,6 +18,12 @@
       "version": "v0.2607.0",
       "commit": "a86f5eb9bf7d5a4a6cc7a1c4e42d322bdcb03aa2",
       "license": "AGPL-3.0-or-later WITH upstream-exceptions"
+    },
+    "mautrixTelegram": {
+      "repository": "https://github.com/mautrix/telegram.git",
+      "version": "v0.2607.0",
+      "commit": "9b65027dd9ecc0412373ea3f2f6324e6f8dd6849",
+      "license": "AGPL-3.0-or-later WITH upstream-exceptions"
     }
   },
   "externalRuntimes": {
@@ -31,8 +37,8 @@
     },
     "mautrixMeta": {
       "repository": "https://github.com/mautrix/meta.git",
-      "version": "v0.2607.0",
-      "commit": "ed37c9e6ce47e83dc75b9abea7b636302715b9bc",
+      "version": "v0.2609.0",
+      "commit": "dec2e1e06191d74fa997b41fe63bc74cbaaed584",
       "license": "AGPL-3.0",
       "adoptionMode": "sidecar-service",
       "protocolAuthority": "facebook-personal-messenger",

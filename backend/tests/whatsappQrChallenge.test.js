@@ -31,6 +31,7 @@ const accountManagerModule = require('../services/accountManager');
 const accountStore = require('../services/accountStore');
 const whatsapp = require('../services/whatsappAdapter');
 const telegram = require('../services/telegramAdapter');
+const mautrixProvisioning = require('../services/mautrixProvisioningAdapter');
 const messageStore = require('../services/messageStore');
 const { closeStore } = require('../repositories/storeProvider');
 
@@ -61,6 +62,22 @@ test('WhatsApp QR challenge is short-lived, refreshable and explicitly cleared',
   assert.equal(challenges.read('wa-db', { includeSecret: true }), null);
 });
 
+test('challenge owner can wait for the first QR without renderer polling', async () => {
+  const pending = challenges.wait('wa-db', { includeSecret: true, timeoutMs: 1000 });
+  setTimeout(() => {
+    challenges.issue({ accountId: 'wa-db', aliases: ['wa-adapter'], dataUrl: SECRET_QR, ttlMs: 5000 });
+  }, 20);
+  const challenge = await pending;
+  assert.equal(challenge?.dataUrl, SECRET_QR);
+  assert.equal(challenge?.accountId, 'wa-db');
+  assert.equal(await challenges.wait('wa-adapter', { includeSecret: true, timeoutMs: 10 }).then(row => row?.dataUrl), SECRET_QR);
+});
+
+test('challenge owner wait expires cleanly without inventing authorization state', async () => {
+  const challenge = await challenges.wait('missing-account', { includeSecret: true, timeoutMs: 25 });
+  assert.equal(challenge, null);
+});
+
 test('generic account list exposes only QR readiness metadata, never QR bytes', async t => {
   const { AccountManager } = accountManagerModule;
   const account = { id: 'wa-db', platform: 'whatsapp', adapterAccountId: 'wa-adapter', displayName: 'WA', identityLabel: 'WA', metadata: {}, paused: false, notificationsEnabled: true };
@@ -86,6 +103,19 @@ test('generic account list exposes only QR readiness metadata, never QR bytes', 
 });
 
 
+test('WhatsApp Baileys restart-required close rebuilds the owner socket instead of becoming a Yance terminal error', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'services', 'whatsappAdapter.js'), 'utf8');
+  const closeStart = source.indexOf("if (connection === 'close')");
+  assert.ok(closeStart >= 0);
+  const closeBody = source.slice(closeStart, source.indexOf("onSocket('messaging-history.set'", closeStart));
+  assert.match(closeBody, /statusCode === baileys\.DisconnectReason\.restartRequired/u);
+  assert.match(closeBody, /this\.start\(databaseAccountId, \{ manual: true \}\)/u);
+  assert.match(closeBody, /WHATSAPP_BAILEYS_RESTART_REQUIRED/u);
+  assert.ok(closeBody.indexOf('if (restartRequired)') < closeBody.indexOf('this.recordConnectionFailure'));
+  const restartBranch = closeBody.slice(closeBody.indexOf('if (restartRequired)'), closeBody.indexOf('const closeError'));
+  assert.doesNotMatch(restartBranch, /setTimeout|backoff|retryAfter/u);
+});
+
 test('Telegram QR bytes stay out of account listings and are readable only through the dedicated challenge endpoint', t => {
   const { AccountManager } = accountManagerModule;
   const account = { id: 'tg-db', platform: 'telegram', credentialRef: 'credential:tg-db', displayName: 'TG', identityLabel: 'TG', metadata: {}, paused: false, notificationsEnabled: true };
@@ -107,6 +137,22 @@ test('Telegram QR bytes stay out of account listings and are readable only throu
   const dedicated = manager.getAuthChallenge('tg-db');
   assert.equal(dedicated.challenge.type, 'telegram-qr');
   assert.equal(dedicated.challenge.dataUrl, SECRET_QR);
+});
+
+test('Telegram mature owner password step is projected directly after QR scan', async () => {
+  const step = await mautrixProvisioning.decorateLoginStep({
+    login_id: 'tg-login',
+    step_id: 'password',
+    type: 'user_input',
+    instructions: '请输入两步验证密码',
+    user_input: { fields: [{ id: 'password', type: 'password' }] }
+  });
+  assert.equal(step.loginProcessId, 'tg-login');
+  assert.equal(step.stepId, 'password');
+  assert.equal(step.stepType, 'user_input');
+  assert.equal(step.prompt, '请输入两步验证密码');
+  assert.deepEqual(step.requirements, [{ id: 'password', type: 'password' }]);
+  assert.equal(step.qrCode, '');
 });
 
 test('Telegram QR production path issues and clears a short-lived challenge instead of publishing QR bytes in account state', () => {

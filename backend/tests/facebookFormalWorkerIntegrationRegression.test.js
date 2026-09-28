@@ -143,19 +143,9 @@ test('browser OAuth starts at the formal Worker and never places Meta App creden
   assert.equal(url.searchParams.has('page_token'), false);
 });
 
-test('OAuth page selection is retired to Chatwoot and never persists a Worker page binding', async t => {
-  let persisted = 0;
-  patch(t, securityGuard, 'persistCredential', async () => { persisted += 1; });
-  let fetchCalls = 0;
-  patch(t, global, 'fetch', async () => { fetchCalls += 1; return response(200, { ok: true }); });
-  // Page OAuth is owned by Chatwoot; the Worker selectPage surface is an unconditional fail-closed tombstone
-  // that performs no Worker I/O and never persists a device/page/Graph binding.
-  await assert.rejects(
-    facebookOAuthService.selectPage('any-account', 'any-flow', '1203748086150141'),
-    error => error.code === 'FACEBOOK_PAGE_OAUTH_OWNED_BY_CHATWOOT'
-  );
-  assert.equal(persisted, 0);
-  assert.equal(fetchCalls, 0);
+test('retired Worker Page selection is absent while Chatwoot ownership guard remains', () => {
+  assert.equal(typeof facebookOAuthService.selectPage, 'undefined');
+  assert.equal(typeof facebookOAuthService.assertPageOAuthOwnedByChatwoot, 'function');
 });
 
 test('event polling counts only ACKs confirmed by Worker after local processing', async () => {

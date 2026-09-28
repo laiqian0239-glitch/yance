@@ -230,20 +230,12 @@ test('Batch26 Telegram egress abort disconnects and quarantines the current clie
 });
 
 
-test('Batch26 Telegram QR authorization polling has a hard per-call deadline', async () => {
-  const adapter = new TelegramAdapter();
-  const account = { id: 'tg-qr-deadline' };
-  const row = {
-    state: 'waiting-verification',
-    client: { checkAuthorization: async () => new Promise(() => {}) }
-  };
-  adapter.sessions.set(account.id, row);
-  const startedAt = Date.now();
-  await assert.rejects(
-    adapter.waitForQrAuthorization(account, row, 35),
-    error => error.code === 'TELEGRAM_QR_CONFIRM_TIMEOUT'
-  );
-  assert.ok(Date.now() - startedAt < 500, 'hung SDK poll must not defeat the overall QR deadline');
+test('Batch26 Telegram QR keeps the upstream SDK as the only authorization lifecycle owner', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'services', 'telegramAdapter.js'), 'utf8');
+  assert.match(source, /const user = await sdkLogin;/);
+  assert.doesNotMatch(source, /waitForQrAuthorization/);
+  assert.doesNotMatch(source, /TELEGRAM_QR_CONFIRM_TIMEOUT/);
+  assert.doesNotMatch(source, /Promise\.race\(\[sdkLogin/);
 });
 
 test('Batch26 Telegram phone login deadline aborts an SDK start promise that never settles', async t => {

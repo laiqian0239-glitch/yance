@@ -1,4 +1,5 @@
 import type {
+  BerlinWeatherProjection,
   BilingualSearchResult,
   ConversationRef,
   DailyReviewProjection,
@@ -57,24 +58,30 @@ type ProductDesktopApi = {
   getLettaState: () => Promise<LettaState>;
   listLettaAgents: () => Promise<LettaAgent[]>;
   listLettaConversations: (input: { agentId: string; limit?: number }) => Promise<LettaConversation[]>;
-  listPlatformAccounts: () => Promise<Record<string, unknown>>;
+  listPlatformAccounts: (input?: { matrixUserId?: string }) => Promise<Record<string, unknown>>;
   getPlatformAccountCapabilities: () => Promise<Record<string, unknown>>;
   createPlatformAccount: (input: { platform: string; displayName?: string }) => Promise<Record<string, unknown>>;
-  connectPlatformAccount: (input: { id: string }) => Promise<Record<string, unknown>>;
-  reconnectPlatformAccount: (input: { id: string }) => Promise<Record<string, unknown>>;
-  syncPlatformAccount: (input: { id: string }) => Promise<Record<string, unknown>>;
-  syncAllPlatformAccounts: () => Promise<Record<string, unknown>>;
+  connectPlatformAccount: (input: { id: string; matrixUserId?: string }) => Promise<Record<string, unknown>>;
+  reconnectPlatformAccount: (input: { id: string; matrixUserId?: string }) => Promise<Record<string, unknown>>;
+  syncPlatformAccount: (input: { id: string; matrixUserId?: string }) => Promise<Record<string, unknown>>;
+  syncAllPlatformAccounts: (input?: { matrixUserId?: string }) => Promise<Record<string, unknown>>;
   runPlatformAccountCommand: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  loadAiWorkspace: () => Promise<Record<string, unknown>>;
+  createAiWorkspaceTask: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  updateAiWorkspaceTask: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  runAiWorkspaceTask: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  getProductModelRuntimeState: () => Promise<Record<string, unknown>>;
   previewPersonaCharacterCard: (input: { bytes: Uint8Array | ArrayBuffer }) => Promise<Record<string, unknown>>;
   storeGenerateReply: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
-  storeApproveReply: (input: { candidateId: string }) => Promise<Record<string, unknown>>;
-  storeRejectReply: (input: { candidateId: string }) => Promise<Record<string, unknown>>;
+  storeApproveReply: (input: { candidateId: string; learningMode: ConversationLearningMode }) => Promise<Record<string, unknown>>;
+  storeRejectReply: (input: { candidateId: string; reason: string }) => Promise<Record<string, unknown>>;
   storeReviseOutbox: (input: { outboxId:string; text:string; userConfirmedRevision:true }) => Promise<Record<string, unknown>>;
   storeConfirmSend: (input: { outboxId:string; confirmSend:true }) => Promise<Record<string, unknown>>;
   getParlantDailyChatGoal: (input:{contactId:string;localDate:string})=>Promise<Record<string,unknown>>;
   upsertParlantDailyChatGoal: (input:{contactId:string;localDate:string;goalText:string})=>Promise<Record<string,unknown>>;
   deleteParlantDailyChatGoal: (input:{contactId:string;localDate:string})=>Promise<Record<string,unknown>>;
   getProductDailyReview: (input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
+  getBerlinWeather: () => Promise<Record<string, unknown>>;
   logoutPlatformAccount: (input:{id:string})=>Promise<Record<string,unknown>>;
   listPersonaProfiles:(input?:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   getPersonaEffective:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
@@ -84,6 +91,10 @@ type ProductDesktopApi = {
   clearPersonaScope:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   listPersonaVersions:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   importPersona:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
+  initializeDefaultPersona:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
+  updatePersonaAuthoritative:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
+  diffPersonaVersions:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
+  rollbackPersona:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   setConversationArchived:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   setConversationPinned:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   mergeContacts:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
@@ -112,6 +123,13 @@ export type ProductAppearanceProjection = {
   themes: readonly ProductAppearanceTheme[];
 };
 
+export type HumanTypingProjection = {
+  available: boolean;
+  scopeLabel: "全局";
+  modeLabel: string;
+  typingState: Readonly<Record<string, unknown>>;
+};
+
 export type PlatformAccountProjection = {
   id: string;
   label: string;
@@ -125,6 +143,17 @@ export type PlatformAccountProjection = {
   loginProcessId: string;
   stepId: string;
   txnId: string;
+  authority: string;
+  matrixUserId: string;
+  loginCount: number;
+  bridgeLogins: readonly Readonly<{
+    id: string;
+    name: string;
+    stateEvent: string;
+    spaceRoom: string;
+    remoteMatrixUserId: string;
+    identityReasonCode: string;
+  }>[];
 };
 
 export type PersonaCharacterCardPreview = {
@@ -133,6 +162,7 @@ export type PersonaCharacterCardPreview = {
   name: string;
   description: string;
   reasonCode: string;
+  characterCard?: Readonly<Record<string, unknown>>;
 };
 
 const RELATIONSHIP_INTELLIGENCE_STATES = new Set([
@@ -307,6 +337,24 @@ export async function loadProductAppearance(): Promise<ProductAppearanceProjecti
   };
 }
 
+export async function loadHumanTypingProjection(contactId = ""): Promise<HumanTypingProjection> {
+  const api = desktopApi();
+  if (!api || typeof api.storeSnapshot !== "function") {
+    return { available: false, scopeLabel: "全局", modeLabel: "不可用", typingState: {} };
+  }
+  const payload = objectRecord(await api.storeSnapshot({ domains: ["typingState"] }));
+  const snapshot = objectRecord(payload.snapshot || payload);
+  const typingState = objectRecord(snapshot.typingState);
+  const policy = objectRecord(typingState.policy);
+  const available = typingState.ready === true;
+  const modeLabel = available ? (policy.platformAfterApproval === true ? "自然" : "关闭") : "不可用";
+  const byContactId = objectRecord(typingState.byContactId);
+  const contactTyping = contactId.trim()
+    ? objectRecord(objectRecord(byContactId[contactId.trim()]).self)
+    : {};
+  return { available, scopeLabel: "全局", modeLabel, typingState: contactTyping };
+}
+
 export async function updateProductAppearance(
   input: { fontScale?: number; themeId?: string },
 ): Promise<ProductAppearanceProjection> {
@@ -340,13 +388,24 @@ function normalizePlatformAccount(value: unknown): PlatformAccountProjection | n
     loginProcessId: text(row.loginProcessId),
     stepId: text(row.stepId),
     txnId: text(row.txnId),
+    authority: text(row.authority),
+    matrixUserId: text(row.matrixUserId),
+    loginCount: Number(row.loginCount || 0),
+    bridgeLogins: objectArray(row.bridgeLogins).map((login) => ({
+      id: text(login.id),
+      name: text(login.name),
+      stateEvent: text(login.stateEvent),
+      spaceRoom: text(login.spaceRoom),
+      remoteMatrixUserId: text(login.remoteMatrixUserId),
+      identityReasonCode: text(login.identityReasonCode),
+    })).filter((login) => Boolean(login.id || login.name)),
   };
 }
 
-export async function loadPlatformAccounts(): Promise<readonly PlatformAccountProjection[]> {
+export async function loadPlatformAccounts(matrixUserId = ""): Promise<readonly PlatformAccountProjection[]> {
   const api = desktopApi();
   if (!api || typeof api.listPlatformAccounts !== "function") throw bridgeUnavailable("platform-accounts");
-  const payload = await api.listPlatformAccounts();
+  const payload = await api.listPlatformAccounts({ matrixUserId: matrixUserId.trim() });
   const root = objectRecord(payload);
   return objectArray(root.accounts).map(normalizePlatformAccount).filter((account): account is PlatformAccountProjection => Boolean(account));
 }
@@ -367,22 +426,22 @@ export async function createPlatformAccount(
   await api.createPlatformAccount({ platform, displayName });
 }
 
-export async function connectPlatformAccount(accountId: string): Promise<void> {
+export async function connectPlatformAccount(accountId: string, matrixUserId = ""): Promise<void> {
   const api = desktopApi();
   if (!api || typeof api.connectPlatformAccount !== "function") throw bridgeUnavailable("connect-platform-account");
-  await api.connectPlatformAccount({ id: accountId });
+  await api.connectPlatformAccount({ id: accountId, matrixUserId: matrixUserId.trim() });
 }
 
-export async function reconnectPlatformAccount(accountId: string): Promise<void> {
+export async function reconnectPlatformAccount(accountId: string, matrixUserId = ""): Promise<void> {
   const api = desktopApi();
   if (!api || typeof api.reconnectPlatformAccount !== "function") throw bridgeUnavailable("reconnect-platform-account");
-  await api.reconnectPlatformAccount({ id: accountId });
+  await api.reconnectPlatformAccount({ id: accountId, matrixUserId: matrixUserId.trim() });
 }
 
-export async function syncPlatformAccount(accountId: string): Promise<void> {
+export async function syncPlatformAccount(accountId: string, matrixUserId = ""): Promise<void> {
   const api = desktopApi();
   if (!api || typeof api.syncPlatformAccount !== "function") throw bridgeUnavailable("sync-platform-account");
-  await api.syncPlatformAccount({ id: accountId });
+  await api.syncPlatformAccount({ id: accountId, matrixUserId: matrixUserId.trim() });
 }
 
 export async function runPlatformAccountCommand(
@@ -405,12 +464,14 @@ export async function previewPersonaCharacterCard(
   try {
     const payload = objectRecord(await api.previewPersonaCharacterCard({ bytes }));
     const preview = objectRecord(payload.preview || payload);
+    const characterCard = objectRecord(preview.characterCard || preview);
     return {
       available: true,
       ok: payload.ok === true,
-      name: text(preview.name || preview.characterName || preview.displayName),
-      description: text(preview.description || preview.personality || preview.greeting),
+      name: text(characterCard.name || preview.name || preview.characterName || preview.displayName),
+      description: text(characterCard.description || characterCard.personality || preview.description || preview.greeting),
       reasonCode: "",
+      characterCard,
     };
   } catch (error) {
     const reasonCode = text((error as { reasonCode?: string; code?: string })?.reasonCode)
@@ -454,17 +515,21 @@ export async function generateReplyCandidate(
   };
 }
 
-export async function approveReplyCandidate(candidateId: string): Promise<{outboxId:string;requiresSendConfirmation:boolean}> {
+export type ConversationLearningMode = "send_and_learn" | "send_only" | "exception" | "do_not_learn";
+
+export async function approveReplyCandidate(candidateId: string, learningMode: ConversationLearningMode = "send_and_learn"): Promise<{outboxId:string;requiresSendConfirmation:boolean}> {
   const api = desktopApi();
   if (!api || typeof api.storeApproveReply !== "function") throw bridgeUnavailable("approve-reply");
-  const payload=objectRecord(await api.storeApproveReply({ candidateId }));
+  const payload=objectRecord(await api.storeApproveReply({ candidateId, learningMode }));
   return { outboxId:text(payload.outboxId || objectRecord(payload.outbox).id), requiresSendConfirmation:payload.requiresSendConfirmation===true };
 }
 
-export async function rejectReplyCandidate(candidateId: string): Promise<void> {
+export async function rejectReplyCandidate(candidateId: string, reason: string): Promise<void> {
   const api = desktopApi();
   if (!api || typeof api.storeRejectReply !== "function") throw bridgeUnavailable("reject-reply");
-  await api.storeRejectReply({ candidateId });
+  const normalizedReason = reason.trim();
+  if (!normalizedReason) throw new Error("REPLY_REJECTION_REASON_REQUIRED");
+  await api.storeRejectReply({ candidateId, reason: normalizedReason });
 }
 
 
@@ -498,6 +563,29 @@ export async function loadDailyReview(
   };
 }
 
+export async function loadBerlinWeather(): Promise<BerlinWeatherProjection> {
+  const api = desktopApi();
+  if (!api || typeof api.getBerlinWeather !== "function") throw bridgeUnavailable("berlin-weather");
+  const payload = objectRecord(await api.getBerlinWeather());
+  const weather = objectRecord(payload.weather || payload);
+  const available = weather.available === true;
+  const temperature = Number(weather.temperatureC);
+  const weatherCode = Number(weather.weatherCode);
+  const isDay = weather.isDay;
+  return {
+    available,
+    city: "Berlin",
+    timeZone: "Europe/Berlin",
+    observedAt: text(weather.observedAt),
+    fetchedAt: text(weather.fetchedAt),
+    stale: weather.stale === true,
+    temperatureC: available && Number.isFinite(temperature) ? temperature : null,
+    weatherCode: available && Number.isFinite(weatherCode) ? weatherCode : null,
+    conditionLabelZh: available ? text(weather.conditionLabelZh) : "",
+    isDay: available && typeof isDay === "boolean" ? isDay : null,
+    source: "open-meteo",
+  };
+}
 export async function listPersonaProfiles(): Promise<readonly PersonaProfileProjection[]> {
   const api = desktopApi();
   if (!api || typeof api.listPersonaProfiles !== "function") throw bridgeUnavailable("persona-profiles");
@@ -508,7 +596,7 @@ export async function listPersonaProfiles(): Promise<readonly PersonaProfileProj
     currentVersion: optionalText(row.currentVersion || row.version),
   })).filter((row) => Boolean(row.id));
 }
-export async function loadPersonaEffective(input: { contactId?: string; conversationId?: string }): Promise<PersonaEffectiveProjection> {
+export async function loadPersonaEffective(input: { contactId?: string; conversationId?: string; globalScopeId?: string }): Promise<PersonaEffectiveProjection> {
   const api = desktopApi();
   if (!api || typeof api.getPersonaEffective !== "function") throw bridgeUnavailable("persona-effective");
   const payload = objectRecord(await api.getPersonaEffective(input));
@@ -537,12 +625,12 @@ export async function listPersonaScopes(input: Record<string, unknown> = {}): Pr
   const payload = objectRecord(await api.listPersonaScopes(input));
   return objectArray(payload.bindings);
 }
-export async function setPersonaScope(scopeType: "contact" | "conversation", scopeId: string, profileId: string): Promise<Record<string, unknown>> {
+export async function setPersonaScope(scopeType: "global" | "contact" | "conversation", scopeId: string, profileId: string): Promise<Record<string, unknown>> {
   const api = desktopApi();
   if (!api || typeof api.setPersonaScope !== "function") throw bridgeUnavailable("persona-set-scope");
   return objectRecord(await api.setPersonaScope({ scopeType, scopeId, profileId }));
 }
-export async function clearPersonaScope(scopeType: "contact" | "conversation", scopeId: string): Promise<Record<string, unknown>> {
+export async function clearPersonaScope(scopeType: "global" | "contact" | "conversation", scopeId: string): Promise<Record<string, unknown>> {
   const api = desktopApi();
   if (!api || typeof api.clearPersonaScope !== "function") throw bridgeUnavailable("persona-clear-scope");
   return objectRecord(await api.clearPersonaScope({ scopeType, scopeId }));
@@ -551,6 +639,26 @@ export async function importPersona(profileId: string, exportedPayload: unknown)
   const api = desktopApi();
   if (!api || typeof api.importPersona !== "function") throw bridgeUnavailable("persona-import");
   return objectRecord(await api.importPersona({ profileId, exportedPayload }));
+}
+export async function initializeDefaultPersona(profileId: string): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.initializeDefaultPersona !== "function") throw bridgeUnavailable("persona-initialize-default");
+  return objectRecord(await api.initializeDefaultPersona({ profileId }));
+}
+export async function updatePersonaAuthoritative(profileId: string, patch: Record<string, unknown>, expectedVersion?: number): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.updatePersonaAuthoritative !== "function") throw bridgeUnavailable("persona-update-authoritative");
+  return objectRecord(await api.updatePersonaAuthoritative({ profileId, patch, expectedVersion }));
+}
+export async function diffPersonaVersions(profileId: string, fromVersion: number, toVersion: number): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.diffPersonaVersions !== "function") throw bridgeUnavailable("persona-version-diff");
+  return objectRecord(await api.diffPersonaVersions({ profileId, fromVersion, toVersion }));
+}
+export async function rollbackPersona(profileId: string, targetVersion: number, expectedVersion?: number): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.rollbackPersona !== "function") throw bridgeUnavailable("persona-rollback");
+  return objectRecord(await api.rollbackPersona({ profileId, targetVersion, expectedVersion }));
 }
 export async function exportConversation(conversationId: string): Promise<Record<string, unknown>> {
   const api = desktopApi();
@@ -742,6 +850,7 @@ function normalizeConversationRef(
     accountId,
     chatJid,
     sessionKey,
+    matrixRoomId: optionalText(row.matrixRoomId),
     conversationKind,
     automationMode: conversationAutomationMode(
       row.automationMode
@@ -752,6 +861,7 @@ function normalizeConversationRef(
     unreadCount: nonNegativeInteger(row.unreadCount || row.unread || 0),
     pinned: row.pinned === true,
     archived: row.archived === true,
+    lastMessage: optionalText(row.lastMessage || row.preview || row.snippet),
     lastMessageAt: asTimestamp(row.lastMessageAt),
     updatedAt: asTimestamp(
       row.updatedAt || row.lastMessageAt || row.modifiedAt || row.createdAt,
@@ -778,29 +888,35 @@ function relationshipFromEntry(
     || soleConversation?.platform;
   const accountId = optionalText(row.accountId || row.account)
     || soleConversation?.accountId;
-  const subtitleParts = [platform, accountId].filter(Boolean);
   const relationshipIntelligence = normalizeRelationshipIntelligence(relationshipIntelligenceValue);
   const unreadCount = conversations.reduce((total, conversation) => total + conversation.unreadCount, 0);
   const favorite = conversations.some((conversation) => conversation.pinned === true);
-  const recentAt = conversations
-    .map((conversation) => conversation.lastMessageAt || conversation.updatedAt)
-    .filter((value): value is string => Boolean(value))
-    .sort((left, right) => Date.parse(right) - Date.parse(left))[0];
+  const recentConversations = [...conversations].sort((left, right) => {
+    const leftAt = Date.parse(left.lastMessageAt || left.updatedAt || "") || 0;
+    const rightAt = Date.parse(right.lastMessageAt || right.updatedAt || "") || 0;
+    return rightAt - leftAt;
+  });
+  const recentAt = recentConversations[0]?.lastMessageAt || recentConversations[0]?.updatedAt;
+  const lastMessage = recentConversations.find((conversation) => Boolean(conversation.lastMessage))?.lastMessage;
 
 
   return {
     id,
     name,
     conversations,
-    subtitle: subtitleParts.join(" · ") || "关系",
-    avatarUrl: optionalText(row.avatarUrl || row.avatar || row.photoUrl),
+    subtitle: platform || "已连接关系",
+    lastMessage,
+    avatarUrl: optionalText(row.avatarUrl),
     platform,
     accountId,
     chatJid: optionalText(row.chatJid || row.jid)
       || soleConversation?.chatJid,
-    sessionKey: optionalText(row.sessionKey || row.sessionId)
+    sessionKey: optionalText(row.conversationId || row.sessionKey || row.sessionId)
       || soleConversation?.sessionKey,
-    matrixRoomId: optionalText(row.matrixRoomId),
+    matrixRoomId: optionalText(row.matrixRoomId)
+      || (text(row.source) === "matrix-direct-projection" && text(row.externalId).startsWith("!")
+        ? optionalText(row.externalId)
+        : undefined),
     matrixPermalink: optionalText(row.matrixPermalink),
     updatedAt: asTimestamp(row.updatedAt || row.lastInteractionAt || row.lastMessageAt || row.modifiedAt),
     unreadCount,
@@ -932,8 +1048,19 @@ export async function loadPeopleProjections(): Promise<PeopleProjection> {
       const directConversationIds = conversationIds.filter(
         (conversationId) => !groupConversationIds.has(conversationId),
       );
+      const ownedDirectConversationIds = directConversationIds.filter((conversationId) => {
+        const conversationRow = objectRecord(conversationsById[conversationId]);
+        const routeScope = objectRecord(conversationRow.routeScope);
+        const conversationOwnerId = text(
+          conversationRow.canonicalContactId
+            || conversationRow.contactId
+            || routeScope.canonicalContactId,
+        );
+        if (conversationOwnerId && conversationOwnerId !== stableContactId) return false;
+        return true;
+      });
       if (conversationIds.length > 0 && directConversationIds.length === 0) return null;
-      const conversations = directConversationIds
+      const conversations = ownedDirectConversationIds
         .map((conversationId) => normalizeConversationRef(
           conversationId,
           conversationsById[conversationId],
@@ -967,6 +1094,36 @@ export async function loadPeopleProjections(): Promise<PeopleProjection> {
 
 export async function loadRelationshipProjections(): Promise<readonly RelationshipProjection[]> {
   return (await loadPeopleProjections()).relationships;
+}
+
+export async function loadAiWorkspace(): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.loadAiWorkspace !== "function") throw bridgeUnavailable("ai-workspace-load");
+  return objectRecord(await api.loadAiWorkspace());
+}
+
+export async function createAiWorkspaceTask(input: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.createAiWorkspaceTask !== "function") throw bridgeUnavailable("ai-workspace-create-task");
+  return objectRecord(await api.createAiWorkspaceTask(input));
+}
+
+export async function updateAiWorkspaceTask(id: string, input: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.updateAiWorkspaceTask !== "function") throw bridgeUnavailable("ai-workspace-update-task");
+  return objectRecord(await api.updateAiWorkspaceTask({ id: id.trim(), task: input }));
+}
+
+export async function runAiWorkspaceTask(id: string): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.runAiWorkspaceTask !== "function") throw bridgeUnavailable("ai-workspace-run-task");
+  return objectRecord(await api.runAiWorkspaceTask({ id: id.trim() }));
+}
+
+export async function getProductModelRuntimeState(): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.getProductModelRuntimeState !== "function") throw bridgeUnavailable("model-runtime-state");
+  return objectRecord(await api.getProductModelRuntimeState());
 }
 
 export async function searchWorkspace(query: string, limit = 80): Promise<WorkspaceSearchProjection> {

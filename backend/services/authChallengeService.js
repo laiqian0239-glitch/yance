@@ -1,9 +1,12 @@
 'use strict';
 
 const crypto = require('crypto');
+const { EventEmitter } = require('events');
 
 const DEFAULT_TTL_MS = 75 * 1000;
 const challenges = new Map();
+const events = new EventEmitter();
+events.setMaxListeners(100);
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function nowIso(ms = Date.now()) { return new Date(ms).toISOString(); }
@@ -47,7 +50,9 @@ function issue({ accountId, aliases = [], type = 'whatsapp-qr', dataUrl, ttlMs =
     expiresAtMs: createdAtMs + Math.max(5_000, Number(ttlMs || DEFAULT_TTL_MS)),
     version: Number(previous?.version || 0) + 1
   };
-  for (const alias of new Set([canonical, ...(aliases || []).map(keyFor).filter(Boolean)])) challenges.set(alias, row);
+  const keys = [...new Set([canonical, ...(aliases || []).map(keyFor).filter(Boolean)])];
+  for (const alias of keys) challenges.set(alias, row);
+  for (const alias of keys) events.emit(`challenge:${alias}`, row);
   return clonePublic(row, false);
 }
 
@@ -59,6 +64,54 @@ function read(accountId, options = {}) {
   const output = clonePublic(row, options.includeSecret === true);
   if (options.consume === true) clear(row.accountId);
   return output;
+}
+
+function wait(accountId, options = {}) {
+  purgeExpired();
+  const key = keyFor(accountId);
+  const includeSecret = options.includeSecret === true;
+  const immediate = read(key, { includeSecret });
+  if (immediate) return Promise.resolve(immediate);
+  const timeoutMs = Math.max(0, Math.min(Number(options.timeoutMs || 0), 30_000));
+  if (!key || timeoutMs <= 0) return Promise.resolve(null);
+  if (options.signal?.aborted) {
+    const error = options.signal.reason instanceof Error ? options.signal.reason : new Error('Authentication challenge wait aborted');
+    if (!error.code) error.code = 'AUTH_CHALLENGE_WAIT_ABORTED';
+    return Promise.reject(error);
+  }
+  return new Promise((resolve, reject) => {
+    const eventName = `challenge:${key}`;
+    let settled = false;
+    let timer = null;
+    const cleanup = () => {
+      if (settled) return;
+      settled = true;
+      events.removeListener(eventName, onChallenge);
+      options.signal?.removeEventListener?.('abort', onAbort);
+      if (timer) clearTimeout(timer);
+    };
+    const onChallenge = row => {
+      cleanup();
+      resolve(clonePublic(row, includeSecret));
+    };
+    const onAbort = () => {
+      cleanup();
+      const error = options.signal?.reason instanceof Error ? options.signal.reason : new Error('Authentication challenge wait aborted');
+      if (!error.code) error.code = 'AUTH_CHALLENGE_WAIT_ABORTED';
+      reject(error);
+    };
+    events.once(eventName, onChallenge);
+    options.signal?.addEventListener?.('abort', onAbort, { once: true });
+    timer = setTimeout(() => {
+      cleanup();
+      resolve(null);
+    }, timeoutMs);
+    const afterSubscribe = read(key, { includeSecret });
+    if (afterSubscribe) {
+      cleanup();
+      resolve(afterSubscribe);
+    }
+  });
 }
 
 function clear(accountId) {
@@ -74,6 +127,6 @@ function status(accountId) {
   return row ? { ready: true, ...row } : { ready: false, accountId: keyFor(accountId), type: '', expiresAt: '', version: 0 };
 }
 
-function resetForTests() { challenges.clear(); }
+function resetForTests() { challenges.clear(); events.removeAllListeners(); }
 
-module.exports = { issue, read, clear, status, purgeExpired, resetForTests, DEFAULT_TTL_MS };
+module.exports = { issue, read, wait, clear, status, purgeExpired, resetForTests, DEFAULT_TTL_MS };

@@ -94,3 +94,177 @@
   width: 100%;
   margin-top: 8px;
 }
+
+/* M02 Conversation Voice mini-flow — route-bound thin projection. */
+.yance-voice-workspace--m02 {
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 78% -60%, color-mix(in srgb, var(--yance-theme-accent, currentcolor) 10%, transparent), transparent 50%),
+    color-mix(in srgb, var(--surface-panel, transparent) 96%, transparent);
+}
+
+.yance-voice-mini-header {
+  align-items: center !important;
+}
+
+.yance-voice-mini-header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.yance-voice-mini-header p {
+  margin: 0 !important;
+  font-size: .68rem !important;
+}
+
+.yance-voice-mini-phase {
+  padding: 4px 9px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-accent, currentcolor) 44%, var(--border-default, currentcolor));
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--yance-theme-accent, currentcolor) 82%, var(--text-primary, currentcolor));
+  background: color-mix(in srgb, var(--yance-theme-accent, currentcolor) 8%, transparent);
+  font-size: .64rem;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.yance-voice-mini-flow {
+  display: grid;
+  gap: 10px;
+}
+
+.yance-voice-current-text {
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--border-default, currentcolor) 66%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-card, transparent) 68%, transparent);
+}
+
+.yance-voice-current-text > span {
+  color: color-mix(in srgb, var(--yance-theme-accent, currentcolor) 78%, var(--text-secondary, currentcolor));
+  font-size: .6rem;
+  font-weight: 760;
+}
+
+.yance-voice-current-text textarea {
+  min-height: 52px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  resize: none;
+  line-height: 1.45;
+}
+
+.yance-voice-mini-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(140px, .55fr);
+  gap: 10px;
+}
+
+.yance-voice-mini-controls label {
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--border-default, currentcolor) 62%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-control, transparent) 42%, transparent);
+}
+
+.yance-voice-mini-controls select {
+  min-height: 32px;
+  border-radius: 8px;
+}
+
+.yance-voice-generating,
+.yance-voice-preview {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--border-default, currentcolor) 64%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-card, transparent) 66%, transparent);
+}
+
+.yance-voice-generating progress {
+  width: 100%;
+}
+
+.yance-voice-generating span {
+  color: var(--text-secondary, inherit);
+  font-size: .66rem;
+}
+
+.yance-voice-preview > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.yance-voice-preview strong {
+  font-size: .7rem;
+}
+
+.yance-voice-preview span,
+.yance-voice-preview p {
+  margin: 0;
+  color: var(--text-secondary, inherit);
+  font-size: .62rem;
+}
+
+.yance-voice-mini-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.yance-voice-mini-actions button {
+  min-width: 116px;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 9px;
+}
+
+.yance-voice-primary {
+  border-color: color-mix(in srgb, var(--yance-theme-accent, currentcolor) 54%, var(--border-default, currentcolor)) !important;
+  background: color-mix(in srgb, var(--yance-theme-accent, currentcolor) 15%, var(--surface-control, transparent)) !important;
+}
+
+.yance-voice-mini-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 2px;
+  color: var(--text-secondary, inherit);
+  font-size: .6rem;
+}
+
+.yance-voice-workspace--m02[data-voice-phase="generating"],
+.yance-voice-workspace--m02[data-voice-phase="regenerating"] {
+  border-color: color-mix(in srgb, var(--status-warning, currentcolor) 30%, var(--border-default, currentcolor));
+}
+
+.yance-voice-workspace--m02[data-voice-phase="preview"],
+.yance-voice-workspace--m02[data-voice-phase="sent"] {
+  border-color: color-mix(in srgb, var(--status-success, currentcolor) 28%, var(--border-default, currentcolor));
+}
+
+@media (max-width: 760px) {
+  .yance-voice-mini-header,
+  .yance-voice-mini-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .yance-voice-mini-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .yance-voice-mini-actions {
+    justify-content: stretch;
+  }
+
+  .yance-voice-mini-actions button {
+    flex: 1;
+  }
+}

@@ -37,6 +37,7 @@ function desktopApi(): DesktopPresenceApi | null {
 function connectionStateLabel(state: PresenceLiveKitSnapshot["state"]): string {
   if (state === "connected") return "已连接";
   if (state === "connecting") return "连接中";
+  if (state === "reconnecting") return "断线恢复";
   return "未连接";
 }
 
@@ -95,6 +96,7 @@ export function PresenceWorkspace({
     }
     if (!api || busy || !characterId) return;
     setBusy(true);
+    setStatus("正在准备 Live…");
     let created: PresenceSession | null = null;
     try {
       created = await api.createPresenceSession({ characterId });
@@ -127,6 +129,7 @@ export function PresenceWorkspace({
   const disconnect = async (): Promise<void> => {
     if (busy) return;
     setBusy(true);
+    setStatus("正在结束 Live…");
     const closing = sessionRef.current;
     sessionRef.current = null;
     setSession(null);
@@ -142,7 +145,7 @@ export function PresenceWorkspace({
   const enableAudio = async (): Promise<void> => {
     try {
       const next = await startPresenceAudioPlayback();
-      setStatus(next.audioPlaybackEnabled ? "声音已开启" : "浏览器仍阻止声音播放，请再次点击开启声音");
+      setStatus(next.audioPlaybackEnabled ? "声音已开启" : "系统仍阻止声音播放，请再次点击开启声音");
     } catch {
       setStatus("声音播放暂不可用");
     }
@@ -153,38 +156,95 @@ export function PresenceWorkspace({
     && health.characterCatalogAvailable === true
     && characters.length > 0
     && routeReady;
+  const livePhase = liveKit.state === "reconnecting"
+    ? "reconnecting"
+    : liveKit.state === "connected"
+      ? "live"
+      : liveKit.state === "connecting" || status === "正在准备 Live…"
+        ? "connecting"
+        : liveKit.state === "disconnected" && !session && status === "已断开实时陪伴"
+          ? "ended"
+          : "ready";
+  const livePhaseLabel = livePhase === "reconnecting"
+    ? "断线恢复"
+    : livePhase === "live"
+      ? "Live 中"
+      : livePhase === "connecting"
+        ? "连接中"
+        : livePhase === "ended"
+          ? "已结束"
+          : "准备开始";
+  const livePhaseDetail = livePhase === "reconnecting"
+    ? "连接正在自动恢复，请保持窗口开启。"
+    : livePhase === "live"
+      ? "实时形象、声音与当前关系会话保持绑定。"
+      : livePhase === "connecting"
+        ? "正在建立实时会话并连接互动空间。"
+        : livePhase === "ended"
+          ? "Live 已结束；聊天时间线与输入草稿保持原样。"
+          : "选择形象后开始当前关系的 Live。";
   return (
     <aside
-      className="yance-presence-workspace"
-      aria-label="实时陪伴"
+      className="yance-presence-workspace yance-presence-workspace--m01"
+      aria-label="Live 实时互动"
+      data-live-phase={livePhase}
       data-yance-route-bound={routeReady || undefined}
       data-yance-no-character-fail-closed={characters.length === 0 || undefined}
     >
-      <header>
-        <div><strong>实时陪伴</strong><span>实时形象 · 语音 · 摄像头</span></div>
-        <span className={ready ? "presence-health ready" : "presence-health degraded"}>{ready ? "已就绪" : "暂不可用"}</span>
+      <header className="presence-live-header">
+        <div><strong>Live</strong><span>当前关系 · 实时互动</span></div>
+        <span className={ready ? "presence-health ready" : "presence-health degraded"}>{ready ? "能力已就绪" : "能力暂不可用"}</span>
       </header>
-      <div ref={mediaHostRef} className="presence-media" aria-label="实时形象画面" />
-      {liveKit.state !== "connected" ? <p className="presence-media-placeholder">连接后，实时形象会显示在这里。</p> : null}
-      <p className="presence-status" aria-live="polite">{status}</p>
-      <label title="形象">形象
-        <select value={characterId} onChange={(event) => setCharacterId(event.target.value)} disabled={busy || Boolean(session) || !characters.length}>
-          {characters.length
-            ? characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)
-            : <option value="">暂无已配置形象</option>}
-        </select>
-      </label>
-      <div className="presence-actions">
-        <button type="button" title="连接" onClick={() => void connect()} disabled={busy || Boolean(session) || !ready || !characterId}>连接</button>
-        <button type="button" title="断开" onClick={() => void disconnect()} disabled={busy || !session}>断开</button>
-        {liveKit.state === "connected" && !liveKit.audioPlaybackEnabled ? <button type="button" onClick={() => void enableAudio()}>开启声音</button> : null}
-        <button type="button" title="麦克风" onClick={() => void setPresenceMicrophoneEnabled(!liveKit.microphoneEnabled)} disabled={liveKit.state !== "connected"}>麦克风 · {liveKit.microphoneEnabled ? "开" : "关"}</button>
-        <button type="button" title="摄像头" onClick={() => void setPresenceCameraEnabled(!liveKit.cameraEnabled)} disabled={liveKit.state !== "connected"}>摄像头 · {liveKit.cameraEnabled ? "开" : "关"}</button>
-      </div>
-      <dl>
+
+      <section className="presence-live-state" aria-label={livePhaseLabel}>
+        <div className="presence-live-stage">
+          <div ref={mediaHostRef} className="presence-media" aria-label="实时形象画面" />
+          {liveKit.state !== "connected" && liveKit.state !== "reconnecting" ? (
+            <div className="presence-live-placeholder" aria-hidden="true">
+              <span>{characters.find((row) => row.id === characterId)?.name?.slice(0, 1) || "Y"}</span>
+            </div>
+          ) : null}
+          {livePhase === "reconnecting" ? (
+            <div className="presence-live-recovery" role="status"><strong>断线恢复</strong><span>正在恢复实时连接…</span></div>
+          ) : null}
+        </div>
+
+        <div className="presence-live-copy">
+          <span className="presence-live-phase">{livePhaseLabel}</span>
+          <h3>{livePhase === "live" ? "Live 正在进行" : livePhase === "ended" ? "Live 已结束" : livePhase === "reconnecting" ? "正在恢复 Live" : livePhase === "connecting" ? "正在进入 Live" : "准备开始 Live"}</h3>
+          <p>{livePhaseDetail}</p>
+          <p className="presence-status" aria-live="polite">{status}</p>
+        </div>
+
+        {(livePhase === "ready" || livePhase === "ended") ? (
+          <label className="presence-character" title="形象">形象
+            <select value={characterId} onChange={(event) => setCharacterId(event.target.value)} disabled={busy || Boolean(session) || !characters.length}>
+              {characters.length
+                ? characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)
+                : <option value="">暂无已配置形象</option>}
+            </select>
+          </label>
+        ) : null}
+
+        <div className="presence-actions" aria-label="Live 控制">
+          {(livePhase === "ready" || livePhase === "ended") ? (
+            <button type="button" className="presence-primary" title="连接" onClick={() => void connect()} disabled={busy || Boolean(session) || !ready || !characterId}>
+              {livePhase === "ended" ? "再次开始" : "开始 Live"}
+            </button>
+          ) : null}
+          {liveKit.state === "connected" && !liveKit.audioPlaybackEnabled ? <button type="button" onClick={() => void enableAudio()}>开启声音</button> : null}
+          <button type="button" title="麦克风" onClick={() => void setPresenceMicrophoneEnabled(!liveKit.microphoneEnabled)} disabled={liveKit.state !== "connected"}>麦克风 · {liveKit.microphoneEnabled ? "开" : "关"}</button>
+          <button type="button" title="摄像头" onClick={() => void setPresenceCameraEnabled(!liveKit.cameraEnabled)} disabled={liveKit.state !== "connected"}>摄像头 · {liveKit.cameraEnabled ? "开" : "关"}</button>
+          {(livePhase === "live" || livePhase === "reconnecting" || livePhase === "connecting") ? (
+            <button type="button" className="presence-danger" title="断开" onClick={() => void disconnect()} disabled={busy || !session}>结束 Live</button>
+          ) : null}
+        </div>
+      </section>
+
+      <dl className="presence-live-meta">
         <div><dt>实时连接</dt><dd>{connectionStateLabel(liveKit.state)}</dd></div>
         <div><dt>参与人数</dt><dd>{liveKit.participants}</dd></div>
-        <div><dt>会话</dt><dd>{session?.sessionId ? "已创建" : "未连接"}</dd></div>
+        <div><dt>会话</dt><dd>{session?.sessionId ? "已创建" : livePhase === "ended" ? "已结束" : "未连接"}</dd></div>
       </dl>
     </aside>
   );

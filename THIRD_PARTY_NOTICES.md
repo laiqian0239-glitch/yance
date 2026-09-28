@@ -308,8 +308,8 @@ Exact Voice Brain source, model and build-tool pins are recorded in `config/upst
 
 ## mautrix/meta
 - Upstream: https://github.com/mautrix/meta
-- Version: v0.2607.0
-- Commit: `ed37c9e6ce47e83dc75b9abea7b636302715b9bc`
+- Version: v0.2609.0
+- Commit: `dec2e1e06191d74fa997b41fe63bc74cbaaed584`
 - License: GNU AGPL v3 with upstream `LICENSE.exceptions` for Beeper and Element.
 - Adoption: unmodified sidecar protocol/login/session authority for Facebook Personal Messenger (`messenger-lite`).
 

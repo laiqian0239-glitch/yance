@@ -14,7 +14,7 @@ const BUSINESS_SETTING_KEYS = Object.freeze([
 ]);
 const DEFAULTS = Object.freeze({
   schemaVersion: 2,
-  windowX: null, windowY: null, windowWidth: 1520, windowHeight: 940, windowMaximized: false,
+  windowX: null, windowY: null, windowWidth: 1186, windowHeight: 758, windowMaximized: false,
   autoLaunch: false, minimizeToTray: false, closeToTray: true, startMinimized: false, theme: 'system', productSoundMode: 'Essential only',
   gifAutoplay: true, stickerAutoplay: true, pauseAnimationWhenHidden: true,
   autoCheckUpdates: true, autoDownloadUpdates: false, updatedAt: ''
@@ -35,10 +35,21 @@ function normalizeDesktopSettings(value = {}) {
   // readable for settings-file compatibility, but migrate every stored value off.
   out.minimizeToTray = false;
   for (const key of NUMBER_KEYS) if (Object.prototype.hasOwnProperty.call(value,key)) {
+    if (value[key] === null || value[key] === undefined || value[key] === '') { out[key] = DEFAULTS[key]; continue; }
     const n = Number(value[key]); out[key] = Number.isFinite(n) ? Math.trunc(n) : DEFAULTS[key];
   }
-  out.windowWidth = Math.max(800, Math.min(10000, Number(out.windowWidth || DEFAULTS.windowWidth)));
-  out.windowHeight = Math.max(600, Math.min(10000, Number(out.windowHeight || DEFAULTS.windowHeight)));
+  const legacyDefaultGeometry = String(value.updatedAt || '').trim() === ''
+    && out.windowWidth === 1520
+    && out.windowHeight === 940;
+  if (legacyDefaultGeometry) {
+    out.windowX = null;
+    out.windowY = null;
+    out.windowWidth = DEFAULTS.windowWidth;
+    out.windowHeight = DEFAULTS.windowHeight;
+    out.windowMaximized = false;
+  }
+  out.windowWidth = Math.max(980, Math.min(10000, Number(out.windowWidth || DEFAULTS.windowWidth)));
+  out.windowHeight = Math.max(680, Math.min(10000, Number(out.windowHeight || DEFAULTS.windowHeight)));
   const theme = String(value.theme || out.theme);
   out.theme = ['system','light','dark'].includes(theme) ? theme : 'system';
   const productSoundMode = String(value.productSoundMode || out.productSoundMode);

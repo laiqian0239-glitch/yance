@@ -1,0 +1,547 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yance.local/schemas/windows-visual-closure-evidence-v1.json",
+  "title": "Yance Windows visual closure evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "closureKind",
+    "exactHead",
+    "capturedAt",
+    "stage",
+    "captureMode",
+    "baselineAuthority",
+    "evidencePolicy",
+    "runtime",
+    "authority",
+    "screenshots",
+    "responsiveProfiles",
+    "expectedAvatarIds",
+    "avatarProbes",
+    "surfaceProofs",
+    "windowsArtifacts",
+    "deferredWindowsSurfaces"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "closureKind": { "const": "yance-windows-visual-closure" },
+    "exactHead": { "$ref": "#/$defs/gitHead" },
+    "capturedAt": { "type": "string", "format": "date-time" },
+    "stage": { "enum": ["local-ui-acceptance", "packaged-windows-uat"] },
+    "captureMode": { "enum": ["frozen-acceptance-electron", "packaged-windows-product"] },
+    "baselineAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source", "approvedBy", "approvedAt", "immutable", "reviewReceipt"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "source": { "const": "owner-approved-design" },
+        "approvedBy": { "type": "string", "minLength": 1 },
+        "approvedAt": { "type": "string", "format": "date-time" },
+        "immutable": { "const": true },
+        "reviewReceipt": { "$ref": "#/$defs/hashedReceipt" }
+      }
+    },
+    "evidencePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "realScreenshotsRequired",
+        "baselineDiffRequired",
+        "domOnlyEvidenceAccepted",
+        "classOnlyEvidenceAccepted",
+        "unitTestOnlyEvidenceAccepted"
+      ],
+      "properties": {
+        "realScreenshotsRequired": { "const": true },
+        "baselineDiffRequired": { "const": true },
+        "domOnlyEvidenceAccepted": { "const": false },
+        "classOnlyEvidenceAccepted": { "const": false },
+        "unitTestOnlyEvidenceAccepted": { "const": false }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "osPlatform",
+        "isElectron",
+        "isPackaged",
+        "productName",
+        "executablePath",
+        "executableSha256",
+        "exactHeadBinding",
+        "elementSessionReady",
+        "productShellReady",
+        "liveProcess"
+      ],
+      "properties": {
+        "osPlatform": { "const": "win32" },
+        "isElectron": { "const": true },
+        "isPackaged": { "type": "boolean" },
+        "productName": { "const": "Yance" },
+        "executablePath": { "type": "string", "minLength": 1 },
+        "executableSha256": { "$ref": "#/$defs/sha256" },
+        "exactHeadBinding": { "$ref": "#/$defs/gitHead" },
+        "elementSessionReady": { "const": true },
+        "productShellReady": { "const": true },
+        "liveProcess": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pid", "executablePath", "executableSha256"],
+          "properties": {
+            "pid": { "type": "integer", "minimum": 1 },
+            "executablePath": { "type": "string", "minLength": 1 },
+            "executableSha256": { "$ref": "#/$defs/sha256" }
+          }
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timelineOwner",
+        "composerOwner",
+        "sendOwner",
+        "nativeIntegrationOwner",
+        "yanceRole",
+        "shadowAuthorityFindings"
+      ],
+      "properties": {
+        "timelineOwner": { "const": "Element/Matrix" },
+        "composerOwner": { "const": "Element" },
+        "sendOwner": { "const": "Element/Matrix" },
+        "nativeIntegrationOwner": { "const": "Electron/Windows" },
+        "yanceRole": { "const": "product-projection" },
+        "shadowAuthorityFindings": { "type": "array", "maxItems": 0 }
+      }
+    },
+    "screenshots": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/screenshot" }
+    },
+    "responsiveProfiles": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/responsiveProfile" },
+      "allOf": [
+        { "contains": { "type": "object", "properties": { "role": { "const": "wide" } }, "required": ["role"] }, "minContains": 1 },
+        { "contains": { "type": "object", "properties": { "role": { "const": "default" } }, "required": ["role"] }, "minContains": 1 },
+        { "contains": { "type": "object", "properties": { "role": { "const": "compact" } }, "required": ["role"] }, "minContains": 1 },
+        { "contains": { "type": "object", "properties": { "scalePercent": { "const": 100 } }, "required": ["scalePercent"] }, "minContains": 1 },
+        { "contains": { "type": "object", "properties": { "scalePercent": { "const": 125 } }, "required": ["scalePercent"] }, "minContains": 1 },
+        { "contains": { "type": "object", "properties": { "scalePercent": { "const": 150 } }, "required": ["scalePercent"] }, "minContains": 1 }
+      ]
+    },
+    "expectedAvatarIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "avatarProbes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/avatarProbe" }
+    },
+    "surfaceProofs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["probeReceipt", "conversation", "composer"],
+      "properties": {
+        "probeReceipt": { "$ref": "#/$defs/hashedReceipt" },
+        "conversation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "screenshotId",
+            "yancePrimaryChromeVisible",
+            "realMessagesVisible",
+            "rawSecurityWarningVisible",
+            "rawRoomIntroVisible",
+            "rawMembershipEventsVisible",
+            "genericElementPrimaryNavigationVisible",
+            "cssDomMaskingUsed",
+            "horizontalOverflow"
+          ],
+          "properties": {
+            "screenshotId": { "type": "string", "minLength": 1 },
+            "yancePrimaryChromeVisible": { "const": true },
+            "realMessagesVisible": { "const": true },
+            "rawSecurityWarningVisible": { "const": false },
+            "rawRoomIntroVisible": { "const": false },
+            "rawMembershipEventsVisible": { "const": false },
+            "genericElementPrimaryNavigationVisible": { "const": false },
+            "cssDomMaskingUsed": { "const": false },
+            "horizontalOverflow": { "const": false }
+          }
+        },
+        "composer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["owner", "screenshotId", "inputProbe", "sendControlProbe", "clipped", "occluded"],
+          "properties": {
+            "owner": { "const": "Element" },
+            "screenshotId": { "type": "string", "minLength": 1 },
+            "inputProbe": { "$ref": "#/$defs/visibleProbe" },
+            "sendControlProbe": { "$ref": "#/$defs/visibleProbe" },
+            "clipped": { "const": false },
+            "occluded": { "const": false }
+          }
+        }
+      }
+    },
+    "windowsArtifacts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/windowsArtifact" }
+    },
+    "deferredWindowsSurfaces": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/deferredSurface" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "stage": { "const": "packaged-windows-uat" } }, "required": ["stage"] },
+      "then": {
+        "properties": {
+          "captureMode": { "const": "packaged-windows-product" },
+          "runtime": { "type": "object", "properties": { "isPackaged": { "const": true } }, "required": ["isPackaged"] },
+          "windowsArtifacts": {
+            "type": "array",
+            "minItems": 7,
+            "allOf": [
+              { "contains": { "type": "object", "properties": { "kind": { "const": "packaged-executable" } }, "required": ["kind"] } },
+              { "contains": { "type": "object", "properties": { "kind": { "const": "installer" } }, "required": ["kind"] } },
+              { "contains": { "type": "object", "properties": { "kind": { "const": "desktop-shortcut" } }, "required": ["kind"] } },
+              { "contains": { "type": "object", "properties": { "kind": { "const": "start-menu-shortcut" } }, "required": ["kind"] } },
+              { "contains": { "type": "object", "properties": { "kind": { "const": "apps-features" } }, "required": ["kind"] } },
+              { "contains": { "type": "object", "properties": { "kind": { "const": "tray" } }, "required": ["kind"] } },
+              { "contains": { "type": "object", "properties": { "kind": { "const": "browser-window" } }, "required": ["kind"] } }
+            ]
+          },
+          "deferredWindowsSurfaces": { "type": "array", "maxItems": 0 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "local-ui-acceptance" } }, "required": ["stage"] },
+      "then": {
+        "properties": {
+          "windowsArtifacts": {
+            "type": "array",
+            "minItems": 2,
+            "allOf": [
+              { "contains": { "type": "object", "properties": { "kind": { "const": "tray" } }, "required": ["kind"] } },
+              { "contains": { "type": "object", "properties": { "kind": { "const": "browser-window" } }, "required": ["kind"] } }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+    "gitHead": { "type": "string", "pattern": "^[A-Fa-f0-9]{40}$" },
+    "hashedReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "rect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "pixelRect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "computedStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["display", "visibility", "contentVisibility", "opacity"],
+      "properties": {
+        "display": { "type": "string", "not": { "const": "none" } },
+        "visibility": { "type": "string", "not": { "enum": ["hidden", "collapse"] } },
+        "contentVisibility": { "type": "string", "not": { "const": "hidden" } },
+        "opacity": { "type": "string", "pattern": "^(?:1(?:\\.0+)?|0?\\.(?:0*[1-9][0-9]*))$" }
+      }
+    },
+    "visibleProbe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tagName", "computedStyle", "rect", "withinViewport", "occluded"],
+      "properties": {
+        "tagName": { "type": "string", "minLength": 1 },
+        "computedStyle": { "$ref": "#/$defs/computedStyle" },
+        "rect": { "$ref": "#/$defs/rect" },
+        "withinViewport": { "const": true },
+        "occluded": { "const": false }
+      }
+    },
+    "imgProbe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tagName",
+        "complete",
+        "naturalWidth",
+        "naturalHeight",
+        "currentSrc",
+        "computedStyle",
+        "rect",
+        "withinViewport",
+        "occluded"
+      ],
+      "properties": {
+        "tagName": { "const": "IMG" },
+        "complete": { "const": true },
+        "naturalWidth": { "type": "number", "exclusiveMinimum": 0 },
+        "naturalHeight": { "type": "number", "exclusiveMinimum": 0 },
+        "currentSrc": { "type": "string", "minLength": 1 },
+        "computedStyle": { "$ref": "#/$defs/computedStyle" },
+        "rect": { "$ref": "#/$defs/rect" },
+        "withinViewport": { "const": true },
+        "occluded": { "const": false }
+      }
+    },
+    "screenshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "sha256", "width", "height", "capturedAt", "captureSource", "captureReceipt", "designBaseline", "diffReport"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "width": { "type": "integer", "minimum": 320 },
+        "height": { "type": "integer", "minimum": 240 },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "captureSource": { "enum": ["electron-window", "windows-screen-capture"] },
+        "captureReceipt": { "$ref": "#/$defs/hashedReceipt" },
+        "designBaseline": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256", "authorityId"],
+          "properties": {
+            "path": { "type": "string", "minLength": 1 },
+            "sha256": { "$ref": "#/$defs/sha256" },
+            "authorityId": { "type": "string", "minLength": 1 }
+          }
+        },
+        "diffReport": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": { "type": "string", "minLength": 1 },
+            "sha256": { "$ref": "#/$defs/sha256" }
+          }
+        }
+      }
+    },
+    "responsiveProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role", "width", "height", "scalePercent", "capturePixelRatio", "screenshotId"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "role": { "enum": ["wide", "default", "compact"] },
+        "width": { "type": "integer", "minimum": 800 },
+        "height": { "type": "integer", "minimum": 600 },
+        "scalePercent": { "enum": [100, 125, 150] },
+        "capturePixelRatio": { "type": "number", "exclusiveMinimum": 0, "maximum": 4 },
+        "screenshotId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "avatarProbe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "platform", "expectedKind", "screenshotId", "cropPath", "cropSha256", "screenshotPixelRect", "renderedElement", "visualObservation"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "platform": { "type": "string", "minLength": 1 },
+        "expectedKind": { "const": "photo" },
+        "screenshotId": { "type": "string", "minLength": 1 },
+        "cropPath": { "type": "string", "minLength": 1 },
+        "cropSha256": { "$ref": "#/$defs/sha256" },
+        "screenshotPixelRect": { "$ref": "#/$defs/pixelRect" },
+        "renderedElement": { "$ref": "#/$defs/imgProbe" },
+        "visualObservation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["classification", "method", "observedAt", "reviewReceipt"],
+          "properties": {
+            "classification": { "const": "photo-visible" },
+            "method": { "enum": ["human-reviewed-screenshot", "computer-vision"] },
+            "observedAt": { "type": "string", "format": "date-time" },
+            "reviewer": { "type": "string", "minLength": 1 },
+            "confidence": { "type": "number", "minimum": 0.9, "maximum": 1 },
+            "reviewReceipt": { "$ref": "#/$defs/hashedReceipt" }
+          }
+        }
+      }
+    },
+    "windowsArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "materialized", "status", "evidencePath", "evidenceSha256"],
+      "properties": {
+        "kind": { "enum": ["packaged-executable", "installer", "desktop-shortcut", "start-menu-shortcut", "apps-features", "tray", "browser-window"] },
+        "materialized": { "const": true },
+        "status": { "const": "passed" },
+        "evidencePath": { "type": "string", "minLength": 1 },
+        "evidenceSha256": { "$ref": "#/$defs/sha256" },
+        "artifactPath": { "type": "string", "minLength": 1 },
+        "artifactSha256": { "$ref": "#/$defs/sha256" },
+        "screenshotId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "deferredSurface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "requiredStage", "replacementEvidenceAccepted", "reason"],
+      "properties": {
+        "kind": { "enum": ["packaged-executable", "installer", "desktop-shortcut", "start-menu-shortcut", "apps-features"] },
+        "requiredStage": { "const": "packaged-windows-uat" },
+        "replacementEvidenceAccepted": { "const": false },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "captureReceiptDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "kind", "screenshotId", "screenshotSha256", "exactHead", "capturedAt", "captureSource", "electronTarget", "window"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "const": "yance-electron-capture-receipt" },
+        "screenshotId": { "type": "string", "minLength": 1 },
+        "screenshotSha256": { "$ref": "#/$defs/sha256" },
+        "exactHead": { "$ref": "#/$defs/gitHead" },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "captureSource": { "enum": ["electron-window", "windows-screen-capture"] },
+        "electronTarget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["protocol", "type", "targetId", "url"],
+          "properties": {
+            "protocol": { "const": "CDP" },
+            "type": { "const": "page" },
+            "targetId": { "type": "string", "minLength": 1 },
+            "url": { "type": "string", "minLength": 1 }
+          }
+        },
+        "window": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["title", "pid", "liveExecutablePath", "liveExecutableSha256"],
+          "properties": {
+            "title": { "const": "Yance" },
+            "pid": { "type": "integer", "minimum": 1 },
+            "liveExecutablePath": { "type": "string", "minLength": 1 },
+            "liveExecutableSha256": { "$ref": "#/$defs/sha256" }
+          }
+        }
+      }
+    },
+    "baselineReviewReceiptDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "kind", "baselineSetId", "approvedBy", "approvedAt", "immutable", "custody", "baselines"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "const": "yance-design-baseline-review" },
+        "baselineSetId": { "type": "string", "minLength": 1 },
+        "approvedBy": { "type": "string", "minLength": 1 },
+        "approvedAt": { "type": "string", "format": "date-time" },
+        "immutable": { "const": true },
+        "custody": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method"],
+          "properties": { "method": { "const": "sha256-review-receipt" } }
+        },
+        "baselines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["screenshotId", "sha256"],
+            "properties": {
+              "screenshotId": { "type": "string", "minLength": 1 },
+              "sha256": { "$ref": "#/$defs/sha256" }
+            }
+          }
+        }
+      }
+    },
+    "avatarReviewReceiptDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "kind", "exactHead", "screenshotId", "screenshotSha256", "avatarId", "cropSha256", "classification", "method", "observedAt"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "const": "yance-avatar-photo-review" },
+        "exactHead": { "$ref": "#/$defs/gitHead" },
+        "screenshotId": { "type": "string", "minLength": 1 },
+        "screenshotSha256": { "$ref": "#/$defs/sha256" },
+        "avatarId": { "type": "string", "minLength": 1 },
+        "cropSha256": { "$ref": "#/$defs/sha256" },
+        "classification": { "const": "photo-visible" },
+        "method": { "enum": ["human-reviewed-screenshot", "computer-vision"] },
+        "observedAt": { "type": "string", "format": "date-time" },
+        "reviewer": { "type": "string", "minLength": 1 },
+        "confidence": { "type": "number", "minimum": 0.9, "maximum": 1 }
+      }
+    },
+    "conversationRuntimeProbeReceiptDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "kind", "probeSource", "exactHead", "screenshotId", "screenshotSha256", "capturedAt", "runtime", "conversation", "composer"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "const": "yance-conversation-runtime-probe" },
+        "probeSource": { "const": "electron-cdp-runtime" },
+        "exactHead": { "$ref": "#/$defs/gitHead" },
+        "screenshotId": { "type": "string", "minLength": 1 },
+        "screenshotSha256": { "$ref": "#/$defs/sha256" },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pid", "executablePath", "executableSha256"],
+          "properties": {
+            "pid": { "type": "integer", "minimum": 1 },
+            "executablePath": { "type": "string", "minLength": 1 },
+            "executableSha256": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "conversation": { "type": "object" },
+        "composer": { "type": "object" }
+      }
+    }
+  }
+}
