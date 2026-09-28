@@ -50,7 +50,6 @@ function relationshipAvatar(
   renderRoomAvatar?: (roomId: string, size?: string) => React.ReactNode,
   size = "40px",
 ): React.ReactNode {
-  if (relationship.avatarUrl) return <img src={relationship.avatarUrl} alt="" />;
   const roomId = String(relationship.matrixRoomId || "").trim();
   const roomAvatar = roomId && renderRoomAvatar ? renderRoomAvatar(roomId, size) : null;
   return roomAvatar || <span>{initials(relationship.name)}</span>;

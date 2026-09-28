@@ -2055,21 +2055,6 @@ function initialsNotificationIcon(name) {
   return image && !image.isEmpty() ? image.resize({ width: 96, height: 96, quality: 'best' }) : nativeImage.createFromPath(iconPath());
 }
 
-async function resolveProductAvatarDataUrl(input = {}) {
-  const avatarUrl = String(input.avatarUrl || input.url || '').trim();
-  if (!avatarUrl) return { ok: true, avatarUrl: '', dataUrl: '' };
-  if (!avatarUrl.startsWith('/api/r32/messages/media/') && !avatarUrl.startsWith('data:image/')) {
-    const error = new Error('Product avatar source is not an approved media projection');
-    error.code = 'PRODUCT_AVATAR_SOURCE_NOT_ALLOWED';
-    throw error;
-  }
-  const resolved = await notificationIcon({ avatarUrl, avatarName: '', title: '' });
-  if (resolved.source !== 'customer-avatar' || !resolved.image || resolved.image.isEmpty()) {
-    return { ok: false, avatarUrl, dataUrl: '', reasonCode: 'PRODUCT_AVATAR_UNAVAILABLE' };
-  }
-  return { ok: true, avatarUrl, dataUrl: resolved.image.toDataURL() };
-}
-
 async function notificationIcon(payload = {}) {
   const presentation = normalizeNotificationPresentation(payload);
   if (presentation.hideAvatar === true) return { image: nativeImage.createFromPath(iconPath()), source: 'application-icon', avatarUrl: '' };
@@ -4545,7 +4530,6 @@ function registerIpc() {
     }
   }));
   ipcGuardHandle('desktop:notify', (_event, payload) => showNotification(payload || {}));
-  ipcGuardHandle('desktop:resolve-product-avatar', (_event, payload) => resolveProductAvatarDataUrl(payload || {}));
   ipcGuardHandle('desktop:play-sound', (_event, payload) => requestDesktopSound(payload || {}));
 ipcGuardHandle('desktop:set-active-conversation', (_event, data = {}) => {
   const activeConversationId = typeof data === 'string' ? data : data && data.activeConversationId;

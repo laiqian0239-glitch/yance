@@ -24,6 +24,7 @@ type RelationshipWorldProps = {
   assistantVisible: boolean; onBack: () => void; onToggleAssistant: () => void;
   onSelectRelationship: (relationshipId: string) => void;
   onOpenConversation: (conversationId: string) => void; mergeTargets?: readonly MergeTarget[];
+  renderRelationshipAvatar?: (relationship: RelationshipProjection, size?: string) => React.ReactNode;
   onRefresh?: () => void | Promise<void>;
 };
 function text(value: unknown): string {
@@ -59,7 +60,7 @@ function timelineAuthorityLabel(value: string): string {
 
 export function RelationshipWorld({
   relationship, relationships, aiState, reducedMotion, assistantVisible, onBack, onToggleAssistant,
-  onSelectRelationship, onOpenConversation, mergeTargets = [], onRefresh,
+  onSelectRelationship, onOpenConversation, mergeTargets = [], renderRelationshipAvatar, onRefresh,
 }: RelationshipWorldProps): React.JSX.Element {
   const intelligence = relationship.relationshipIntelligence;
   const hasAiAnalysis = intelligence?.source === "ai_analysis";
@@ -189,7 +190,7 @@ export function RelationshipWorld({
         <div className="yance-rw-v4__object-list" role="list">
           {relationshipObjects.map((row) => <button key={row.id} type="button" role="listitem" aria-current={row.id === relationship.id ? "page" : undefined}
             onClick={() => onSelectRelationship(row.id)}>
-            <span className="yance-rw-v4__object-avatar" aria-hidden="true">{row.avatarUrl ? <img src={row.avatarUrl} alt="" /> : row.name.trim().slice(0, 2).toUpperCase()}</span>
+            <span className="yance-rw-v4__object-avatar" aria-hidden="true">{renderRelationshipAvatar?.(row, "40px") || row.name.trim().slice(0, 2).toUpperCase()}</span>
             <span className="yance-rw-v4__object-copy"><strong>{row.name}</strong><small>{row.platform || "真实关系"} · {row.recentAt || row.updatedAt ? new Date(row.recentAt || row.updatedAt || "").toLocaleDateString() : "暂无最近互动"}</small>
               <em>{row.relationshipIntelligence?.stage || row.relationshipIntelligence?.analysisStatusLabel || "关系洞察待形成"}</em></span>
             {row.unreadCount > 0 ? <span className="yance-rw-v4__object-unread">{row.unreadCount}</span> : null}
@@ -218,7 +219,7 @@ export function RelationshipWorld({
       <div className="yance-rw-v4__hero-person">
         <motion.div layoutId={reducedMotion ? undefined : `relationship-avatar-${relationship.id}`}
           className="yance-world-avatar" aria-hidden="true">
-          {relationship.avatarUrl ? <img src={relationship.avatarUrl} alt="" /> : relationship.name.trim().slice(0, 2).toUpperCase()}
+          {renderRelationshipAvatar?.(relationship, "72px") || relationship.name.trim().slice(0, 2).toUpperCase()}
         </motion.div>
         <div><span className="yance-eyebrow">当前关系</span><h3>{relationship.name}</h3>
           <p>{relationship.subtitle || relationship.platform || "真实关系"}</p></div>

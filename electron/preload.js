@@ -122,7 +122,6 @@ contextBridge.exposeInMainWorld('yanceDesktop', Object.freeze({
   restartBackend: () => ipcRenderer.invoke('desktop:restart-backend'),
   restartApp: () => ipcRenderer.invoke('desktop:restart-app'),
   notify: payload => ipcRenderer.invoke('desktop:notify', payload || {}),
-  resolveProductAvatar: input => ipcRenderer.invoke('desktop:resolve-product-avatar', input || {}),
   playSound: payload => ipcRenderer.invoke('desktop:play-sound', payload || {}),
   reportSoundResult: result => ipcRenderer.invoke('desktop:report-sound-result', result || {}),
   setActiveConversation: conversationId => ipcRenderer.invoke('desktop:set-active-conversation', { activeConversationId: String(conversationId || '') }),

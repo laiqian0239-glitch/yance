@@ -56,7 +56,6 @@ export type ConversationRef = {
   pinned: boolean;
   archived: boolean;
   lastMessage?: string;
-  avatarUrl?: string;
   lastMessageAt?: string;
   updatedAt?: string;
   relationshipIntelligence?: RelationshipIntelligenceProjection;
@@ -81,7 +80,6 @@ export type RelationshipProjection = {
   name: string;
   conversations: readonly ConversationRef[];
   subtitle: string;
-  avatarUrl?: string;
   lastMessage?: string;
   platform?: string;
   accountId?: string;

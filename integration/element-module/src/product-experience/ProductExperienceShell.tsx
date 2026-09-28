@@ -1076,7 +1076,6 @@ function conversationRelationshipAvatar(
   renderRoomAvatar?: (roomId: string, size?: string) => React.ReactNode,
   size = "44px",
 ): React.ReactNode {
-  if (relationship.avatarUrl) return <img src={relationship.avatarUrl} alt="" />;
   const roomId = String(relationship.matrixRoomId || relationship.conversations.find((item) => item.matrixRoomId)?.matrixRoomId || "").trim();
   const roomAvatar = roomId && renderRoomAvatar ? renderRoomAvatar(roomId, size) : null;
   return roomAvatar || <span>{conversationInitials(relationship.name)}</span>;
@@ -2342,6 +2341,7 @@ export function ProductExperienceShell({
             <RelationshipWorld
               relationship={selectedRelationship}
               relationships={relationships}
+              renderRelationshipAvatar={(row, size) => conversationRelationshipAvatar(row, renderRoomAvatar, size)}
               aiState={aiState}
               reducedMotion={preferences.reducedMotion}
               assistantVisible={assistantVisible}

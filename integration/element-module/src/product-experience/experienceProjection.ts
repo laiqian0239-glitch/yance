@@ -42,7 +42,6 @@ type DesktopEvent = {
 
 type ProductDesktopApi = {
   storeSnapshot: (input: { domains: string[]; includeRelationshipIntelligence?: boolean }) => Promise<Record<string, unknown>>;
-  resolveProductAvatar: (input: { avatarUrl: string }) => Promise<{ ok?: boolean; dataUrl?: string }>;
   storeSearchWorkspace: (input: { query: string; limit?: number }) => Promise<Record<string, unknown>>;
   storeCreateTranslationJob: (input: { messageId: string; force?: boolean; forceNew?: boolean; timeoutMs?: number }) => Promise<Record<string, unknown>>;
   storeGetTranslationJob: (input: { jobId: string }) => Promise<Record<string, unknown>>;
@@ -833,7 +832,6 @@ function normalizeConversationRef(
     pinned: row.pinned === true,
     archived: row.archived === true,
     lastMessage: optionalText(row.lastMessage || row.preview || row.snippet),
-    avatarUrl: optionalText(row.avatarUrl || row.avatar || row.photoUrl),
     lastMessageAt: asTimestamp(row.lastMessageAt),
     updatedAt: asTimestamp(
       row.updatedAt || row.lastMessageAt || row.modifiedAt || row.createdAt,
@@ -877,7 +875,6 @@ function relationshipFromEntry(
     name,
     conversations,
     subtitle: platform || "已连接关系",
-    avatarUrl: optionalText(row.avatarUrl || row.avatar || row.photoUrl),
     lastMessage,
     platform,
     accountId,
@@ -1047,22 +1044,7 @@ export async function loadPeopleProjections(): Promise<PeopleProjection> {
       return a.name.localeCompare(b.name);
     });
 
-  const hydratedRelationships = typeof api.resolveProductAvatar === "function"
-    ? await Promise.all(relationships.map(async (relationship) => {
-      const source = text(relationship.avatarUrl).trim();
-      if (!source || source.startsWith("data:image/")) return relationship;
-      try {
-        const resolved = await api.resolveProductAvatar?.({ avatarUrl: source });
-        return { ...relationship, avatarUrl: text(resolved?.dataUrl) };
-      } catch {
-        return { ...relationship, avatarUrl: "" };
-      }
-    }))
-    : relationships.map((relationship) => (
-      text(relationship.avatarUrl).startsWith("/api/") ? { ...relationship, avatarUrl: "" } : relationship
-    ));
-
-  return { relationships: hydratedRelationships, groups };
+  return { relationships, groups };
 }
 
 export async function loadRelationshipProjections(): Promise<readonly RelationshipProjection[]> {
