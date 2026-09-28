@@ -133,19 +133,16 @@ export function productMessageFilter(event: ProductModuleMessageEvent): boolean 
 }
 
 export function ProductConversationMessage({
-  event, originalComponent, currentUserId = "", renderUserAvatar,
+  event, originalComponent,
 }: {
   event: ProductModuleMessageEvent;
   originalComponent?: () => React.JSX.Element;
-  currentUserId?: string;
-  renderUserAvatar?: (userId: string, size?: string) => React.ReactNode;
 }): React.JSX.Element {
   const session = useExperienceSession();
   const normalizedEventId = eventId(event);
   const normalizedRoomId = eventRoomId(event);
   const sourceMessageText = text(eventContent(event).body);
   const senderId = eventSender(event);
-  const ownEvent = Boolean(currentUserId && senderId && senderId === currentUserId);
   const suppressBridgeControl = isBridgeControlMessage(event);
   const identities = useMemo(
     () => exactMessageIdentities(event),
@@ -263,16 +260,12 @@ export function ProductConversationMessage({
     <div
       className="yance-product-message"
       data-yance-original-message-preserved="true"
-      data-yance-own-event={ownEvent || undefined}
       data-yance-translation-state={translatedZh ? "translated" : projection?.found ? "pending" : "unavailable"}
     >
       {translatedZh ? (
         <div className="yance-product-message__translation" aria-label="中文译文"><p>{translatedZh}</p></div>
       ) : null}
       <div className="yance-product-message__original" aria-label="原文">{originalComponent?.()}</div>
-      {ownEvent && currentUserId && renderUserAvatar ? (
-        <span className="yance-product-message__self-avatar" aria-hidden="true">{renderUserAvatar(currentUserId, "30px")}</span>
-      ) : null}
     </div>
   );
 }

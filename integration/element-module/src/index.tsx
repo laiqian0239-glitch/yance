@@ -837,8 +837,6 @@ class YanceElementModule implements Module {
       const staged = pendingAiAssistElementSend;
       if (!staged || staged.roomId !== roomId || !staged.elementSendAttemptId) return;
       if (success !== true) {
-        // Keep the exact preflight attempt bound while Element owns failed-event retry.
-        // A later real Element resend Promise may resolve with the exact Matrix event_id.
         return;
       }
       const matrixEventId = String(eventId || "").trim();
@@ -989,8 +987,6 @@ class YanceElementModule implements Module {
       (props, originalComponent) => (
         <ProductConversationMessage
           event={props.mxEvent}
-          currentUserId={typeof clientApi.getUserId === "function" ? text(clientApi.getUserId()) : ""}
-          renderUserAvatar={typeof builtinsApi.renderUserAvatar === "function" ? builtinsApi.renderUserAvatar.bind(builtinsApi) : undefined}
           originalComponent={originalComponent ? () => originalComponent() : undefined}
         />
       ),
