@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-29T05:54:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-CONVERSATION-PRODUCT-AUTHORITY-ROUTE-BOOTSTRAP",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Conversation Product Authority successor exact proof head 92ba27ca24cf96477d536e1dac238c0698cd51a3 is locally closed and self-contained, but the trusted-main WP0 router fails closed with WP0_ROUTE_UNKNOWN_PATH for exactly ten newly materialized Product/Element paths. This prerequisite authorizes only permanent exact PRODUCT_WP0 registration of those ten paths through the repository-existing WP0 routing policy plus one regression contract. It does not authorize broad prefixes, Product mutation, workflow changes, dependency changes, gate weakening, release, RC, UAT, publish, force push, history rewrite, or any second routing authority.",
+  "base": {
+    "branch": "main",
+    "commit": "1bf91e4ca6800a4555db7890ad651f1269326d5a",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "1bf91e4ca6800a4555db7890ad651f1269326d5a",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "evidence": {
+    "sourceExactHead": "92ba27ca24cf96477d536e1dac238c0698cd51a3",
+    "frozenPredecessorHead": "1d6288d3e36e72894ae3a11e959bcc33bbf91554",
+    "trustedRoutingPolicyCommit": "1bf91e4ca6800a4555db7890ad651f1269326d5a",
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPathsObservedAtSourceExactHead": [
+      "integration/element-module/src/product-experience/AIWorkspace.tsx",
+      "integration/element-module/src/product-experience/PersonaManagement.tsx",
+      "integration/element-module/src/product-experience/assets/conversation-terrace-dusk-v5.webp",
+      "integration/element-module/src/product-experience/assets/conversation-terrace-dusk.png",
+      "upstream-patches/element-web/0020-yance-product-live-room-public-seams.patch",
+      "upstream-patches/element-web/0021-yance-space-hierarchy-summary.patch",
+      "upstream-patches/element-web/0022-yance-bridge-dm-avatar-authority.patch",
+      "upstream-patches/element-web/0023-yance-room-message-summary-projection.patch",
+      "upstream-patches/element-web/0024-yance-room-invite-sender-public-seam.patch",
+      "upstream-patches/element-web/0025-yance-product-conversation-presentation-successor.patch"
+    ],
+    "localClosure": {
+      "exactHeadTests": "70/70 GREEN",
+      "elementMaterialization": "19/19 patches GREEN",
+      "importClosure": "0 missing",
+      "matureAuthorityProofs": "Model Brain / Reply Learning / Appearance / Element presentation GREEN"
+    }
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-conversation-product-authority-route-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-conversation-product-authority-route-bootstrap-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "639e0cd468ca3c6ad0754b43df993017b25d91551f553136f87b520f4dca0723",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-conversation-product-authority-route-bootstrap",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-conversation-product-authority-route-bootstrap.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "7d309bc56803a131ad0642b8c726a46ea9e118c60c32e0517ed7d3603586417e",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-conversation-product-authority-route-bootstrap.test.js"
+      ],
+      "productionCodeChanged": false,
+      "expectedFailure": "The ten exact successor paths remain WP0_ROUTE_UNKNOWN_PATH until wp0-routing-policy.json is permanently repaired."
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "broadPrefixModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "bootstrapPaths": [
+    "integration/element-module/src/product-experience/AIWorkspace.tsx",
+    "integration/element-module/src/product-experience/PersonaManagement.tsx",
+    "integration/element-module/src/product-experience/assets/conversation-terrace-dusk-v5.webp",
+    "integration/element-module/src/product-experience/assets/conversation-terrace-dusk.png",
+    "upstream-patches/element-web/0020-yance-product-live-room-public-seams.patch",
+    "upstream-patches/element-web/0021-yance-space-hierarchy-summary.patch",
+    "upstream-patches/element-web/0022-yance-bridge-dm-avatar-authority.patch",
+    "upstream-patches/element-web/0023-yance-room-message-summary-projection.patch",
+    "upstream-patches/element-web/0024-yance-room-invite-sender-public-seam.patch",
+    "upstream-patches/element-web/0025-yance-product-conversation-presentation-successor.patch"
+  ],
+  "bootstrapPathCount": 10,
+  "bootstrapPathSetSha256": "d8fac1144d8a00ef36fc081e84ab55f59eaaac47cb6f82c71f5c64d0cec03fc5",
+  "routePolicy": {
+    "targetCollection": "productExactPaths",
+    "route": "PRODUCT_WP0",
+    "broadPrefixExpansionForbidden": true,
+    "schemaVersionMustRemain": 2,
+    "unknownPathFailsClosedMustRemain": true,
+    "governancePrecedenceMustRemain": true,
+    "productDocumentationPrecedenceMustRemain": true
+  },
+  "ossFit": {
+    "decision": "Reuse the repository-existing fail-closed WP0 exact router; only ten exact path identities are missing. No second router, fallback classifier, custom matcher, or compatibility bypass is authorized.",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "thinYanceAdapterOnly": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP0 routing policy SSOT",
+        "source": "governance/layered-ci/wp0-routing-policy.json + tools/layered-ci/wp0-routing.js",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing classifier already fails closed correctly; the missing capability is only exact Product path registration."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add integration/ or upstream-patches/ as Product prefixes.",
+      "Do not set unknown-path handling to warning-only.",
+      "Do not add a second router or PR-specific special case.",
+      "Do not mutate Product source while repairing base-owned route authority."
+    ]
+  },
+  "requiredSequence": [
+    "Authorization exact head remains one file on unchanged trusted main.",
+    "Authorization PR merges to main by ordinary two-parent merge.",
+    "Create fix/v21-conversation-product-authority-route-bootstrap from that exact authorization merge commit.",
+    "First implementation commit changes only the regression test and proves the ten-path route RED.",
+    "Add only the ten bootstrapPaths to productExactPaths.",
+    "Route implementation exact head proves all ten paths select PRODUCT_WP0 and unknown paths still fail closed.",
+    "Route implementation PR merges to main by ordinary two-parent merge.",
+    "Proceed to the separately authorized Layered CI L2 risk registration prerequisite before successor authorization."
+  ],
+  "prohibitions": {
+    "wildcardAuthorization": true,
+    "productPrefixExpansion": true,
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "workflowModification": true,
+    "productMutation": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true,
+    "rebaseMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false
+  }
+}
