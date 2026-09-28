@@ -270,6 +270,11 @@ class YanceElementModule implements Module {
     const readRoomStateEvents = (roomId: string, eventType: string) => (
       this.api.client.getRoom(roomId)?.getStateEvents(eventType) ?? []
     );
+    const renderLiveRoomAvatar = (roomId: string, size?: string): React.ReactNode => {
+      const normalizedRoomId = text(roomId);
+      if (!normalizedRoomId || !this.api.client.getRoom(normalizedRoomId)) return null;
+      return this.api.builtins.renderRoomAvatar(normalizedRoomId, size);
+    };
     const builtinsApi = this.api.builtins as Api["builtins"] & {
       renderUserAvatar?: (userId: string, size?: string) => React.ReactNode;
     };
@@ -606,7 +611,7 @@ class YanceElementModule implements Module {
         navigateGroupConversation={activateProductGroupConversation}
         navigateProductHome={navigateProductHome}
         navigateRelationshipHome={navigateRelationshipHome}
-        renderRoomAvatar={(roomId, size) => this.api.builtins.renderRoomAvatar(roomId, size)}
+        renderRoomAvatar={renderLiveRoomAvatar}
         renderUserAvatar={typeof builtinsApi.renderUserAvatar === "function"
           ? builtinsApi.renderUserAvatar.bind(builtinsApi)
           : undefined}

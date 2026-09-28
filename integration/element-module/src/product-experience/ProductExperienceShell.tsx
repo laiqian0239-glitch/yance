@@ -1078,14 +1078,8 @@ function conversationRelationshipAvatar(
 ): React.ReactNode {
   if (relationship.avatarUrl) return <img src={relationship.avatarUrl} alt="" />;
   const roomId = String(relationship.matrixRoomId || relationship.conversations.find((item) => item.matrixRoomId)?.matrixRoomId || "").trim();
-  if (roomId && renderRoomAvatar) {
-    try {
-      return renderRoomAvatar(roomId, size);
-    } catch {
-      // Element remains the fallback authority when Product has no resolved contact photo.
-    }
-  }
-  return <span>{conversationInitials(relationship.name)}</span>;
+  const roomAvatar = roomId && renderRoomAvatar ? renderRoomAvatar(roomId, size) : null;
+  return roomAvatar || <span>{conversationInitials(relationship.name)}</span>;
 }
 
 function conversationContextFact(context: ProductModelRuntimeRecord, key: string): string {
