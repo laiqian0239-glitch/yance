@@ -17,6 +17,22 @@
 5. Element / Matrix 继续拥有真实 timeline、composer、send、room/session 等成熟 authority；Yance 只做 Product 投影和关系体验。
 6. 用户手动模型选择必须保留；自动推荐只能辅助，不能覆盖用户明确选择。Provider/fallback/retry 等物理路由仍由成熟 Model Brain/runtime authority 负责。
 
+## 2026-09-28 V5 小视窗 / Cloud-first 补充权威
+
+针对真实默认视口 **920×620**，Conversation Workspace 新增两份优先级更高的补充规范：
+
+- `spec/YANCE_V5_CONVERSATION_WORKSPACE_920X620_CLOUD_FIRST_2026-09-28_ZH.md` — 小视窗 Conversation 最终信息架构、渐进披露、Next Interaction Brain、Cloud-first Voice/Image/Video 设计合同。
+- `spec/YANCE_V5_CAPABILITY_AUTHORITY_MATRIX_2026-09-28_ZH.md` — 全部能力的 owner / scope / UI 位置 / Cloud-vs-Offline 边界。
+- `review/YANCE_V5_CLOUD_FIRST_MEDIA_VOICE_MIGRATION_PLAN_2026-09-28_ZH.md` — Cloud Voice / Image / Video 迁移顺序与 no-shadow 约束。
+
+在 **920×620 Conversation** 范围内，上述 V5 补充优先于旧 v4 大视窗 Conversation 母版的以下表达：
+- Conversation 内不保留全局左侧导航，仅顶部返回首页。
+- 不保留常驻右侧 Inspector；改为覆盖式“闺蜜大脑” Drawer。
+- 联系人列默认 190–205px 且可折叠，真实聊天占全部剩余面积。
+- AI Reply Brain 默认呈现为紧凑的 Next Interaction Brain，而不是常驻大卡片区。
+- TTS、图片生成/编辑、视频生成的**目标默认执行方式为 Cloud-first**；本地 CosyVoice / ComfyUI 只允许后续成为用户显式选择的 Offline Mode，不得 silent fallback。
+- 这只是设计/迁移 authority，不授权当前 Release root 之外的 production mutation；当前 frozen Conversation root 关闭前禁止把 Cloud provider 接入混入同一 causal batch。
+
 ## 一级产品结构
 
 最终一级产品位置收敛为：
