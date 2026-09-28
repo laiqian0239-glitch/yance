@@ -6,13 +6,24 @@
 
 > 核心原则：**减少一级页面，不减少能力；隐藏复杂度，不隐藏能力。**
 
-> 最新 owner 真实运行时对账：eview/YANCE_V4_OWNER_ACCEPTANCE_RECONCILIATION_2026-09-26_ZH.md。该 review 记录最新截图差异与执行顺序，不替代本目录正式母版或功能 non-regression authority。
+
+## V5 Conversation 920×620 唯一视觉 authority（2026-09-28）
+
+- `screens/core/Yance_V5_Conversation_920x620_Golden.png` 是当前 **V5 Conversation 920×620 唯一 Golden / 唯一视觉 authority**；该表面不再使用旧 v4 Conversation 图或其他 mockup 作为 Golden。
+- 图中**中间主窗口**是产品主界面权威；原图 1536×1024 是设计文档展示画布，中间窗口表达目标 920×620 Conversation Workspace。
+- **左侧说明框、箭头与外围说明文字仅为文档标注**，不属于应用 UI，不得在 Actual 中照搬实现。
+- **右侧“闺蜜大脑”是 Overlay Drawer 打开态示意**，不代表默认常驻右栏；关闭态应继续把空间优先留给真实聊天区。
+- **底部弹出菜单是交互展开态示意**，分别表达 `＋` 工具、AI 回复、真人打字、模型等控件被触发后的状态，不代表默认同时常驻。
+- V5 Conversation 的详细视觉/验收规则见 `spec/YANCE_V5_CONVERSATION_WORKSPACE_920X620_CLOUD_FIRST_2026-09-28_ZH.md`。
+- 所有后续 Conversation 视觉验收窗口必须统一以该 PNG 做 Golden vs Actual 对照。
+
+> 最新 owner 真实运行时对账：`review/YANCE_V4_OWNER_ACCEPTANCE_RECONCILIATION_2026-09-26_ZH.md`。该 review 记录最新截图差异与执行顺序，不替代本目录正式母版或功能 non-regression authority。
 
 ## 权威边界与优先级
 
 1. `AGENTS.md`、repository-owned skills、最新有效 Controller State 继续拥有工程执行/发布治理权；本设计基线不能授权 CI、PR、merge、RC、UAT 或 Release。
 2. 本目录负责产品信息架构、视觉结构、交互入口和非降级要求；不创建新的消息、模型、会话、路由、学习或媒体运行时 authority。
-3. 出现视觉冲突时，`screens/core/` 与 `screens/states/` 中的 2026-09-23 定稿图优先于较早 presentation 中的示意画面。
+3. 出现视觉冲突时，V5 Conversation 920×620 以 `screens/core/Yance_V5_Conversation_920x620_Golden.png` 为唯一视觉 authority；其他表面仍以 `screens/core/` 与 `screens/states/` 中的现行定稿图优先于较早 presentation。
 4. 出现功能覆盖争议时，以 `spec/YANCE_V4_FINAL_FUNCTION_RECONCILIATION_2026-09-23_ZH.md` 的成熟能力清单和 Non-Regression 闸门为准。
 5. Element / Matrix 继续拥有真实 timeline、composer、send、room/session 等成熟 authority；Yance 只做 Product 投影和关系体验。
 6. 用户手动模型选择必须保留；自动推荐只能辅助，不能覆盖用户明确选择。Provider/fallback/retry 等物理路由仍由成熟 Model Brain/runtime authority 负责。
@@ -31,7 +42,8 @@
 
 `screens/core/`：
 
-- `Yance_v4_precise_collapse_controls_final.png` — Conversation Workspace v4 主母版；包含精确折叠控制和 Focus Chat 的基础视觉约束。
+- `Yance_V5_Conversation_920x620_Golden.png` — **当前 V5 Conversation 920×620 唯一视觉 authority / Golden**。
+- `Yance_v4_precise_collapse_controls_final.png` — v4 Conversation 历史参考；不再作为 V5 920×620 Golden。
 - `Yance_Home_Adaptive_v1.png` — 首页 / People。
 - `Yance_Relationship_World_v1.png` — 关系世界。
 - `Yance_Settings_v1.png` — 设置与高级能力入口。
@@ -53,7 +65,7 @@
 
 ### M06 Focus Chat
 
-没有伪造一个不存在的独立 `M06` 文件。M06 的双侧收起 / Focus Chat 视觉基线由 `screens/core/Yance_v4_precise_collapse_controls_final.png` 承载。后续若真实 Windows 验收需要单独的 M06 状态封样，可新增验收证据，但不得把它误解为缺失功能或恢复旧一级页面的理由。
+没有伪造一个不存在的独立 `M06` 文件。V5 Conversation 920×620 的双侧收起 / Focus Chat 当前视觉基线由 `screens/core/Yance_V5_Conversation_920x620_Golden.png` 承载；`Yance_v4_precise_collapse_controls_final.png` 仅保留历史参考价值。后续若真实 Windows 验收需要单独的 M06 状态封样，可新增验收证据，但不得把它误解为缺失功能或恢复旧一级页面的理由。
 
 ## 对功能对账文件中 AMBER 的解释
 
@@ -104,4 +116,4 @@ M06 仍按上面的 Conversation 母版映射处理；是否需要额外独立�
 
 ## 完整性
 
-`ASSET_SHA256.txt` 记录本基线 35 个原始设计资产的仓库相对路径与 SHA-256。归档时所有目标文件均需与本地批准源文件逐字节一致。
+`ASSET_SHA256.txt` 记录本基线 37 个设计资产的仓库相对路径与 SHA-256。归档时所有目标文件均需与本地批准源文件逐字节一致。
