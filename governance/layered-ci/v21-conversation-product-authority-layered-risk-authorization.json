@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-29T06:59:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-CONVERSATION-PRODUCT-AUTHORITY-LAYERED-RISK-PREREQUISITE",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Conversation Product Authority successor proof head 92ba27ca24cf96477d536e1dac238c0698cd51a3 is locally closed. The separately authorized exact WP0 route prerequisite has landed by ordinary merge at 6c675863465133a58b291e2836898c2b6897b0dd, and the trusted Layered CI classifier still fails closed with CI_UNKNOWN_PATH for exactly thirteen inherited/successor paths. Reuse the existing base-owned risk-policy exact L2 seam only; no second classifier, broad prefix, Product mutation, workflow change, dependency change, gate weakening, release, RC, UAT, publish, force push, or history rewrite is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "6c675863465133a58b291e2836898c2b6897b0dd",
+    "tree": "2a705343db227dba7e6768c89aa9dd5222dfa30e",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "6c675863465133a58b291e2836898c2b6897b0dd",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "evidence": {
+    "sourceExactHead": "92ba27ca24cf96477d536e1dac238c0698cd51a3",
+    "frozenPredecessorHead": "1d6288d3e36e72894ae3a11e959bcc33bbf91554",
+    "routeAuthorizationMerge": "bcec6e466a27d0d53a4d146accbf70ec0eb7434f",
+    "routeImplementationMerge": "6c675863465133a58b291e2836898c2b6897b0dd",
+    "reasonCode": "CI_UNKNOWN_PATH",
+    "unknownPathsObservedAtSourceExactHead": [
+      "AGENTS.md",
+      "integration/element-module/src/LearningWorkspace.css",
+      "integration/element-module/src/product-experience/AIWorkspace.tsx",
+      "integration/element-module/src/product-experience/PersonaManagement.tsx",
+      "integration/element-module/src/product-experience/assets/conversation-terrace-dusk-v5.webp",
+      "integration/element-module/src/product-experience/assets/conversation-terrace-dusk.png",
+      "runtime/model-brain/yance_litellm_worker.py",
+      "upstream-patches/element-web/0020-yance-product-live-room-public-seams.patch",
+      "upstream-patches/element-web/0021-yance-space-hierarchy-summary.patch",
+      "upstream-patches/element-web/0022-yance-bridge-dm-avatar-authority.patch",
+      "upstream-patches/element-web/0023-yance-room-message-summary-projection.patch",
+      "upstream-patches/element-web/0024-yance-room-invite-sender-public-seam.patch",
+      "upstream-patches/element-web/0025-yance-product-conversation-presentation-successor.patch"
+    ],
+    "localClosure": {
+      "exactHeadTests": "70/70 GREEN",
+      "elementMaterialization": "19/19 patches GREEN",
+      "importClosure": "0 missing",
+      "matureAuthorityProofs": "Model Brain / Reply Learning / Appearance / Element presentation GREEN"
+    }
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-conversation-product-authority-layered-risk-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-conversation-product-authority-layered-risk-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "92a235250fa9a11d63d5dca1fbd0b79e3bc04674addb30c21594135fed4146dc",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "riskPolicyExactL2Paths": [
+    "AGENTS.md",
+    "integration/element-module/src/LearningWorkspace.css",
+    "integration/element-module/src/product-experience/AIWorkspace.tsx",
+    "integration/element-module/src/product-experience/PersonaManagement.tsx",
+    "integration/element-module/src/product-experience/assets/conversation-terrace-dusk-v5.webp",
+    "integration/element-module/src/product-experience/assets/conversation-terrace-dusk.png",
+    "runtime/model-brain/yance_litellm_worker.py",
+    "upstream-patches/element-web/0020-yance-product-live-room-public-seams.patch",
+    "upstream-patches/element-web/0021-yance-space-hierarchy-summary.patch",
+    "upstream-patches/element-web/0022-yance-bridge-dm-avatar-authority.patch",
+    "upstream-patches/element-web/0023-yance-room-message-summary-projection.patch",
+    "upstream-patches/element-web/0024-yance-room-invite-sender-public-seam.patch",
+    "upstream-patches/element-web/0025-yance-product-conversation-presentation-successor.patch"
+  ],
+  "riskPolicyExactL2PathCount": 13,
+  "riskPolicyExactL2PathSetSha256": "abbf464c71fa4609235dad388c8563d14e28ed5f3c1ea36df3c69d306afdd495",
+  "implementation": {
+    "branch": "fix/v21-conversation-product-authority-layered-risk",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "tests/layered-ci/governance-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "dda3b27532f387c8ea4e78c3b63b62fc9b822d1efdf31ea6051fe6ea91f22633",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/governance-policy.test.js"
+      ],
+      "productionCodeChanged": false,
+      "expectedFailure": "The thirteen exact identities remain CI_UNKNOWN_PATH until risk-policy.json is permanently repaired."
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "broadPrefixModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "riskPolicyMigration": {
+    "path": "governance/layered-ci/risk-policy.json",
+    "targetCollection": "l2ExactPaths",
+    "requiredLevel": "L2",
+    "requiredChange": "Add exactly riskPolicyExactL2Paths to l2ExactPaths in canonical sorted order.",
+    "baselineBlobSha": "33b5dcabbf557a99535cc088c64734378e4c881c",
+    "baselineL2ExactPathCount": 94,
+    "baselineL2ExactPathSetSha256": "5f023b33ff23e35790e90ee35d75e169932d80939cd2499931853d4366ad6274",
+    "expectedPostRepairL2ExactPathCount": 107,
+    "expectedPostRepairL2ExactPathSetSha256": "dd67af8993ea5ca46d819ab7d5eb13aea00070dabed5caf06835f33114859d53",
+    "baselineL2PrefixCount": 13,
+    "baselineL2PrefixSetSha256": "bf08a55c081a48508dc5a5e2008bbb40a25ad135ed129fe6ee0068aecf6edebc",
+    "unknownPathFailsClosedMustRemain": true,
+    "l3AutomaticMustRemain": false,
+    "broadPrefixModificationAllowed": false,
+    "existingPrefixModificationAllowed": false,
+    "existingClassificationRemovalAllowed": false
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BASE_OWNED_LAYERED_RISK_CLASSIFIER",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "thinYanceAdapterOnly": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Layered CI risk classifier",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The classifier already fails closed correctly; only thirteen exact authorized identities are missing from L2."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add integration/, integration/element-module/, upstream-patches/, runtime/ or repository-root broad L2 prefixes.",
+      "Do not set unknownPathFailsClosed=false or l3Automatic=true.",
+      "Do not create another risk selector, workflow, PR-specific bypass or warning-only path."
+    ]
+  },
+  "requiredSequence": [
+    "Authorization exact head remains one governance file on unchanged trusted main.",
+    "Authorization PR merges to main by ordinary two-parent merge.",
+    "Create fix/v21-conversation-product-authority-layered-risk from that exact authorization merge commit.",
+    "First implementation commit changes only tests/layered-ci/governance-policy.test.js and proves the thirteen-path CI_UNKNOWN_PATH RED.",
+    "Add only the thirteen riskPolicyExactL2Paths to l2ExactPaths.",
+    "Implementation exact head proves all thirteen identities classify L2 exactly while adjacent unknown paths remain fail closed.",
+    "Implementation PR merges to main by ordinary two-parent merge.",
+    "Only then create the separate Conversation Product successor continuation authorization."
+  ],
+  "prohibitions": {
+    "wildcardAuthorization": true,
+    "broadPrefixExpansion": true,
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "workflowModification": true,
+    "productMutation": true,
+    "secondRiskClassifier": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true,
+    "rebaseMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
