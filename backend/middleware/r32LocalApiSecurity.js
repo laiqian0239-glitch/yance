@@ -2,6 +2,22 @@
 
 const { authorizeHeaders } = require('../security/apiSessionAuth');
 
+const FACEBOOK_PROFILE_COMPANION_EXTENSION_ID = 'jpdfcngpmkhejmehmphmfkbhkinccdoe';
+const FACEBOOK_PROFILE_ENRICHMENT_PATH = '/api/r32/accounts/facebook/profile-enrichment';
+
+function normalizeRequestPath(req = {}) {
+  return String(req.path || req.originalUrl || req.url || '').split('?')[0].replace(/\/+$/u, '') || '/';
+}
+function isFacebookProfileCompanionRequest(req = {}) {
+  const method = String(req.method || '').toUpperCase();
+  const headers = req.headers || {};
+  const extensionId = String(headers['x-yance-extension-id'] || '').trim();
+  const origin = String(headers.origin || '').replace(/\/$/u, '');
+  return method === 'POST'
+    && normalizeRequestPath(req) === FACEBOOK_PROFILE_ENRICHMENT_PATH
+    && extensionId === FACEBOOK_PROFILE_COMPANION_EXTENSION_ID
+    && origin === `chrome-extension://${FACEBOOK_PROFILE_COMPANION_EXTENSION_ID}`;
+}
 function isLoopback(value) {
   const ip = String(value || '').replace(/^::ffff:/, '');
   return ip === '127.0.0.1' || ip === '::1' || ip === 'localhost';
@@ -49,11 +65,12 @@ function createR32LocalApiSecurity(options = {}) {
     }
 
     const origin = String(req.headers.origin || '').replace(/\/$/, '');
+    const profileCompanionRequest = isFacebookProfileCompanionRequest(req);
     let sameHostRemoteOrigin = false;
     if (origin && process.env.WORKBUDDY_ALLOW_REMOTE === '1') {
       try { sameHostRemoteOrigin = new URL(origin).host === String(req.headers.host || ''); } catch (_) {}
     }
-    if (origin && !allowedOrigins.has(origin) && !sameHostRemoteOrigin) {
+    if (origin && !allowedOrigins.has(origin) && !sameHostRemoteOrigin && !profileCompanionRequest) {
       return res.status(403).json({ ok: false, reasonCode: 'ORIGIN_REJECTED', code: 'ORIGIN_REJECTED', error: 'Origin is not allowed' });
     }
 
@@ -63,8 +80,8 @@ function createR32LocalApiSecurity(options = {}) {
       return res.status(413).json({ ok: false, reasonCode: 'JSON_BODY_TOO_LARGE', code: 'JSON_BODY_TOO_LARGE', error: `JSON body exceeds ${maxJsonBytes} bytes` });
     }
 
-    const requestPath = String(req.path || req.url || '').split('?')[0];
-    const tokenExempt = req.method === 'GET' && requestPath === '/api/health';
+    const requestPath = normalizeRequestPath(req);
+    const tokenExempt = (req.method === 'GET' && requestPath === '/api/health') || profileCompanionRequest;
     if (!tokenExempt && !authorizeHeaders(req.headers || {})) {
       return res.status(401).json({ ok: false, reasonCode: 'API_SESSION_UNAUTHORIZED', code: 'API_SESSION_UNAUTHORIZED', error: 'Valid local application session is required' });
     }
@@ -74,4 +91,10 @@ function createR32LocalApiSecurity(options = {}) {
   };
 }
 
-module.exports = { createR32LocalApiSecurity, isLoopback };
+module.exports = {
+  FACEBOOK_PROFILE_COMPANION_EXTENSION_ID,
+  FACEBOOK_PROFILE_ENRICHMENT_PATH,
+  createR32LocalApiSecurity,
+  isFacebookProfileCompanionRequest,
+  isLoopback
+};
