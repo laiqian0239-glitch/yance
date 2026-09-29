@@ -440,7 +440,20 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'integration/element-module/src/BrandPreviewSurface.css',
     'integration/element-module/src/BrandPreviewSurface.tsx',
     'integration/element-module/src/YanceLogin.css',
-    'integration/element-module/src/YanceLogin.tsx'
+    'integration/element-module/src/YanceLogin.tsx',
+    'AGENTS.md',
+    'integration/element-module/src/LearningWorkspace.css',
+    'integration/element-module/src/product-experience/AIWorkspace.tsx',
+    'integration/element-module/src/product-experience/PersonaManagement.tsx',
+    'integration/element-module/src/product-experience/assets/conversation-terrace-dusk-v5.webp',
+    'integration/element-module/src/product-experience/assets/conversation-terrace-dusk.png',
+    'runtime/model-brain/yance_litellm_worker.py',
+    'upstream-patches/element-web/0020-yance-product-live-room-public-seams.patch',
+    'upstream-patches/element-web/0021-yance-space-hierarchy-summary.patch',
+    'upstream-patches/element-web/0022-yance-bridge-dm-avatar-authority.patch',
+    'upstream-patches/element-web/0023-yance-room-message-summary-projection.patch',
+    'upstream-patches/element-web/0024-yance-room-invite-sender-public-seam.patch',
+    'upstream-patches/element-web/0025-yance-product-conversation-presentation-successor.patch'
   ]);
   assert.deepEqual(risk.l2Prefixes, [
     '.github/',
@@ -666,6 +679,59 @@ test('Product reconciliation remaining identities use exact L2 while adjacent Pr
   for (const file of [
     'integration/element-module/src/product-experience/RelationshipWorld.local.tsx',
     'runtime/parlant/yance_parlant_server.local.py'
+  ]) {
+    const denied = classifyChangedFiles(risk, [file]);
+    assert.equal(denied.pass, false, `${file}: ${JSON.stringify(denied)}`);
+    assert.equal(denied.reasonCode, 'CI_UNKNOWN_PATH', file);
+    assert.deepEqual(denied.unknownPaths, [file], file);
+  }
+
+  assert.equal(risk.unknownPathFailsClosed, true);
+  assert.equal(risk.l3Automatic, false);
+});
+
+test('Conversation successor exact identities require L2 without broad-prefix expansion', () => {
+  const targetPaths = [
+    'AGENTS.md',
+    'integration/element-module/src/LearningWorkspace.css',
+    'integration/element-module/src/product-experience/AIWorkspace.tsx',
+    'integration/element-module/src/product-experience/PersonaManagement.tsx',
+    'integration/element-module/src/product-experience/assets/conversation-terrace-dusk-v5.webp',
+    'integration/element-module/src/product-experience/assets/conversation-terrace-dusk.png',
+    'runtime/model-brain/yance_litellm_worker.py',
+    'upstream-patches/element-web/0020-yance-product-live-room-public-seams.patch',
+    'upstream-patches/element-web/0021-yance-space-hierarchy-summary.patch',
+    'upstream-patches/element-web/0022-yance-bridge-dm-avatar-authority.patch',
+    'upstream-patches/element-web/0023-yance-room-message-summary-projection.patch',
+    'upstream-patches/element-web/0024-yance-room-invite-sender-public-seam.patch',
+    'upstream-patches/element-web/0025-yance-product-conversation-presentation-successor.patch'
+  ];
+
+  assert.equal(new Set(targetPaths).size, 13);
+  for (const file of targetPaths) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.requiredLevel, 'L2', file);
+    assert.equal(result.reasons[0].type, 'EXACT', file);
+    assert.equal(risk.l2ExactPaths.includes(file), true, file);
+  }
+
+  for (const prefix of [
+    'integration/',
+    'integration/element-module/',
+    'integration/element-module/src/product-experience/',
+    'runtime/',
+    'runtime/model-brain/',
+    'upstream-patches/'
+  ]) {
+    assert.equal(risk.l2Prefixes.includes(prefix), false, prefix);
+  }
+
+  for (const file of [
+    'AGENTS.local.md',
+    'integration/element-module/src/product-experience/AIWorkspace.local.tsx',
+    'runtime/model-brain/yance_shadow_worker.py',
+    'upstream-patches/element-web/0026-yance-unregistered.patch'
   ]) {
     const denied = classifyChangedFiles(risk, [file]);
     assert.equal(denied.pass, false, `${file}: ${JSON.stringify(denied)}`);
