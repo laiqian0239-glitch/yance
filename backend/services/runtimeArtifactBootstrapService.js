@@ -120,7 +120,6 @@ class RuntimeArtifactBootstrapService {
     const adapterManifest = writeContentAddressedJson(generatedRoot, 'platform-adapter', {
       schemaVersion: 1,
       files: fileManifest(root, [
-        'backend/services/facebookAdapter.js',
         'backend/services/platformDriverRegistry.js',
         'backend/services/mautrixProvisioningAdapter.js',
         'backend/services/platformCapabilities.js',

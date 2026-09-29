@@ -8,7 +8,6 @@ const { PATHS } = require('../config');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
 const securityGuard = getSecurityGuard();
 const platformAuthConfig = require('./platformAuthConfig');
-const relayClient = require('./facebookRelayClient');
 const logger = require('./logger');
 const { executeWithDeadline, normalizedDeadlineAt } = require('./executionDeadline');
 
@@ -22,6 +21,33 @@ const flows = new Map();
 const FLOW_FILE_PREFIX = 'facebook-oauth-flow-';
 
 function clean(value, fallback = '') { const normalized = value == null ? '' : String(value).trim(); return normalized || fallback; }
+function facebookWorkerBaseUrl(value) {
+  const raw = clean(value);
+  if (!raw) return '';
+  const url = new URL(raw);
+  const allowed = url.protocol === 'https:' || (process.env.NODE_ENV === 'test' && url.protocol === 'http:');
+  if (!allowed) throw Object.assign(new Error('Facebook 云端同步服务必须使用 HTTPS'), { code: 'FACEBOOK_WORKER_HTTPS_REQUIRED' });
+  if (url.username || url.password) throw Object.assign(new Error('Facebook 云端同步地址不能包含凭据'), { code: 'FACEBOOK_WORKER_URL_CREDENTIALS_FORBIDDEN' });
+  url.pathname = url.pathname.replace(/\/$/, ''); url.search = ''; url.hash = '';
+  return url.toString().replace(/\/$/, '');
+}
+function assertReleaseWorkerBinding(value) {
+  const actual = facebookWorkerBaseUrl(value);
+  if (!actual) throw Object.assign(new Error('Facebook 云端同步服务尚未配置'), { code: 'FACEBOOK_WORKER_UNCONFIGURED', status: 409 });
+  const release = platformAuthConfig.facebook();
+  if (release.configured === true) {
+    const expected = facebookWorkerBaseUrl(release.workerBaseUrl);
+    if (actual !== expected) throw Object.assign(new Error('Facebook 账号绑定的云端服务与当前正式发行配置不一致，请重新授权'), { code: 'FACEBOOK_WORKER_BINDING_MISMATCH', status: 409, details: { expectedHost: new URL(expected).host, actualHost: new URL(actual).host } });
+  } else if (!(process.env.NODE_ENV === 'test' || process.execArgv.some(arg => arg === '--test' || arg.startsWith('--test-')))) {
+    throw Object.assign(new Error('当前安装包尚未启用 Facebook 正式云端服务'), { code: 'FACEBOOK_RELEASE_SERVICE_UNAVAILABLE', status: 409 });
+  }
+  return actual;
+}
+function generateDeviceIdentity(existing = {}) {
+  if (clean(existing.deviceId) && clean(existing.devicePublicKeySpki) && clean(existing.devicePrivateKeyPkcs8)) return { deviceId: clean(existing.deviceId), publicKeySpki: clean(existing.devicePublicKeySpki), privateKeyPkcs8: clean(existing.devicePrivateKeyPkcs8) };
+  const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
+  return { deviceId: `fbdev_${crypto.randomUUID()}`, publicKeySpki: Buffer.from(publicKey.export({ format: 'der', type: 'spki' })).toString('base64url'), privateKeyPkcs8: Buffer.from(privateKey.export({ format: 'der', type: 'pkcs8' })).toString('base64url') };
+}
 function workerErrorCode(value, fallback = 'FACEBOOK_OAUTH_WORKER_ERROR') {
   const code = clean(value);
   return /^FACEBOOK_[A-Z0-9_]+$/u.test(code) ? code : fallback;
@@ -271,12 +297,12 @@ async function begin(accountId, options = {}) {
   assertPageOAuthOwnedByChatwoot(mode);
   const config = platformAuthConfig.facebook();
   if (!config.configured) throw Object.assign(new Error('当前安装包尚未启用 Facebook 登录，请安装已启用的正式升级包'), { code: 'FACEBOOK_RELEASE_SERVICE_UNAVAILABLE', status: 409 });
-  const boundWorkerBaseUrl = relayClient.assertReleaseWorkerBinding(config.workerBaseUrl);
+  const boundWorkerBaseUrl = assertReleaseWorkerBinding(config.workerBaseUrl);
   await verifyWorkerOAuthContract(boundWorkerBaseUrl, config.graphVersion, mode, options);
   assertOperationActive(options.signal, 'FACEBOOK_OAUTH_START_ABORTED');
   prune();
   const existing = securityGuard.credentials.get(account.credentialRef) || {};
-  const identity = relayClient.generateDeviceIdentity(existing);
+  const identity = generateDeviceIdentity(existing);
   const flowId = `fbflow_${crypto.randomUUID()}`;
   const clientSecret = platformAuthConfig.randomSecret(32);
   const clientProof = platformAuthConfig.sha256Base64Url(clientSecret);

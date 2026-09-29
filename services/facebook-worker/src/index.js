@@ -3,10 +3,6 @@ import { cleanup } from './cleanup.js';
 import { errorResponse, html, json, text, withSecurityHeaders } from './response.js';
 import { GatewayError } from './errors.js';
 import { beginOAuth, cancelOAuthResult, handleOAuthCallback, pollOAuthResult, selectOAuthPage } from './oauth.js';
-import { ingestWebhook, verifyWebhookChallenge } from './webhook.js';
-import { acknowledgeEvents, avatarResponse, disconnectAccount, health, history, historyMessages, listAccounts, profile, pullEvents, refreshPermissions, renewEvents, sendMessage } from './desktopApi.js';
-import { authenticateDesktop } from './desktopAuth.js';
-import { cacheEventMedia, getMediaObject } from './media.js';
 import { clean, randomId, sha256Base64Url } from './utils.js';
 import { all } from './db.js';
 
@@ -21,62 +17,6 @@ function parseJson(bytes) {
   if (!bytes.byteLength) return {};
   try { return JSON.parse(new TextDecoder().decode(bytes)); }
   catch (_) { throw new GatewayError('FACEBOOK_REQUEST_JSON_INVALID', '请求正文不是有效 JSON', 400); }
-}
-const PERSISTED_ATTEMPT_HEADERS = Object.freeze([
-  ['executionId', 'x-yance-wpb-execution-id'],
-  ['attemptId', 'x-yance-wpb-attempt-id'],
-  ['claimId', 'x-yance-wpb-claim-id'],
-  ['ownerId', 'x-yance-wpb-owner-id']
-]);
-const PERSISTED_FENCING_HEADERS = Object.freeze([
-  ['generation', 'x-yance-wpb-generation'],
-  ['hostGeneration', 'x-yance-wpb-host-generation'],
-  ['fencingToken', 'x-yance-wpb-fencing-token']
-]);
-function persistedAttemptBindingText(result) {
-  return [
-    `x-yance-wpb-execution-id:${result.executionId}`,
-    `x-yance-wpb-attempt-id:${result.attemptId}`,
-    `x-yance-wpb-claim-id:${result.claimId}`,
-    `x-yance-wpb-owner-id:${result.ownerId}`,
-    `x-yance-wpb-generation:${result.generation}`,
-    `x-yance-wpb-host-generation:${result.hostGeneration}`,
-    `x-yance-wpb-fencing-token:${result.fencingToken}`,
-    `x-yance-wpb-operation-kind:${result.operationKind}`
-  ].join('\n');
-}
-async function requirePersistedAttemptHeaders(request) {
-  const result = {};
-  for (const [field, key] of PERSISTED_ATTEMPT_HEADERS) {
-    result[field] = clean(request.headers.get(key));
-    if (!result[field] || result[field].length > 200) throw new GatewayError('FACEBOOK_WORKER_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Worker 请求缺少持久化 attempt identity', 409, { field });
-  }
-  for (const [field, key] of PERSISTED_FENCING_HEADERS) {
-    const value = Number(request.headers.get(key));
-    if (!Number.isSafeInteger(value) || value < 1) throw new GatewayError('FACEBOOK_WORKER_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Worker fencing identity 无效', 409, { field });
-    result[field] = value;
-  }
-  result.operationKind = clean(request.headers.get('x-yance-wpb-operation-kind'));
-  const requestId = clean(request.headers.get('x-yance-request-id'));
-  const binding = await sha256Base64Url(persistedAttemptBindingText(result));
-  if (!requestId || !requestId.endsWith(`.${binding}`)) {
-    throw new GatewayError('FACEBOOK_WORKER_PERSISTED_ATTEMPT_BINDING_INVALID', 'Facebook Worker 持久化 attempt metadata 未绑定到设备签名请求', 409);
-  }
-  return Object.freeze(result);
-}
-
-async function persistedMediaResponse(request, env, config, eventId, index, persistedAttempt) {
-  const auth = await authenticateDesktop(request, env, config, new Uint8Array());
-  await cacheEventMedia(env, config, eventId, persistedAttempt, index);
-  const { row, object } = await getMediaObject(env, eventId, index, auth.device, persistedAttempt);
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set('cache-control', 'private, max-age=300');
-  headers.set('content-disposition', `attachment; filename="${clean(row.filename, 'facebook-media').replace(/["\\\r\n]/g, '_')}"`);
-  headers.set('x-content-type-options', 'nosniff');
-  headers.set('x-yance-wpb-execution-id', persistedAttempt.executionId);
-  headers.set('x-yance-wpb-attempt-id', persistedAttempt.attemptId);
-  return new Response(object.body, { status: 200, headers });
 }
 async function d1SchemaStatus(env) {
   try {
@@ -143,11 +83,6 @@ function oauthCallbackErrorMessage(error) {
   return `授权完成，但 Meta 没有返回可连接的 Facebook 公共主页。安全证据：/me/accounts=${primaryCount}；显式用户accounts=${explicitCount}（已选=${explicitSelected}）；granular target_ids=${targetLabel}；定向Page Token=${directTokenLabel}；主页资料探针=${profileLabel}；可用Page Token=${recovered}。请返回言策查看诊断。`;
 }
 
-function isPhysicalDesktopRoute(path, method) {
-  if (method === 'POST' && ['/api/desktop/send', '/api/desktop/permissions/refresh', '/api/desktop/disconnect', '/api/desktop/events/renew'].includes(path)) return true;
-  if (method === 'GET' && ['/api/desktop/history', '/api/desktop/history/messages', '/api/desktop/profile', '/api/desktop/avatar/page', '/api/desktop/avatar/profile'].includes(path)) return true;
-  return method === 'GET' && /^\/api\/desktop\/media\/[^/]+\/\d+$/u.test(path);
-}
 
 async function route(request, env, ctx, dependencies = {}) {
   const preflight = noCorsPreflight(request);
@@ -155,14 +90,6 @@ async function route(request, env, ctx, dependencies = {}) {
   const config = workerConfig(env);
   const url = new URL(request.url);
   const path = url.pathname;
-  const persistedAttempt = isPhysicalDesktopRoute(path, request.method) ? await requirePersistedAttemptHeaders(request) : null;
-
-  if (request.method === 'GET' && path === '/webhooks/facebook') return text(verifyWebhookChallenge(url, config.verifyToken));
-  if (request.method === 'POST' && path === '/webhooks/facebook') {
-    const rawBody = await readBody(request, config.maxWebhookBodyBytes);
-    const result = await ingestWebhook(rawBody, request.headers.get('x-hub-signature-256'), env, config, ctx);
-    return json({ ok: true, ...result });
-  }
 
   if (request.method === 'GET' && path === '/oauth/facebook/start') return beginOAuth(request, env, config);
   if (request.method === 'GET' && path === '/oauth/facebook/callback') {
@@ -182,62 +109,12 @@ async function route(request, env, ctx, dependencies = {}) {
     return json({ ok: true, ...(await selectOAuthPage(request, env, config, decodeURIComponent(selectMatch[1]), parseJson(bytes))) });
   }
 
-  if (path === '/api/desktop/events' && request.method === 'GET') return json({ ok: true, ...(await pullEvents(request, env, config)) });
-  if (path === '/api/desktop/events/renew' && request.method === 'POST') {
-    const bytes = await readBody(request, 256 * 1024);
-    return json({ ok: true, ...(await renewEvents(request, env, config, bytes, parseJson(bytes))) });
-  }
-  if (path === '/api/desktop/ack' && request.method === 'POST') {
-    const bytes = await readBody(request, 256 * 1024);
-    return json({ ok: true, ...(await acknowledgeEvents(request, env, config, bytes, parseJson(bytes))) });
-  }
-  if (path === '/api/desktop/send' && request.method === 'POST') {
-    const bytes = await readBody(request, config.maxDesktopBodyBytes);
-    return json({ ok: true, ...(await sendMessage(request, env, config, ctx, bytes, parseJson(bytes))) });
-  }
-  if (path === '/api/desktop/accounts' && request.method === 'GET') return json({ ok: true, ...(await listAccounts(request, env, config)) });
-  if (path === '/api/desktop/permissions/refresh' && request.method === 'POST') {
-    const bytes = await readBody(request, 1024);
-    return json({ ok: true, ...(await refreshPermissions(request, env, config, bytes, dependencies.fetch || fetch)) });
-  }
-  if (path === '/api/desktop/disconnect' && request.method === 'POST') {
-    const bytes = await readBody(request, 64 * 1024);
-    return json({ ok: true, ...(await disconnectAccount(request, env, config, bytes, parseJson(bytes))) });
-  }
-  if (path === '/api/desktop/health' && request.method === 'GET') return json({ ok: true, ...(await health(request, env, config)) });
-  if (path === '/api/desktop/history' && request.method === 'GET') return json({ ok: true, ...(await history(request, env, config)) });
-  if (path === '/api/desktop/history/messages' && request.method === 'GET') return json({ ok: true, ...(await historyMessages(request, env, config)) });
-  if (path === '/api/desktop/profile' && request.method === 'GET') return json({ ok: true, ...(await profile(request, env, config)) });
-  if (path === '/api/desktop/avatar/page' && request.method === 'GET') return avatarResponse(request, env, config, new Uint8Array(), 'page');
-  if (path === '/api/desktop/avatar/profile' && request.method === 'GET') return avatarResponse(request, env, config, new Uint8Array(), 'profile');
-  const mediaMatch = path.match(/^\/api\/desktop\/media\/([^/]+)\/(\d+)$/);
-  if (mediaMatch && request.method === 'GET') return persistedMediaResponse(request, env, config, decodeURIComponent(mediaMatch[1]), Number(mediaMatch[2]), persistedAttempt);
-
   if (path === '/healthz' && request.method === 'GET') return json({
     ok: true,
     service: 'yance-facebook-gateway',
     time: new Date().toISOString(),
     graphVersion: config.graphVersion,
     d1Schema: await d1SchemaStatus(env),
-    avatarProxyContract: {
-      version: 11,
-      authentication: 'desktop-device-signature',
-      pageRoute: '/api/desktop/avatar/page',
-      profileRoute: '/api/desktop/avatar/profile',
-      contactAvatarStrategy: 'messenger-profile-then-generic-picture-then-picture-edge',
-      messengerProfileFallback: true,
-      identityPictureFallback: true,
-      pictureEdgeFallback: true,
-      persistentPageReference: true,
-      deterministicPermissionClassification: true,
-      deterministicUnsupportedGetClassification: true,
-      preserveHistoricalAvatarOnDeterministicFailure: true,
-      accountHealthSeparatedFromContactAvatarAccess: true,
-      evidenceContractVersion: 6,
-      deploymentMarker: 'facebook-avatar-translation-persistence-fix13-20260724',
-      maximumBytes: 8 * 1024 * 1024,
-      contentTypes: ['image/*']
-    },
     oauthContract: {
       version: OAUTH_CONTRACT_VERSION,
       supportedModes: ['page', 'identity'],
