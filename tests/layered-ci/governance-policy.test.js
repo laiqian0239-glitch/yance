@@ -440,7 +440,20 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'integration/element-module/src/BrandPreviewSurface.css',
     'integration/element-module/src/BrandPreviewSurface.tsx',
     'integration/element-module/src/YanceLogin.css',
-    'integration/element-module/src/YanceLogin.tsx'
+    'integration/element-module/src/YanceLogin.tsx',
+    'AGENTS.md',
+    'integration/element-module/src/LearningWorkspace.css',
+    'integration/element-module/src/product-experience/AIWorkspace.tsx',
+    'integration/element-module/src/product-experience/PersonaManagement.tsx',
+    'integration/element-module/src/product-experience/assets/conversation-terrace-dusk-v5.webp',
+    'integration/element-module/src/product-experience/assets/conversation-terrace-dusk.png',
+    'runtime/model-brain/yance_litellm_worker.py',
+    'upstream-patches/element-web/0020-yance-product-live-room-public-seams.patch',
+    'upstream-patches/element-web/0021-yance-space-hierarchy-summary.patch',
+    'upstream-patches/element-web/0022-yance-bridge-dm-avatar-authority.patch',
+    'upstream-patches/element-web/0023-yance-room-message-summary-projection.patch',
+    'upstream-patches/element-web/0024-yance-room-invite-sender-public-seam.patch',
+    'upstream-patches/element-web/0025-yance-product-conversation-presentation-successor.patch'
   ]);
   assert.deepEqual(risk.l2Prefixes, [
     '.github/',
