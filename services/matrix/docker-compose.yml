@@ -114,13 +114,12 @@ services:
         if [ ! -f /data/config.yaml ]; then
           cp /bootstrap/config.yaml /data/config.yaml
         fi
+        yq -I4 e -i '.provisioning.shared_secret = load_str("/run/secrets/yance_mautrix_meta_provisioning_secret")' /data/config.yaml
         if [ ! -f /data/registration.yaml ]; then
           /usr/bin/mautrix-meta -g -c /data/config.yaml -r /data/registration.yaml
         fi
         chown -R 1337:1337 /data
         chmod 0644 /data/config.yaml /data/registration.yaml
-    environment:
-      YANCE_MAUTRIX_META_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_meta_provisioning_secret
     volumes:
       - ../../config/matrix/mautrix-meta/config.yaml:/bootstrap/config.yaml:ro
       - mautrix-meta-secret-data:/run/secrets:ro
@@ -257,8 +256,6 @@ services:
   mautrix-meta:
     build:
       context: ./.runtime/mautrix-meta
-    environment:
-      YANCE_MAUTRIX_META_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_meta_provisioning_secret
     volumes:
       - mautrix-meta-secret-data:/run/secrets:ro
       - mautrix-meta-data:/data
