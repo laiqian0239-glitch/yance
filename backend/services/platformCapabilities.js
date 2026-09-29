@@ -48,7 +48,7 @@ const CONTRACTS = Object.freeze({
     video: contract(STATE.SUPPORTED, 'POST /api/r32/messages/telegram/:accountId/send-media-stream', 'sendMedia'),
     gif: contract(STATE.SUPPORTED, 'POST /api/r32/messages/telegram/:accountId/send-media-stream', 'sendMedia'),
     sticker: contract(STATE.PARTIAL, 'POST /api/r32/messages/telegram/:accountId/send-media-stream', 'sendMedia', '普通 WebP 通过通用上传链发送；原生贴纸语义需真实账号确认'),
-    animatedSticker: contract(STATE.PARTIAL, 'Telegram receive pipeline', 'downloadMedia', '动态贴纸可识别和缓存；原生 TGS/WebM 发送 API 尚未接入'),
+    animatedSticker: contract(STATE.PARTIAL, 'mautrix-telegram -> Matrix event -> Element RoomView', '', 'Incoming animated stickers are owned by mautrix-telegram and rendered from Matrix events; native TGS/WebM send remains subject to platform acceptance'),
     lottieSticker: contract(STATE.UNSUPPORTED, '', '', 'TGS/Lottie 可被识别但当前渲染器不支持播放'),
     animatedEmojiDisplay: contract(STATE.UNSUPPORTED, '', '', 'Telegram 动态 Emoji 需要专用文档/实体渲染，当前未实现'),
     voice: contract(STATE.SUPPORTED, 'POST /api/r32/messages/telegram/:accountId/send-media-stream', 'sendMedia'),
@@ -58,12 +58,12 @@ const CONTRACTS = Object.freeze({
     revoke: contract(STATE.PARTIAL, 'POST /api/r32/messages/telegram/:accountId/revoke', 'revokeMessage', '真实撤回', ['受 Telegram 权限与消息时限约束']),
     readReceipt: contract(STATE.SUPPORTED, 'POST /api/r32/messages/conversations/:conversationId/read', 'markRead'),
     typingSend: contract(STATE.SUPPORTED, 'POST /api/r32/messages/telegram/:accountId/presence', 'sendPresence'),
-    incomingTyping: contract(STATE.SUPPORTED, 'GramJS raw UpdateUserTyping/UpdateChatUserTyping', 'attachTypingHandler', '接收 Telegram 对方输入、录音与上传状态'),
-    terminalPresence: contract(STATE.PARTIAL, 'GramJS raw UpdateUserStatus', 'attachTypingHandler', '接收联系人上线/离线状态并触发提醒', ['受 Telegram 隐私设置和账号可见范围限制']),
+    incomingTyping: contract(STATE.SUPPORTED, 'mautrix-telegram -> Matrix typing', '', 'mautrix-telegram projects remote typing, recording and upload actions into Matrix typing events'),
+    terminalPresence: contract(STATE.UNSUPPORTED, '', '', 'Current mautrix-telegram ignores Telegram UpdateUserStatus; Yance does not create a second presence listener'),
     contacts: contract(STATE.PARTIAL, 'POST /api/r32/accounts/:accountId/sync', 'sync'),
     groups: contract(STATE.SUPPORTED, 'conversation target', 'sendText'),
     proactiveSend: contract(STATE.SUPPORTED, 'POST /api/r32/messages/telegram/:accountId/send-text', 'sendText'),
-    historySync: contract(STATE.PARTIAL, 'POST /api/r32/accounts/:accountId/sync', 'sync', '通过 GramJS 分页补拉对话历史消息与媒体', ['同步范围受 Telegram API、账号权限和配置上限约束'])
+    historySync: contract(STATE.PARTIAL, 'mautrix-telegram backfill -> Matrix timeline', '', 'History and media are materialized by mautrix-telegram backfill and rendered by Element RoomView', ['Coverage depends on Telegram access and bridge backfill configuration'])
   }),
   facebook: Object.freeze({
     text: contract(STATE.SUPPORTED, 'POST /api/r32/messages/facebook/:accountId/send-text', 'sendText'),
