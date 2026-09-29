@@ -4,7 +4,8 @@ const MINIMAL_PATHS = new Set([
   'POST /api/r32/personal-access/status',
   'POST /api/r32/personal-access/login',
   'POST /api/r32/personal-access/activate',
-  'POST /api/r32/personal-access/logout'
+  'POST /api/r32/personal-access/logout',
+  'POST /api/r32/accounts/facebook/profile-enrichment'
 ]);
 
 function normalizePath(reqOrPath) {

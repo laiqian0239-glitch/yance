@@ -3,6 +3,7 @@
 const express = require('express');
 const { getAppRuntime } = require('../runtime/runtimeSingleton');
 const facebookChatwootMatrixBridge = require('../services/facebookChatwootMatrixBridge');
+const facebookBusinessSuiteContactProjection = require('../services/facebookBusinessSuiteContactProjection');
 
 const router = express.Router();
 const runtime = () => getAppRuntime();
@@ -109,6 +110,12 @@ router.post('/:id/facebook/page/attach', async (req, res, next) => { try {
   res.set('Cache-Control', 'no-store');
   res.json({ ok: true, ...(await execute(req, 'account.facebook.page.attach', { id: req.params.id, inboxId: req.body?.inboxId, pageId: req.body?.pageId })) });
 } catch (error) { next(error); } });
+router.post('/facebook/profile-enrichment', async (req, res, next) => {
+  try {
+    const result = await facebookBusinessSuiteContactProjection.projectBatch(req.body?.profiles || []);
+    res.json({ ok: true, ...result });
+  } catch (error) { next(error); }
+});
 router.post('/:id/facebook/oauth/start', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.oauth.start', { id: req.params.id })) }); } catch (error) { next(error); } });
 router.get('/:id/facebook/oauth/status', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.oauth.status', { id: req.params.id, flowId: req.query.flowId })) }); } catch (error) { next(error); } });
 router.post('/:id/facebook/oauth/cancel', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.oauth.cancel', { id: req.params.id, flowId: req.body?.flowId })) }); } catch (error) { next(error); } });
