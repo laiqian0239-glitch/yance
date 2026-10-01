@@ -1,0 +1,1 @@
+This directory now contains the owner-mandated release-controller failure-prevention guardrail and the 2026-09-14 release handoff snapshot. These documents are additive to root `AGENTS.md` and must be applied together with Issue #1051 latest Controller State during release closure. They do not weaken any existing policy or authorization.

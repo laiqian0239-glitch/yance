@@ -390,3 +390,16 @@ A work-package handoff should record exact SHAs, run/job IDs, path/digest facts,
 ## Local repository safety
 
 The usual local checkout is `C:\GitHub\yance-pr299-product-experience`. Connector-first execution is preferred specifically to avoid branch switches or commands that can overwrite unrelated local staged changes. Never discard, reset, clean, stash, or rewrite unrelated local work unless the owner explicitly directs it.
+
+## Owner-mandated scriptless executor handoff (non-waivable execution invariant)
+
+This section is part of **First execution principle — shortest path to Release** and therefore carries the same highest repository execution priority described in `Precedence` item 3.
+
+- During release closure, the Controller/agent MUST NOT create, package, transmit, or ask the user to run bespoke helper, transaction, resume, matcher, or orchestration programs for local mutation or Local Closure.
+- The user's machine is not a harness-debug or assumption-discovery surface. It is only a deterministic execution surface for exact Product mutation and genuinely required native Windows proof.
+- When direct local worktree access is unavailable, hand the executor one non-executable, auditable instruction containing exact worktree/preconditions, exact authorized paths, exact mutation semantics or exact patch, ordinary trusted repository/mature-tool commands, focused validations, FIRST RED stop rule, required returned evidence, and explicit forbidden actions.
+- Existing repository scripts and mature tools may be invoked normally. The Controller MUST NOT wrap them in a new ad-hoc helper framework or create a second authority for lifecycle, state, routing, dependency materialization, packaging, retry/recovery, or proof.
+- A helper/harness failure before Product mutation is `HELPER_RED`/`HARNESS_RED`, never Product RED. After one such failure, another same-purpose agent-authored helper generation or retry is forbidden.
+- If exact dirty local bytes are required and unavailable remotely, obtain the complete relevant file once or let the executor inspect/edit it directly under the deterministic instruction. Do not reconstruct exact source through repeated user-operated probes.
+- Repeated helper versions, user-machine harness debugging, or helper-on-helper repair without a production diff or promotion-state advance are `CONTROLLER_EXECUTION_FAILURE`.
+- The required recovery from a helper/harness RED is immediate transition to direct deterministic Product mutation through the executor, direct connector/source mutation where available, or a genuinely required native Windows proof — not another helper version.
