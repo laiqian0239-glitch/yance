@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 env:
   PRODUCT_BRANCH: ${{ github.event.pull_request.head.ref }}
@@ -409,6 +410,31 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Learning runtime materialization failed: $LASTEXITCODE" }
           if (-not (Test-Path -LiteralPath (Join-Path $output 'runtime-seal.json') -PathType Leaf)) { throw 'Learning runtime seal missing' }
           "root=$output" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Download and verify same-head sealed Matrix runtime
+        id: matrix_runtime
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:RUNNER_TEMP 'product-uat-matrix-runtime'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $root
+          New-Item -ItemType Directory -Path $root | Out-Null
+          $artifactName = "Product-Experience-Materialized-Matrix-UAT-$env:CANDIDATE_SHA"
+          gh run download $env:GITHUB_RUN_ID --repo $env:GITHUB_REPOSITORY --name $artifactName --dir $root
+          if ($LASTEXITCODE -ne 0) { throw "same-run sealed Matrix artifact download failed: $LASTEXITCODE" }
+          if (-not (Test-Path -LiteralPath (Join-Path $root 'matrix-images.tar') -PathType Leaf)) { throw 'downloaded sealed Matrix runtime is missing matrix-images.tar' }
+          if (-not (Test-Path -LiteralPath (Join-Path $root 'materialized-matrix-compose.yml') -PathType Leaf)) { throw 'downloaded sealed Matrix runtime is missing materialized-matrix-compose.yml' }
+          node tools/product-experience/create-materialized-uat-candidate.js verify `
+            --root $root `
+            --bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY `
+            --candidate-branch $env:CANDIDATE_BRANCH `
+            --candidate-commit $env:CANDIDATE_SHA `
+            --candidate-tree '${{ steps.identity.outputs.tree }}'
+          if ($LASTEXITCODE -ne 0) { throw 'downloaded sealed Matrix runtime identity verification failed' }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'Matrix artifact transport must leave Product source clean' }
+          "root=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Materialize exact trusted rcedit custody input
         id: rcedit

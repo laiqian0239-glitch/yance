@@ -545,3 +545,41 @@ test('Element lock replay successor-v6 is admitted by exactly the three existing
     /head\.ref[\s\S]{0,80}(?:startsWith|contains|matches).*element-lock-replay-incremental/iu
   );
 });
+
+test('Product Final transports the same-head sealed Matrix bundle into WP7 without creating a second Matrix owner', () => {
+  const source = readWorkflow();
+
+  assert.match(source, /permissions:\s*\n\s*contents:\s*read\s*\n\s*actions:\s*read/u);
+
+  const desktopStart = source.indexOf('  materialized-desktop-uat:');
+  const matrixStart = source.indexOf('  materialized-matrix-uat:');
+  assert.ok(desktopStart >= 0 && matrixStart > desktopStart, 'desktop and Matrix Product Final jobs must exist');
+  const desktop = source.slice(desktopStart, matrixStart);
+
+  assert.match(desktop, /materialized-desktop-uat:\s*\n\s*needs:\s*materialized-matrix-uat/u);
+  assert.equal((desktop.match(/gh run download \$env:GITHUB_RUN_ID/gu) || []).length, 1, 'desktop must transport the sealed Matrix artifact exactly once');
+  assert.match(desktop, /Product-Experience-Materialized-Matrix-UAT-\$env:CANDIDATE_SHA/u);
+  assert.match(desktop, /--bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY/u);
+  assert.match(desktop, /--candidate-branch \$env:CANDIDATE_BRANCH/u);
+  assert.match(desktop, /--candidate-commit \$env:CANDIDATE_SHA/u);
+  assert.match(desktop, /--candidate-tree '\$\{\{ steps\.identity\.outputs\.tree \}\}'/u);
+
+  const builderStart = desktop.indexOf('node tools/wp7/create-pre-review-trusted-product.js');
+  assert.ok(builderStart >= 0, 'existing WP7 trusted-product builder must remain the desktop assembly owner');
+  const builder = desktop.slice(builderStart, desktop.indexOf('\n          if ($LASTEXITCODE', builderStart));
+  assert.match(builder, /--matrix-runtime-source '\$\{\{ steps\.matrix_runtime\.outputs\.root \}\}'/u);
+  assert.match(builder, /--matrix-runtime-candidate-branch \$env:CANDIDATE_BRANCH/u);
+  assert.match(builder, /--matrix-runtime-candidate-commit \$env:CANDIDATE_SHA/u);
+  assert.match(builder, /--matrix-runtime-candidate-tree '\$\{\{ steps\.identity\.outputs\.tree \}\}'/u);
+
+  const transportStart = desktop.indexOf('- name: Download and verify same-head sealed Matrix runtime');
+  const transportEnd = desktop.indexOf('\n      - name:', transportStart + 1);
+  assert.ok(transportStart >= 0 && transportEnd > transportStart, 'same-head Matrix transport step must be independently bounded');
+  const transport = desktop.slice(transportStart, transportEnd);
+  assert.match(transport, /create-materialized-uat-candidate\.js verify/u);
+  assert.doesNotMatch(transport, /create-materialized-uat-candidate\.js seal/u);
+  assert.doesNotMatch(transport, /docker\s+(?:build|save)|docker compose|tools\/matrix\/bootstrap\.js/u);
+  assert.doesNotMatch(transport, /continue-on-error|fallback|retry/iu);
+
+  assert.doesNotMatch(desktop, /docker\s+build[^\\n]*yance-product-uat-(?:synapse|element|mautrix)/u);
+});
