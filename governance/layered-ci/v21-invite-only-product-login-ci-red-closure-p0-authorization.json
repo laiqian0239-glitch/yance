@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-15T06:31:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-INVITE-ONLY-PRODUCT-LOGIN-CI-RED-CLOSURE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen Product PR #1239 exact head a38a5a9a8787630db032cee931bbdca7089d9d4f completed one CI attempt. Nine of eleven PR workflows were GREEN. WP-B Validation failed cross-platform only on WP_B_XSTATE_PACKAGE_LOCK_DIGEST_MISMATCH because the existing XState 5.32.5 supply-chain authority still binds the pre-candidate package-lock bytes. Product Final Element and Matrix jobs were GREEN, while the Windows desktop job failed only at the existing WP7 trusted-product builder with WP7_MATRIX_RUNTIME_REQUIRED because the desktop job does not transport the already-sealed same-head Matrix artifact into the mature WP7 matrix-runtime-source public seam. This authorization closes both fully consumed CI blockers in one successor causal batch without changing Product runtime authority, Matrix lifecycle authority, XState authority, dependency versions, or the frozen predecessor head.",
+  "base": {
+    "branch": "main",
+    "commit": "e1bf1c9c1fb767f00da2248cad557b3d328145ef",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "e1bf1c9c1fb767f00da2248cad557b3d328145ef",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-invite-only-product-login-ci-red-closure-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-invite-only-product-login-ci-red-closure-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "034ae2e7427c9550e999c2d05750584e2563092fcc599b16c5570c2dc97cf8aa",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-invite-only-product-login-ci-red-closure-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorPullRequest": 1239,
+      "frozenPredecessorHead": "a38a5a9a8787630db032cee931bbdca7089d9d4f",
+      "frozenPredecessorTree": "6481d76024c841b0ddba4eabc9a9fab9c5b9cded",
+      "frozenPredecessorMustRemainImmutable": true
+    },
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "backend/middleware/personalAccessGuard.js",
+      "backend/routes/personalAccess.js",
+      "backend/server.js",
+      "backend/services/personalAccessService.js",
+      "backend/tests/personalAccessControlP0.test.js",
+      "electron/m2/ipcManifest.json",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PersonalAccessSurface.tsx",
+      "package-lock.json",
+      "package.json",
+      "release/architecture-closure-v2/wp-b-governance-package.json",
+      "release/production-dependency-binding.json",
+      "services/matrix/docker-compose.yml",
+      "services/personal-access-worker/src/index.mjs",
+      "services/personal-access-worker/tests/personal-access-worker.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+      "tests/wp0/v21-personal-access-control-p0.test.js",
+      "tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tools/product-experience/materialized-matrix-compose.yml",
+      "tools/wp2/command-path-inventory.js"
+    ],
+    "approvedChangedFileCount": 30,
+    "approvedChangedFileSetSha256": "84a47e96658c95c39d9e6fa2c8c6babee3114050ef512ea187ae1f295f6b4ff5",
+    "newlyAuthorizedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "release/architecture-closure-v2/wp-b-governance-package.json",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 4,
+    "newlyAuthorizedChangedFileSetSha256": "12e775d02ba29ddb1d6e76c1993690c221689881a3c88bedb6092225169ca3af",
+    "productionCodeChanged": false,
+    "productRuntimeModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "testModificationAllowed": true,
+    "routingPolicyModificationAllowed": false,
+    "riskPolicyModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "releaseLedgerModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "sameWorkflowOnly": true,
+      "parallelProductFinalWorkflowForbidden": true
+    },
+    "newlyAuthorizedRootFixes": {
+      "wpBPackageLockAuthorityRebind": {
+        "authorityPath": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+        "packagedGovernancePath": "release/architecture-closure-v2/wp-b-governance-package.json",
+        "requiredBehavior": "Preserve XState 5.32.5 artifact identity, upstream commit, integrity, evidence, governance state and no-production-use state. Rebind only the existing repositoryBinding package-lock Git blob/SHA-256 fields to the exact inherited Product candidate package-lock bytes, then update only the existing packaged-governance sourceBindings row for the XState supply-chain lock to that newly reviewed lock-file Git blob. Do not weaken either verifier and do not change package.json or package-lock.json."
+      },
+      "productFinalMatrixRuntimeTransport": {
+        "workflowPath": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "staticContractPath": "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "requiredBehavior": "Keep the existing materialized Matrix job as the sole Matrix build/readiness/seal owner. Make the Windows desktop materialization job depend on that GREEN Matrix job, transport only the exact Product-Experience-Materialized-Matrix-UAT-${github.event.pull_request.head.sha} artifact into the Windows job with official actions/download-artifact pinned to commit d3f86a106a0bac45b974a628896c90dbdf5c8093, verify the downloaded root is the same candidate identity, and pass that root plus the existing candidate branch/commit/tree into the mature WP7 --matrix-runtime-source / --matrix-runtime-candidate-* seam. Do not rebuild Matrix on Windows, do not create a second Matrix lifecycle, and do not introduce custom artifact download code."
+      },
+      "successorBranchAdmission": {
+        "branch": "fix/v21-invite-only-product-login-ci-red-closure-p0",
+        "requiredBehavior": "Admit the successor by exact literal equality in the same three Product Final job guards and matching exact-set static contract only. No wildcard, prefix, contains, startsWith or generic successor admission."
+      }
+    }
+  },
+  "causalRedEvidence": {
+    "frozenPullRequest": 1239,
+    "frozenHead": "a38a5a9a8787630db032cee931bbdca7089d9d4f",
+    "allSameAttemptWorkflowRunsConsumed": true,
+    "workflowRunCount": 11,
+    "greenWorkflowCount": 9,
+    "redWorkflowCount": 2,
+    "wpBValidation": {
+      "runId": 34897574614,
+      "failureCode": "WP_B_XSTATE_PACKAGE_LOCK_DIGEST_MISMATCH",
+      "crossPlatformReproduced": true,
+      "otherAssertionsGreenPerPlatform": "66/67"
+    },
+    "productFinal": {
+      "runId": 34897574624,
+      "elementJob": "GREEN",
+      "matrixJob": "GREEN",
+      "matrixArtifactDigest": "sha256:7772d82518741f568c436c95e29176f0abbf0c1da08a49a71cf993b77b7ec0df",
+      "desktopJob": "RED",
+      "desktopFailureStep": "Build existing WP7 PRE_REVIEW_ONLY trusted desktop and seal Product bundle",
+      "failureCode": "WP7_MATRIX_RUNTIME_REQUIRED",
+      "preFailureDesktopAuthoritiesGreen": [
+        "official Electron Release asset",
+        "isolated Electron npm trust metadata",
+        "reviewed Windows production dependency closure",
+        "trusted Node 22.23.1",
+        "presealed Parlant runtime",
+        "presealed Learning runtime",
+        "trusted rcedit",
+        "isolated WP7 archive OSS toolchain",
+        "node-tar PAX determinism contract"
+      ]
+    },
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "a38a5a9a8787630db032cee931bbdca7089d9d4f",
+    "failureFirstEvidenceInheritedFromFrozenPredecessor": true,
+    "requiredInheritedRedRuns": [34897574614, 34897574624],
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionBeyond30Forbidden": true,
+    "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+  },
+  "matureAuthority": {
+    "wpB": {
+      "owner": "existing WP-B XState supply-chain lock and verifier",
+      "shadowAuthorityAdded": false,
+      "verifierWeakeningAllowed": false
+    },
+    "matrix": {
+      "owner": "existing pinned Matrix bootstrap + Docker Compose + materialized-matrix-uat job",
+      "desktopMayBuildMatrix": false,
+      "shadowLifecycleAdded": false
+    },
+    "wp7": {
+      "owner": "existing tools/wp7 create-pre-review trusted-product builder and matrix-runtime-source seam",
+      "secondBuilderAllowed": false
+    },
+    "artifactTransport": {
+      "owner": "official actions/download-artifact",
+      "repository": "actions/download-artifact",
+      "reviewedTag": "v4.3.0",
+      "exactCommit": "d3f86a106a0bac45b974a628896c90dbdf5c8093",
+      "license": "MIT",
+      "customDownloaderAllowed": false
+    }
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "negativeProofs": [
+      "PR #1239/head a38a5a9 remains immutable FIRST-RED evidence and is not rerun or amended.",
+      "No Product runtime, Matrix runtime implementation, Element authority, Unkey authority, Electron authority, dependency version, package manifest or package lock mutation is authorized.",
+      "No second Matrix build, lifecycle, mirror state, custom downloader, workflow, verifier or fallback authority is authorized.",
+      "Retired historical OSS-A third_party lock/provenance/SBOM authorities are not resurrected into the current production path.",
+      "Only four newly authorized paths may differ beyond the inherited 26-path frozen Product candidate."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "ordinaryTwoParentMergeRequired": true,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  },
+  "prohibitions": {
+    "runtimeProductMutation": true,
+    "matrixLifecycleMutation": true,
+    "elementSessionAuthorityMutation": true,
+    "personalAccessAuthorityMutation": true,
+    "packageManifestMutation": true,
+    "lockfileMutation": true,
+    "dependencyChange": true,
+    "timeoutChange": true,
+    "verifierWeakening": true,
+    "customArtifactDownloader": true,
+    "secondMatrixBuild": true,
+    "secondApplicationBuild": true,
+    "wildcardOrPrefixAdmission": true,
+    "forcePush": true,
+    "rebase": true,
+    "squashMerge": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
